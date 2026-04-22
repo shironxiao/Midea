@@ -321,7 +321,7 @@ Partial Class MainForm
         Me.lblCard2Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
         Me.lblCard2Title.Size = New System.Drawing.Size(185, 45)
         Me.lblCard2Title.TabIndex = 0
-        Me.lblCard2Title.Text = "Products"
+Me.lblCard2Title.Text = "Transactions"
         '
         'lblCard2Value
         '

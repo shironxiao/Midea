@@ -111,7 +111,7 @@ Public Class MainForm
                                  Next
                              End Sub
         SetupCardClick(pnlCard1, AddressOf btnTransactions_Click)
-        ' SetupCardClick(pnlCard2, AddressOf btnProducts_Click) ' Retired
+        SetupCardClick(pnlCard2, AddressOf btnTransactions_Click)
         SetupCardClick(pnlCard3, AddressOf btnServiceRequests_Click)
         SetupCardClick(pnlCard4, AddressOf btnWarrantyClaims_Click)
 
@@ -2082,9 +2082,8 @@ Public Class MainForm
                 lblCard1Value.Text = "₱" & Convert.ToDecimal(cmd.ExecuteScalar()).ToString("N2")
             End Using
 
-            ' Products are general stock, date filter usually doesn't apply to total physical goods.
-            Dim qProd = "SELECT COUNT(*) FROM PRODUCT"
-            Using cmd As New MySqlCommand(qProd, conn)
+            Dim qTrans = "SELECT COUNT(*) FROM PURCHASE" & String.Format(dateCondition, "P.Purchase_Date")
+            Using cmd As New MySqlCommand(qTrans, conn)
                 lblCard2Value.Text = Convert.ToInt32(cmd.ExecuteScalar()).ToString()
             End Using
 
