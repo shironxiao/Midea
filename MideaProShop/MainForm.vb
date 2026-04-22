@@ -1,4 +1,4 @@
-﻿Imports System.Drawing
+Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
 Imports MySql.Data.MySqlClient
@@ -23,6 +23,8 @@ Public Class MainForm
     Private _orderItemsPanel As FlowLayoutPanel
     Private _lblSubtotal As Label
     Private _lblTotal As Label
+    Private _txtSalesSearch As TextBox = Nothing
+    Private _cmbCheckoutStaff As ComboBox = Nothing
 
     ' Order items: key = Product_ID, value = (name, price, qty)
     Private _orderItems As New Dictionary(Of Integer, Tuple(Of String, Decimal, Integer))
@@ -50,6 +52,31 @@ Public Class MainForm
             Dim cm = New MySqlCommand(createSql, conn)
             cm.ExecuteNonQuery()
         Catch ex As Exception
+        End Try
+
+        ' Seed sample PRODUCTS if table empty
+        Try
+            Dim countCmd As New MySqlCommand("SELECT COUNT(*) FROM PRODUCT", conn)
+            Dim productCount = Convert.ToInt32(countCmd.ExecuteScalar())
+            If productCount = 0 Then
+                Dim seedProducts As String = "INSERT INTO PRODUCT (Product_Name, Product_Category, Unit_Price, Stock_Quantity, Product_Description) VALUES " &
+                                             "('Midea 1.5HP Inverter AC', 'Air Conditioners', 35000.00, 15, 'Split type inverter air conditioner with smart features'), " &
+                                             "('Midea 2.0HP Window AC', 'Air Conditioners', 28000.00, 8, 'Powerful window type cooling'), " &
+                                             "('Midea 1.0HP Inverter AC', 'Air Conditioners', 25000.00, 12, 'Compact inverter model for small rooms'), " &
+                                             "('Midea 8kg Top Load Washer', 'Washing Machines', 18000.00, 20, 'Front load washing machine with 8kg capacity'), " &
+                                             "('Midea 10kg Inverter Washer', 'Washing Machines', 22000.00, 10, 'Inverter technology for quiet operation'), " &
+                                             "('Midea 7kg Twin Tub', 'Washing Machines', 12000.00, 25, 'Budget twin tub washer'), " &
+                                             "('Midea 55"" Smart TV 4K', 'Televisions', 32000.00, 6, '4K UHD smart television'), " &
+                                             "('Midea 43"" Full HD TV', 'Televisions', 18000.00, 14, 'Full HD smart TV for bedrooms'), " &
+                                             "('Midea 65"" QLED TV', 'Televisions', 55000.00, 3, 'Premium QLED 65 inch display'), " &
+                                             "('Midea 10cu.ft Refrigerator', 'Refrigerators', 28000.00, 9, 'No-frost refrigerator with vegetable drawer'), " &
+                                             "('Midea 12cu.ft Side-by-Side', 'Refrigerators', 45000.00, 5, 'Side by side with ice maker'), " &
+                                             "('Midea 8cu.ft Single Door', 'Refrigerators', 15000.00, 18, 'Compact single door refrigerator');"
+                Dim seedCm = New MySqlCommand(seedProducts, conn)
+                seedCm.ExecuteNonQuery()
+            End If
+        Catch ex As Exception
+            ' Silent if table doesn''t exist yet
         End Try
 
         ' Build content panels
@@ -238,18 +265,20 @@ Public Class MainForm
 
         ' Continue button
         Dim btnContinue As New Button()
-        btnContinue.Text = "Continue"
-        btnContinue.Font = New Font("Segoe UI", 12, FontStyle.Bold)
+        btnContinue.Text = "Continue to Checkout"
+        btnContinue.Font = New Font("Segoe UI", 11, FontStyle.Bold)
         btnContinue.ForeColor = Color.White
         btnContinue.BackColor = Color.FromArgb(0, 120, 215)
         btnContinue.FlatStyle = FlatStyle.Flat
         btnContinue.FlatAppearance.BorderSize = 0
-        btnContinue.Size = New Size(pnlTotals.Width - 40, 42)
+        btnContinue.Size = New Size((pnlTotals.Width / 2) - 25, 42)
         btnContinue.Location = New Point(10, yTotals)
         btnContinue.Anchor = AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Top
         btnContinue.Cursor = Cursors.Hand
         AddHandler btnContinue.Click, AddressOf CheckoutContinue_Click
         pnlTotals.Controls.Add(btnContinue)
+
+
 
         pnlOrder.Controls.Add(pnlTotals)
 
@@ -293,8 +322,9 @@ Public Class MainForm
         txtSearch.Text = ""
         txtSearch.ForeColor = Color.Gray
         pnlTitleBar.Controls.Add(txtSearch)
+        _txtSalesSearch = txtSearch
 
-        ' Search placeholder
+        ' Search placeholder & handlers
         Dim searchPlaceholder As String = "🔍  Search products..."
         txtSearch.Text = searchPlaceholder
         AddHandler txtSearch.GotFocus, Sub(s, ev)
@@ -309,6 +339,7 @@ Public Class MainForm
                                                 txtSearch.ForeColor = Color.Gray
                                             End If
                                         End Sub
+        AddHandler txtSearch.TextChanged, AddressOf SalesSearch_TextChanged
 
         pnlLeft.Controls.Add(pnlTitleBar)
 
@@ -379,8 +410,55 @@ Public Class MainForm
             LoadProducts(firstBtn.Tag.ToString())
         End If
 
+        AddHandler pnl.Resize, Sub(s, ev)
+                                   If _txtSalesSearch IsNot Nothing Then
+                                       SalesSearch_TextChanged(Nothing, EventArgs.Empty)
+                                   End If
+                                   ResizeProductCards()
+                               End Sub
+
         Return pnl
     End Function
+
+    Private Sub SalesSearch_TextChanged(sender As Object, e As EventArgs)
+        Dim searchTerm = If(_txtSalesSearch IsNot Nothing, _txtSalesSearch.Text.Trim().ToLower(), "")
+        If String.IsNullOrEmpty(searchTerm) AndAlso _activeCategoryBtn IsNot Nothing Then
+            LoadProducts(_activeCategoryBtn.Tag.ToString()) ' Restore category view
+        Else
+            LoadProductsWithSearch(searchTerm) ' Cross-category search
+        End If
+    End Sub
+
+    Private Sub LoadProductsWithSearch(searchTerm As String)
+        _productGrid.SuspendLayout()
+        _productGrid.Controls.Clear()
+
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+            Dim query As String = "SELECT Product_ID, Product_Name, Unit_Price, Stock_Quantity, Product_Description " &
+                                  "FROM PRODUCT WHERE (LOWER(Product_Name) LIKE @search OR LOWER(Product_Description) LIKE @search OR LOWER(Product_Category) LIKE @search) " &
+                                  "ORDER BY Product_Name LIMIT 50"
+            Using sqlCmd As New MySqlCommand(query, conn)
+                sqlCmd.Parameters.AddWithValue("@search", "%" & searchTerm & "%")
+                Using reader As MySqlDataReader = sqlCmd.ExecuteReader()
+                    While reader.Read()
+                        Dim id = reader.GetInt32("Product_ID")
+                        Dim name = reader.GetString("Product_Name")
+                        Dim price = reader.GetDecimal("Unit_Price")
+                        Dim stock = reader.GetInt32("Stock_Quantity")
+                        Dim description = If(reader.IsDBNull(reader.GetOrdinal("Product_Description")), "", reader.GetString("Product_Description"))
+                        Dim card = CreateProductCard(id, name, price, stock, description)
+                        _productGrid.Controls.Add(card)
+                    End While
+                End Using
+            End Using
+        Catch ex As Exception
+            ' Silently handle DB errors
+        End Try
+
+        _productGrid.ResumeLayout(True)
+        ResizeProductCards()
+    End Sub
 
     ' ── Category filter click handler ──
     Private Sub CategoryFilter_Click(sender As Object, e As EventArgs)
@@ -436,47 +514,52 @@ Public Class MainForm
     End Sub
 
     ''' <summary>
-    ''' Recalculates product card widths to fill the grid evenly.
-    ''' Determines how many columns fit and distributes remaining space.
+    ''' Recalculates product card widths to fill the grid evenly with improved responsiveness.
     ''' </summary>
     Private Sub ResizeProductCards()
         If _productGrid Is Nothing OrElse _productGrid.Controls.Count = 0 Then Return
 
-        Dim gridWidth As Integer = _productGrid.ClientSize.Width - _productGrid.Padding.Horizontal
-        Dim cardMargin As Integer = 8 ' matches card.Margin
-        Dim minCardWidth As Integer = 155
-        Dim totalCardSlot As Integer = minCardWidth + (cardMargin * 2)
+        Dim gridWidth As Integer = _productGrid.ClientSize.Width - _productGrid.Padding.Horizontal - 20 ' extra padding
+        If gridWidth < 200 Then Return ' too narrow, skip
 
-        ' How many columns fit?
-        Dim cols As Integer = Math.Max(1, gridWidth \ totalCardSlot)
-        Dim cardWidth As Integer = (gridWidth \ cols) - (cardMargin * 2)
-        ' Clamp to a reasonable max
-        If cardWidth > 280 Then cardWidth = 280
+        Dim cardMargin As Integer = 16 ' effective margin
+        Dim minCardWidth As Integer = 160
+        Dim maxCardWidth As Integer = 300
+
+        ' Optimal columns based on width
+        Dim cols As Integer = 1
+        If gridWidth >= 650 Then
+            cols = 4
+        ElseIf gridWidth >= 450 Then
+            cols = 3
+        ElseIf gridWidth >= 300 Then
+            cols = 2
+        End If
+
+        Dim cardWidth As Integer = Math.Max(minCardWidth, Math.Min((gridWidth - (cardMargin * (cols + 1))) / cols, maxCardWidth))
+        Dim spacing As Integer = (gridWidth - (cardWidth * cols)) / (cols + 1)
 
         _productGrid.SuspendLayout()
         For Each ctrl As Control In _productGrid.Controls
             If TypeOf ctrl Is Panel Then
                 Dim card = DirectCast(ctrl, Panel)
                 card.Width = cardWidth
+                card.Margin = New Padding(spacing, 8, spacing, 8)
 
-                ' Reposition the + button to the new right edge
+                ' Reposition children
                 For Each child As Control In card.Controls
-                    If TypeOf child Is Button AndAlso DirectCast(child, Button).Text = "+" Then
-                        child.Location = New Point(card.Width - 42, child.Location.Y)
-                    End If
-                    ' Adjust product name label width
-                    If TypeOf child Is Label Then
-                        Dim lbl = DirectCast(child, Label)
-                        If lbl.MaximumSize.Width > 0 Then
-                            Dim nameWidth = cardWidth - 24
-                            lbl.Size = New Size(nameWidth, lbl.Size.Height)
-                            lbl.MaximumSize = New Size(nameWidth, lbl.MaximumSize.Height)
-                        End If
+                    If TypeOf child Is Button AndAlso child.Text = "+" Then
+                        child.Location = New Point(card.Width - 45, 148)
+                    ElseIf TypeOf child Is Label AndAlso child.Text.StartsWith("₱") Then ' price
+                        child.Location = New Point(12, 145)
+                    ElseIf TypeOf child Is Label AndAlso child.Text.StartsWith("Stock:") Then
+                        child.Location = New Point(12, 168)
                     End If
                 Next
             End If
         Next
         _productGrid.ResumeLayout(True)
+        _productGrid.PerformLayout()
     End Sub
 
     Private Function CreateProductCard(id As Integer, name As String, price As Decimal, stock As Integer, description As String) As Panel
@@ -604,7 +687,7 @@ Public Class MainForm
         RefreshOrderPanel()
     End Sub
 
-    Private Sub RefreshOrderPanel()
+Private Sub RefreshOrderPanel()
         _orderItemsPanel.SuspendLayout()
         _orderItemsPanel.Controls.Clear()
 
@@ -699,6 +782,8 @@ Public Class MainForm
         ' Update totals
         _lblSubtotal.Text = "₱" & subtotal.ToString("N2")
         _lblTotal.Text = "₱" & subtotal.ToString("N2")
+        
+
     End Sub
 
     ''' <summary>
@@ -880,13 +965,11 @@ Public Class MainForm
         ' --- FORM ---
         pnlSRFormWrapper = New Panel() With {.Dock = DockStyle.Fill, .Visible = False, .AutoScroll = True, .Padding = New Padding(30)}
         
+        Dim lblFormTitle As New Label() With {.Text = "Create New Service Request", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Dock = DockStyle.Top, .Height = 50}
+        pnlSRFormWrapper.Controls.Add(lblFormTitle)
+
         Dim formContainer As New Panel() With {.Dock = DockStyle.Top, .AutoSize = True, .BackColor = Color.White, .Padding = New Padding(20)}
         Dim yPos As Integer = 15
-        
-        ' Add the title label at the top of the form
-        Dim lblFormTitle As New Label() With {.Text = "Create New Service Request", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Location = New Point(15, yPos), .AutoSize = True}
-        formContainer.Controls.Add(lblFormTitle)
-        yPos += 50  ' Space after the title
         
         Dim BuildHeader = Sub(txt As String)
             Dim lblH As New Label() With {.Text = txt, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .Location = New Point(15, yPos), .AutoSize = True}
@@ -1614,6 +1697,7 @@ Public Class MainForm
     Private _pnlNewCustCheckout As Panel
     Private _pnlExistCustCheckout As Panel
 
+
     Private Sub LoadCustomersToCombo(cmb As ComboBox)
         Try
             If conn.State <> ConnectionState.Open Then OpenConnection()
@@ -1646,7 +1730,6 @@ Public Class MainForm
         pnl.Dock = DockStyle.Fill
         pnl.BackColor = Color.FromArgb(240, 240, 245)
         pnl.Visible = False
-        pnl.Padding = New Padding(0)
 
         ' Title label
         Dim lblTitle As New Label()
@@ -1658,15 +1741,13 @@ Public Class MainForm
         lblTitle.Height = 70
         pnl.Controls.Add(lblTitle)
 
-        ' Form fields container
-        Dim formContainer As New Panel()
-        formContainer.Dock = DockStyle.Top
-        formContainer.Padding = New Padding(30, 10, 30, 10)
-        formContainer.AutoSize = True
-        formContainer.BackColor = Color.White
-        formContainer.Location = New Point(30, 80)
+        ' Scrollable main content
+        Dim scrollContainer As New Panel() With {.Dock = DockStyle.Fill, .AutoScroll = True}
+        Dim formContainer As New Panel() With {.AutoSize = True, .BackColor = Color.White, .Padding = New Padding(40), .MinimumSize = New Size(600, 0)}
+        scrollContainer.Controls.Add(formContainer)
+        pnl.Controls.Add(scrollContainer)
 
-        Dim yPos As Integer = 15
+        Dim yPos As Integer = 20
 
         ' Customer Type Selection
         _optNewCustCheckout = New RadioButton() With {.Text = "New Customer", .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Location = New Point(15, yPos), .AutoSize = True, .Checked = True}
@@ -1888,6 +1969,11 @@ Public Class MainForm
     Private Sub btnSales_Click(sender As Object, e As EventArgs) Handles btnSales.Click
         SetActiveButton(btnSales)
         ShowPanel(pnlSales)
+        ' Auto-load default products - pnlFilters local to BuildSalesPOSPanel, skip check
+        If _productGrid IsNot Nothing Then
+            _productGrid.Controls.Clear()
+            LoadProducts("Air Conditioners") ' Default category
+        End If
     End Sub
 
     Private Sub btnServiceRequests_Click(sender As Object, e As EventArgs) Handles btnServiceRequests.Click
