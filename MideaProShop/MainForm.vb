@@ -901,6 +901,17 @@ Private Sub RefreshOrderPanel()
     Private _cmbStatusFilter As ComboBox
     Private pnlSRDashboard As Panel
     Private pnlSRFormWrapper As Panel
+    Private pnlSRDetailWrapper As Panel
+    Private lblSRDetailTitle As Label
+    Private lblSRDetailCustomer As Label
+    Private lblSRDetailStatus As Label
+    Private lblSRDetailDates As Label
+    Private lblSRDetailAddress As Label
+    Private lblSRDetailService As Label
+    Private lblSRDetailStaff As Label
+    Private lblSRDetailTech As Label
+    Private pnlSRDetailBody As Panel
+    Private flpSRDetailLines As FlowLayoutPanel
 
     ' Form specific
     Private _optSRNewCust As RadioButton
@@ -952,7 +963,7 @@ Private Sub RefreshOrderPanel()
         pnlSRDashboard.Controls.Add(pnlTop)
 
         flpServiceRequests = New FlowLayoutPanel() With {
-            .Dock = DockStyle.Fill, 
+            .Dock = DockStyle.Fill,
             .AutoScroll = True, 
             .Padding = New Padding(20),
             .BackColor = Color.FromArgb(245, 245, 248)
@@ -962,11 +973,61 @@ Private Sub RefreshOrderPanel()
 
         pnlMain.Controls.Add(pnlSRDashboard)
 
+        ' --- DETAIL WRAPPER (same style flow as Transactions) ---
+        pnlSRDetailWrapper = New Panel() With {.Dock = DockStyle.Fill, .Visible = False, .AutoScroll = True, .Padding = New Padding(30)}
+
+        Dim pnlDetailTop As New Panel() With {.Dock = DockStyle.Top, .Height = 145}
+
+        Dim btnBackSR As New Button() With {.Text = "← Back to Service Requests", .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80, 80, 80), .FlatStyle = FlatStyle.Flat, .Location = New Point(0, 0), .AutoSize = True, .Cursor = Cursors.Hand}
+        btnBackSR.FlatAppearance.BorderSize = 0
+        AddHandler btnBackSR.Click, Sub()
+                                      pnlSRDetailWrapper.Visible = False
+                                      pnlSRDashboard.Visible = True
+                                  End Sub
+        pnlDetailTop.Controls.Add(btnBackSR)
+
+        lblSRDetailTitle = New Label() With {.Text = "Service Request #", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Location = New Point(0, 35), .AutoSize = True}
+        pnlDetailTop.Controls.Add(lblSRDetailTitle)
+
+        lblSRDetailCustomer = New Label() With {.Text = "Customer: ", .Font = New Font("Segoe UI", 12), .ForeColor = Color.FromArgb(60, 60, 60), .Location = New Point(0, 78), .AutoSize = True}
+        pnlDetailTop.Controls.Add(lblSRDetailCustomer)
+
+        lblSRDetailStatus = New Label() With {.Text = "Status: ", .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215), .Location = New Point(500, 78), .AutoSize = True}
+        pnlDetailTop.Controls.Add(lblSRDetailStatus)
+
+        lblSRDetailDates = New Label() With {.Text = "Dates: ", .Font = New Font("Segoe UI", 11), .ForeColor = Color.FromArgb(70, 70, 70), .Location = New Point(0, 110), .AutoSize = True}
+        pnlDetailTop.Controls.Add(lblSRDetailDates)
+
+        pnlSRDetailBody = New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.White, .Padding = New Padding(20)}
+        Dim lblHdr As New Label() With {.Text = "Request Information", .Font = New Font("Segoe UI", 14, FontStyle.Bold), .Dock = DockStyle.Top, .Height = 40}
+        Dim hdrLine As New Panel() With {.Dock = DockStyle.Top, .Height = 1, .BackColor = Color.FromArgb(200, 200, 200)}
+
+        flpSRDetailLines = New FlowLayoutPanel() With {.Dock = DockStyle.Fill, .AutoScroll = True, .FlowDirection = FlowDirection.TopDown, .WrapContents = False, .Padding = New Padding(0, 10, 0, 10)}
+
+        lblSRDetailAddress = New Label() With {.Text = "Address: ", .Font = New Font("Segoe UI", 11), .AutoSize = True}
+        lblSRDetailService = New Label() With {.Text = "Service: ", .Font = New Font("Segoe UI", 11), .AutoSize = True}
+        lblSRDetailStaff = New Label() With {.Text = "Staff: ", .Font = New Font("Segoe UI", 11), .AutoSize = True}
+        lblSRDetailTech = New Label() With {.Text = "Technician: ", .Font = New Font("Segoe UI", 11), .AutoSize = True}
+
+        flpSRDetailLines.Controls.Add(lblSRDetailAddress)
+        flpSRDetailLines.Controls.Add(lblSRDetailService)
+        flpSRDetailLines.Controls.Add(lblSRDetailStaff)
+        flpSRDetailLines.Controls.Add(lblSRDetailTech)
+        pnlSRDetailBody.Controls.Add(flpSRDetailLines)
+        pnlSRDetailBody.Controls.Add(hdrLine)
+        pnlSRDetailBody.Controls.Add(lblHdr)
+
+        pnlSRDetailWrapper.Controls.Add(pnlSRDetailBody)
+        pnlSRDetailWrapper.Controls.Add(pnlDetailTop)
+        AddHandler pnlSRDetailWrapper.SizeChanged, Sub() UpdateServiceRequestDetailLayout()
+        AddHandler pnlSRDetailBody.SizeChanged, Sub() UpdateServiceRequestDetailLayout()
+        UpdateServiceRequestDetailLayout()
+        pnlMain.Controls.Add(pnlSRDetailWrapper)
+
         ' --- FORM ---
         pnlSRFormWrapper = New Panel() With {.Dock = DockStyle.Fill, .Visible = False, .AutoScroll = True, .Padding = New Padding(30)}
         
         Dim lblFormTitle As New Label() With {.Text = "Create New Service Request", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Dock = DockStyle.Top, .Height = 50}
-        pnlSRFormWrapper.Controls.Add(lblFormTitle)
 
         Dim formContainer As New Panel() With {.Dock = DockStyle.Top, .AutoSize = True, .BackColor = Color.White, .Padding = New Padding(20)}
         Dim yPos As Integer = 15
@@ -1088,6 +1149,7 @@ Private Sub RefreshOrderPanel()
         formContainer.Controls.Add(btnCancelReq)
 
         pnlSRFormWrapper.Controls.Add(formContainer)
+        pnlSRFormWrapper.Controls.Add(lblFormTitle)
         pnlMain.Controls.Add(pnlSRFormWrapper)
 
         ' Make sure dashboard loads data when becoming visible
@@ -1196,16 +1258,29 @@ Private Sub RefreshOrderPanel()
 
         Try
             If conn.State <> ConnectionState.Open Then OpenConnection()
-            
-            Dim wid As Integer = Convert.ToInt32(_cmbSRWarranty.SelectedValue)
+
+            Dim warrantyValue As Object = _cmbSRWarranty.SelectedValue
+            If TypeOf warrantyValue Is DataRowView Then
+                _lblSRProduct.Text = "Associated Product: "
+                Return
+            End If
+
+            Dim wid As Integer = Convert.ToInt32(warrantyValue)
             Dim productName As String = ""
-            Dim q As String = "SELECT PR.Product_Name FROM PURCHASE_ITEMS PI JOIN PRODUCTS PR ON PI.ProductID = PR.Product_ID WHERE PI.PurchaseID = (SELECT Purchase_ID FROM WARRANTY WHERE Warranty_ID = @wid) LIMIT 1"
+            Dim q As String = "SELECT GROUP_CONCAT(DISTINCT PR.Product_Name ORDER BY PR.Product_Name SEPARATOR ', ') " &
+                              "FROM PURCHASE_ITEMS PI " &
+                              "JOIN PRODUCT PR ON PI.Product_ID = PR.Product_ID " &
+                              "WHERE PI.Purchase_ID = (SELECT Purchase_ID FROM WARRANTY WHERE Warranty_ID = @wid)"
             Using cmd As New MySqlCommand(q, conn)
                 cmd.Parameters.AddWithValue("@wid", wid)
                 Dim result = cmd.ExecuteScalar()
                 If result IsNot Nothing Then productName = result.ToString()
             End Using
-            _lblSRProduct.Text = "Associated Product: " & productName
+            If String.IsNullOrWhiteSpace(productName) Then
+                _lblSRProduct.Text = "Associated Product: N/A"
+            Else
+                _lblSRProduct.Text = "Associated Product: " & productName
+            End If
         Catch ex As Exception
             _lblSRProduct.Text = "Associated Product: "
         End Try
@@ -1238,29 +1313,43 @@ Private Sub RefreshOrderPanel()
                         Dim sType = reader("Service_Type").ToString()
 
                         Dim card As New Panel() With {
-                            .Size = New Size(280, 180),
+                            .Size = New Size(320, 260),
                             .Margin = New Padding(10),
                             .BackColor = Color.White,
                             .BorderStyle = BorderStyle.FixedSingle
                         }
                         
-                        Dim lblID As New Label() With {.Text = "Req ID: " & rId, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Location = New Point(10, 10), .AutoSize = True}
-                        card.Controls.Add(lblID)
-
-                        Dim lblCust As New Label() With {.Text = cName, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215), .Location = New Point(10, 35), .AutoSize = True}
+                        Dim lblCust As New Label() With {.Text = cName, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215), .Location = New Point(10, 15), .AutoSize = True}
                         card.Controls.Add(lblCust)
 
-                        Dim lblSvc As New Label() With {.Text = "Service: " & sType, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 65), .AutoSize = True}
+                        Dim lblSvc As New Label() With {.Text = "Service: " & sType, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 45), .AutoSize = True}
                         card.Controls.Add(lblSvc)
 
-                        Dim lblDate As New Label() With {.Text = "Date: " & rDate, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 90), .AutoSize = True}
+                        Dim lblDate As New Label() With {.Text = "Date: " & rDate, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 70), .AutoSize = True}
                         card.Controls.Add(lblDate)
+
+                        Dim btnDetails As New Button() With {
+                            .Text = "View Full Details",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(145, 32),
+                            .Location = New Point(10, 110),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(230, 240, 255),
+                            .ForeColor = Color.FromArgb(0, 90, 170),
+                            .Tag = rId
+                        }
+                        btnDetails.FlatAppearance.BorderSize = 0
+                        AddHandler btnDetails.Click, Sub(senderBtn, eBtn)
+                                                         ShowServiceRequestDetails(rId)
+                                                     End Sub
+                        card.Controls.Add(btnDetails)
 
                         Dim btnStatus As New Button() With {
                             .Text = rStat,
                             .Font = New Font("Segoe UI", 10, FontStyle.Bold),
-                            .Size = New Size(260, 35),
-                            .Location = New Point(10, 130),
+                            .Size = New Size(300, 35),
+                            .Location = New Point(10, 215),
                             .FlatStyle = FlatStyle.Flat,
                             .Cursor = Cursors.Hand,
                             .Tag = rId
@@ -1308,6 +1397,69 @@ Private Sub RefreshOrderPanel()
         Catch ex As Exception
             MessageBox.Show("Error updating status: " & ex.Message)
         End Try
+    End Sub
+
+    Private Sub ShowServiceRequestDetails(reqId As Integer)
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+
+            Dim q As String =
+                "SELECT " &
+                "SR.Request_ID, SR.Request_Date, SR.Scheduled_Date, SR.Request_Status, SR.Service_Address, " &
+                "C.Full_Name AS Customer_Name, C.Contact_Number AS Customer_Contact, " &
+                "S.Service_Type, S.Service_Description, S.Service_Fee, " &
+                "ST.Full_Name AS Staff_Name, " &
+                "TS.Full_Name AS Technician_Name " &
+                "FROM SERVICE_REQUEST SR " &
+                "JOIN CUSTOMER C ON SR.Customer_ID = C.Customer_ID " &
+                "LEFT JOIN SERVICE S ON SR.Service_ID = S.Service_ID " &
+                "LEFT JOIN STAFF ST ON SR.Staff_ID = ST.Staff_ID " &
+                "LEFT JOIN TECHNICIAN T ON SR.Technician_ID = T.Technician_ID " &
+                "LEFT JOIN STAFF TS ON T.Staff_ID = TS.Staff_ID " &
+                "WHERE SR.Request_ID = @id LIMIT 1"
+
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@id", reqId)
+                Using reader = cmd.ExecuteReader()
+                    If Not reader.Read() Then
+                        MessageBox.Show("Service request not found.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        Return
+                    End If
+
+                    Dim reqDate As String = Convert.ToDateTime(reader("Request_Date")).ToString("yyyy-MM-dd")
+                    Dim schedDate As String = If(reader("Scheduled_Date") Is DBNull.Value, "N/A", Convert.ToDateTime(reader("Scheduled_Date")).ToString("yyyy-MM-dd"))
+                    Dim serviceDesc As String = If(reader("Service_Description") Is DBNull.Value, "N/A", reader("Service_Description").ToString())
+                    Dim serviceFee As String = If(reader("Service_Fee") Is DBNull.Value, "N/A", Convert.ToDecimal(reader("Service_Fee")).ToString("N2"))
+                    Dim techName As String = If(reader("Technician_Name") Is DBNull.Value, "Unassigned", reader("Technician_Name").ToString())
+
+                    lblSRDetailTitle.Text = "Service Request #" & reader("Request_ID").ToString()
+                    lblSRDetailCustomer.Text = "Customer: " & reader("Customer_Name").ToString() & " (" & reader("Customer_Contact").ToString() & ")"
+                    lblSRDetailStatus.Text = "Status: " & reader("Request_Status").ToString()
+                    lblSRDetailDates.Text = "Dates: Requested " & reqDate & " | Scheduled " & schedDate
+                    lblSRDetailAddress.Text = "Address: " & reader("Service_Address").ToString()
+                    lblSRDetailService.Text = "Service: " & reader("Service_Type").ToString() & " | Fee: " & serviceFee & " | Description: " & serviceDesc
+                    lblSRDetailStaff.Text = "Coordinator Staff: " & reader("Staff_Name").ToString()
+                    lblSRDetailTech.Text = "Technician: " & techName
+                    UpdateServiceRequestDetailLayout()
+
+                    pnlSRDashboard.Visible = False
+                    pnlSRDetailWrapper.Visible = True
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error loading service request details: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub UpdateServiceRequestDetailLayout()
+        If pnlSRDetailBody Is Nothing Then Return
+
+        Dim maxWidth As Integer = Math.Max(240, pnlSRDetailBody.ClientSize.Width - 50)
+        For Each lbl In New Label() {lblSRDetailAddress, lblSRDetailService, lblSRDetailStaff, lblSRDetailTech}
+            If lbl IsNot Nothing Then
+                lbl.MaximumSize = New Size(maxWidth, 0)
+            End If
+        Next
     End Sub
 
     Private Sub ClearServiceRequestForm()
@@ -1436,16 +1588,6 @@ Private Sub RefreshOrderPanel()
         Dim lblTitle As New Label() With {.Text = "Warranty Claims Dashboard", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .AutoSize = True, .Location = New Point(20, 20)}
         pnlTop.Controls.Add(lblTitle)
         
-        Dim btnNewClaim As New Button() With {.Text = "+ File New Claim", .Font = New Font("Segoe UI", 11, FontStyle.Bold), .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(160, 40), .Location = New Point(pnlTop.Width - 200, 20), .Anchor = AnchorStyles.Top Or AnchorStyles.Right, .Cursor = Cursors.Hand}
-        btnNewClaim.FlatAppearance.BorderSize = 0
-        AddHandler btnNewClaim.Click, Sub() 
-                                          ClearWCForm()
-                                          LoadDataForWCForm()
-                                          pnlWCDashboard.Visible = False
-                                          pnlWCFormWrapper.Visible = True
-                                      End Sub
-        pnlTop.Controls.Add(btnNewClaim)
-
         Dim lblFilter As New Label() With {.Text = "Filter Resolution:", .Font = New Font("Segoe UI", 10), .AutoSize = True, .Location = New Point(450, 30)}
         pnlTop.Controls.Add(lblFilter)
         _cmbWCStatusFilter = New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Location = New Point(590, 28), .Size = New Size(150, 25)}
@@ -1464,52 +1606,6 @@ Private Sub RefreshOrderPanel()
         pnlWCDashboard.Controls.Add(flpWarrantyClaims)
         flpWarrantyClaims.BringToFront()
         pnlMain.Controls.Add(pnlWCDashboard)
-
-        ' --- FORM ---
-        pnlWCFormWrapper = New Panel() With {.Dock = DockStyle.Fill, .Visible = False, .AutoScroll = True, .Padding = New Padding(30)}
-        Dim lblFormTitle As New Label() With {.Text = "File Warranty Claim", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Dock = DockStyle.Top, .Height = 50}
-        pnlWCFormWrapper.Controls.Add(lblFormTitle)
-
-        Dim formContainer As New Panel() With {.Dock = DockStyle.Top, .AutoSize = True, .BackColor = Color.White, .Padding = New Padding(20)}
-        Dim yPos As Integer = 15
-        
-        Dim BuildH = Sub(txt As String)
-            Dim lblH As New Label() With {.Text = txt, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .Location = New Point(15, yPos), .AutoSize = True}
-            formContainer.Controls.Add(lblH)
-            yPos += 30
-        End Sub
-
-        BuildH("1. Select Customer")
-        _cmbWCCustomer = New ComboBox() With {.Font = New Font("Segoe UI", 11), .Location = New Point(15, yPos), .Size = New Size(350, 30), .DropDownStyle = ComboBoxStyle.DropDown, .AutoCompleteMode = AutoCompleteMode.SuggestAppend, .AutoCompleteSource = AutoCompleteSource.ListItems}
-        AddHandler _cmbWCCustomer.SelectedIndexChanged, Sub() LoadWarrantiesForWCCustomer()
-        formContainer.Controls.Add(_cmbWCCustomer)
-        yPos += 60
-
-        BuildH("2. Select Eligible Warranty")
-        _cmbWCWarranty = New ComboBox() With {.Font = New Font("Segoe UI", 11), .Location = New Point(15, yPos), .Size = New Size(450, 30), .DropDownStyle = ComboBoxStyle.DropDownList}
-        formContainer.Controls.Add(_cmbWCWarranty)
-        yPos += 60
-
-        BuildH("3. Defect Description")
-        _txtWCDesc = New TextBox() With {.Font = New Font("Segoe UI", 11), .Location = New Point(15, yPos), .Size = New Size(450, 80), .Multiline = True}
-        formContainer.Controls.Add(_txtWCDesc)
-        yPos += 110
-
-        Dim btnSaveClaim As New Button() With {.Text = "Submit Claim", .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.White, .BackColor = Color.FromArgb(0, 120, 215), .FlatStyle = FlatStyle.Flat, .Size = New Size(150, 40), .Location = New Point(15, yPos), .Cursor = Cursors.Hand}
-        btnSaveClaim.FlatAppearance.BorderSize = 0
-        AddHandler btnSaveClaim.Click, AddressOf SaveWarrantyClaim_Click
-        formContainer.Controls.Add(btnSaveClaim)
-
-        Dim btnCancelClaim As New Button() With {.Text = "Cancel", .Font = New Font("Segoe UI", 11), .ForeColor = Color.FromArgb(80, 80, 80), .BackColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(150, 40), .Location = New Point(180, yPos), .Cursor = Cursors.Hand}
-        btnCancelClaim.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
-        AddHandler btnCancelClaim.Click, Sub()
-                                             pnlWCFormWrapper.Visible = False
-                                             pnlWCDashboard.Visible = True
-                                         End Sub
-        formContainer.Controls.Add(btnCancelClaim)
-
-        pnlWCFormWrapper.Controls.Add(formContainer)
-        pnlMain.Controls.Add(pnlWCFormWrapper)
 
         AddHandler pnlMain.VisibleChanged, Sub(s, ev)
                                                If pnlMain.Visible Then LoadWarrantyClaimsCards()
@@ -1570,13 +1666,17 @@ Private Sub RefreshOrderPanel()
             If conn.State <> ConnectionState.Open Then OpenConnection()
             Dim statusFilter = If(_cmbWCStatusFilter IsNot Nothing AndAlso _cmbWCStatusFilter.SelectedItem IsNot Nothing, _cmbWCStatusFilter.SelectedItem.ToString(), "All")
             
-            Dim q As String = "SELECT WC.Claim_ID, C.Full_Name as Customer, WC.Claim_Date, WC.Claim_Description, WC.Claim_Resolution " &
+            Dim q As String = "SELECT WC.Claim_ID, C.Full_Name as Customer, WC.Claim_Date, WC.Claim_Description, WC.Claim_Resolution, " &
+                              "IFNULL(GROUP_CONCAT(DISTINCT PR.Product_Name ORDER BY PR.Product_Name SEPARATOR ', '), 'N/A') AS Product_Names " &
                               "FROM WARRANTY_CLAIM WC " &
                               "JOIN WARRANTY W ON WC.Warranty_ID = W.Warranty_ID " &
                               "JOIN PURCHASE P ON W.Purchase_ID = P.Purchase_ID " &
-                              "JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID"
+                              "JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID " &
+                              "LEFT JOIN PURCHASE_ITEMS PI ON P.Purchase_ID = PI.Purchase_ID " &
+                              "LEFT JOIN PRODUCT PR ON PI.Product_ID = PR.Product_ID"
             
             If statusFilter <> "All" Then q &= " WHERE WC.Claim_Resolution = @status"
+            q &= " GROUP BY WC.Claim_ID, C.Full_Name, WC.Claim_Date, WC.Claim_Description, WC.Claim_Resolution"
             
             Using cmd As New MySqlCommand(q, conn)
                 If statusFilter <> "All" Then cmd.Parameters.AddWithValue("@status", statusFilter)
@@ -1587,23 +1687,46 @@ Private Sub RefreshOrderPanel()
                         Dim claimDateStr = Convert.ToDateTime(reader("Claim_Date")).ToShortDateString()
                         Dim cDesc = reader("Claim_Description").ToString()
                         Dim cRes = reader("Claim_Resolution").ToString()
+                        Dim pNames = reader("Product_Names").ToString()
                         If String.IsNullOrEmpty(cRes) Then cRes = "Pending Review"
 
-                        Dim card As New Panel() With {.Size = New Size(280, 180), .Margin = New Padding(10), .BackColor = Color.White, .BorderStyle = BorderStyle.FixedSingle}
+                        Dim card As New Panel() With {.Size = New Size(360, 280), .Margin = New Padding(10), .BackColor = Color.White, .BorderStyle = BorderStyle.FixedSingle}
                         
-                        Dim lblID As New Label() With {.Text = "Claim ID: " & cId, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Location = New Point(10, 10), .AutoSize = True}
-                        card.Controls.Add(lblID)
-
-                        Dim lblCust As New Label() With {.Text = cName, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215), .Location = New Point(10, 35), .AutoSize = True}
+                        Dim lblCust As New Label() With {.Text = cName, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215), .Location = New Point(10, 10), .AutoSize = True}
                         card.Controls.Add(lblCust)
 
-                        Dim lblD As New Label() With {.Text = "Desc: " & If(cDesc.Length > 20, cDesc.Substring(0, 20) & "...", cDesc), .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 65), .AutoSize = True}
-                        card.Controls.Add(lblD)
+                        Dim lblProd As New Label() With {.Text = "Product: " & pNames, .Font = New Font("Segoe UI", 9), .ForeColor = Color.FromArgb(80, 80, 80), .Location = New Point(10, 40), .Size = New Size(340, 30)}
+                        card.Controls.Add(lblProd)
 
-                        Dim lblDate As New Label() With {.Text = "Date: " & claimDateStr, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 90), .AutoSize = True}
+                        Dim lblDate As New Label() With {.Text = "Date: " & claimDateStr, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 75), .AutoSize = True}
                         card.Controls.Add(lblDate)
 
-                        Dim btnRes As New Button() With {.Text = cRes, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Size = New Size(260, 35), .Location = New Point(10, 130), .FlatStyle = FlatStyle.Flat, .Cursor = Cursors.Hand, .Tag = cId}
+                        Dim txtDescEdit As New TextBox() With {
+                            .Font = New Font("Segoe UI", 10),
+                            .Location = New Point(10, 100),
+                            .Size = New Size(340, 70),
+                            .Multiline = True,
+                            .Text = cDesc
+                        }
+                        card.Controls.Add(txtDescEdit)
+
+                        Dim btnSaveDesc As New Button() With {
+                            .Text = "Save Description",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(130, 28),
+                            .Location = New Point(10, 178),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(230, 240, 255),
+                            .ForeColor = Color.FromArgb(0, 90, 170)
+                        }
+                        btnSaveDesc.FlatAppearance.BorderSize = 0
+                        AddHandler btnSaveDesc.Click, Sub(senderBtn, eBtn)
+                                                           UpdateWCDescription(cId, txtDescEdit.Text.Trim())
+                                                       End Sub
+                        card.Controls.Add(btnSaveDesc)
+
+                        Dim btnRes As New Button() With {.Text = cRes, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Size = New Size(340, 35), .Location = New Point(10, 230), .FlatStyle = FlatStyle.Flat, .Cursor = Cursors.Hand, .Tag = cId}
                         Select Case cRes
                             Case "Pending Review" : btnRes.BackColor = Color.Orange : btnRes.ForeColor = Color.White
                             Case "Approved - Fixing" : btnRes.BackColor = Color.Gold : btnRes.ForeColor = Color.Black
@@ -1628,6 +1751,25 @@ Private Sub RefreshOrderPanel()
                 End Using
             End Using
         Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub UpdateWCDescription(claimId As Integer, description As String)
+        If String.IsNullOrWhiteSpace(description) Then
+            MessageBox.Show("Claim description cannot be empty.", "Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+            Dim q As String = "UPDATE WARRANTY_CLAIM SET Claim_Description = @d WHERE Claim_ID = @id"
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@d", description)
+                cmd.Parameters.AddWithValue("@id", claimId)
+                cmd.ExecuteNonQuery()
+            End Using
+            LoadWarrantyClaimsCards()
+        Catch ex As Exception
+            MessageBox.Show("Error updating claim description: " & ex.Message)
         End Try
     End Sub
 
@@ -2058,20 +2200,16 @@ Private Sub RefreshOrderPanel()
         lblTransactDetailDate = New Label() With {.Text = "Date: ", .Font = New Font("Segoe UI", 12), .ForeColor = Color.FromArgb(60, 60, 60), .Location = New Point(300, 75), .AutoSize = True}
         pnlDetailTop.Controls.Add(lblTransactDetailDate)
 
-        pnlTransactDetailWrapper.Controls.Add(pnlDetailTop)
-
         ' Items Container
         Dim pnlDetailBody As New Panel() With {.Dock = DockStyle.Top, .AutoSize = True, .BackColor = Color.White, .Padding = New Padding(20)}
         
         Dim lblItemsHdr As New Label() With {.Text = "Order Items", .Font = New Font("Segoe UI", 14, FontStyle.Bold), .Dock = DockStyle.Top, .Height = 40}
-        pnlDetailBody.Controls.Add(lblItemsHdr)
-        
         Dim hdrLine As New Panel() With {.Dock = DockStyle.Top, .Height = 1, .BackColor = Color.FromArgb(200, 200, 200)}
-        pnlDetailBody.Controls.Add(hdrLine)
 
         flpTransactionItems = New FlowLayoutPanel() With {.Dock = DockStyle.Top, .AutoSize = True, .FlowDirection = FlowDirection.TopDown, .WrapContents = False, .Padding = New Padding(0, 10, 0, 10)}
         pnlDetailBody.Controls.Add(flpTransactionItems)
-        flpTransactionItems.BringToFront()
+        pnlDetailBody.Controls.Add(hdrLine)
+        pnlDetailBody.Controls.Add(lblItemsHdr)
         
         Dim botLine As New Panel() With {.Dock = DockStyle.Bottom, .Height = 1, .BackColor = Color.FromArgb(200, 200, 200)}
         pnlDetailBody.Controls.Add(botLine)
@@ -2080,6 +2218,7 @@ Private Sub RefreshOrderPanel()
         pnlDetailBody.Controls.Add(lblTransactDetailTotal)
 
         pnlTransactDetailWrapper.Controls.Add(pnlDetailBody)
+        pnlTransactDetailWrapper.Controls.Add(pnlDetailTop)
         pnlMain.Controls.Add(pnlTransactDetailWrapper)
 
         ' Trigger reload when visible
@@ -2233,7 +2372,7 @@ Private Sub RefreshOrderPanel()
                 lblCard3Value.Text = Convert.ToInt32(cmd.ExecuteScalar()).ToString()
             End Using
 
-            Dim qWar = "SELECT COUNT(*) FROM WARRANTY WHERE Warranty_Status = 'Active'" & String.Format(dateCondition, "Warranty_Start_Date")
+            Dim qWar = "SELECT COUNT(*) FROM WARRANTY_CLAIM WHERE 1=1" & String.Format(dateCondition, "Claim_Date")
             Using cmd As New MySqlCommand(qWar, conn)
                 lblCard4Value.Text = Convert.ToInt32(cmd.ExecuteScalar()).ToString()
             End Using
