@@ -1,4 +1,4 @@
-﻿Imports System.Drawing
+Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
 Imports MySql.Data.MySqlClient
@@ -580,7 +580,7 @@ Public Class MainForm
     ' ── Add-to-order handler ──
     Private Sub AddToOrder_Click(sender As Object, e As EventArgs)
         Dim btn = DirectCast(sender, Button)
-          Dim info = DirectCast(btn.Tag, Tuple(Of Integer, String, Decimal, Integer, String))
+        Dim info = DirectCast(btn.Tag, Tuple(Of Integer, String, Decimal, Integer, String))
         Dim prodId = info.Item1
         Dim prodName = info.Item2
         Dim prodPrice = info.Item3
@@ -1823,17 +1823,6 @@ Public Class MainForm
                 cmdWarranty.ExecuteNonQuery()
             End Using
             
-            ' Update stock quantities for all products in the order
-            Dim qUpdateStock As String = "UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity - @qty WHERE Product_ID = @prodid"
-            Using cmdStock As New MySqlCommand(qUpdateStock, conn)
-                For Each kvp In _orderItems
-                    cmdStock.Parameters.Clear()
-                    cmdStock.Parameters.AddWithValue("@qty", kvp.Value.Item3)
-                    cmdStock.Parameters.AddWithValue("@prodid", kvp.Key)
-                    cmdStock.ExecuteNonQuery()
-                Next
-            End Using
-            
         Catch ex As Exception
             MessageBox.Show("Error saving order data: " & ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
             Return
@@ -1844,11 +1833,6 @@ Public Class MainForm
         ' Reset
         _orderItems.Clear()
         RefreshOrderPanel()
-        
-        ' Reload products to reflect updated stock
-        If _activeCategoryBtn IsNot Nothing Then
-            LoadProducts(_activeCategoryBtn.Tag.ToString())
-        End If
         _txtCustomerName.Text = ""
         _txtContactNumber.Text = ""
         _txtAddress.Text = ""
@@ -2284,3 +2268,4 @@ Public Class MainForm
     End Sub
 
 End Class
+
