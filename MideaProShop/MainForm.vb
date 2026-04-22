@@ -1845,6 +1845,16 @@ Public Class MainForm
         ShowPanel(pnlWarranty)
     End Sub
 
+    Private Sub btnTransactions_Click(sender As Object, e As EventArgs) Handles btnTransactions.Click
+        SetActiveButton(btnTransactions)
+        ShowPanel(pnlTransact)
+    End Sub
+
+    Private Sub btnAdmin_Click(sender As Object, e As EventArgs)
+        SetActiveButton(btnAdmin)
+        ShowPanel(pnlAdmin)
+    End Sub
+
     ' Products Dashboard has been deprecated and removed.
 
     ' ═══════════════════════════════════════════════════
