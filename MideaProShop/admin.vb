@@ -1307,6 +1307,7 @@ Public Class admin
                         Dim pId = Convert.ToInt32(reader("Product_ID"))
                         Dim pName = reader("Product_Name").ToString()
                         Dim pBrand = reader("Brand").ToString()
+                        Dim unitPrice = Convert.ToDecimal(reader("Unit_Price"))
                         Dim pDesc = reader("Product_Description").ToString()
                         Dim stock = Convert.ToInt32(reader("Stock_Quantity"))
                         Dim reorder = Convert.ToInt32(reader("Reorder_Level"))
@@ -1320,8 +1321,11 @@ Public Class admin
                         Dim lblDesc As New Label() With {.Text = If(pDesc.Length > 50, pDesc.Substring(0, 50) & "...", pDesc), .Font = New Font("Segoe UI", 8), .ForeColor = Color.DimGray, .Location = New Point(10, 55), .Size = New Size(220, 30)}
                         card.Controls.Add(lblDesc)
 
+                        Dim lblPrice As New Label() With {.Text = "Price: ₱" & unitPrice.ToString("N2"), .Font = New Font("Segoe UI", 9, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Location = New Point(10, 90), .AutoSize = True}
+                        card.Controls.Add(lblPrice)
+
                         Dim isLow = (stock <= reorder)
-                        Dim lblQty As New Label() With {.Text = "Stock: " & stock, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .Location = New Point(10, 95), .AutoSize = True}
+                        Dim lblQty As New Label() With {.Text = "Stock: " & stock, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .Location = New Point(10, 112), .AutoSize = True}
                         lblQty.ForeColor = If(isLow, Color.FromArgb(220, 53, 69), Color.FromArgb(0, 153, 102))
                         card.Controls.Add(lblQty)
 
@@ -1468,9 +1472,23 @@ Public Class admin
         If MessageBox.Show("Are you sure you want to delete '" & pName & "'?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) = DialogResult.Yes Then
             Try
                 OpenConnection()
-                Using cmd As New MySqlCommand("DELETE FROM PRODUCT WHERE Product_ID=@id", conn)
-                    cmd.Parameters.AddWithValue("@id", pId)
-                    cmd.ExecuteNonQuery()
+                Using tx = conn.BeginTransaction()
+                    Using cmdItems As New MySqlCommand("DELETE FROM PURCHASE_ITEMS WHERE Product_ID=@id", conn, tx)
+                        cmdItems.Parameters.AddWithValue("@id", pId)
+                        cmdItems.ExecuteNonQuery()
+                    End Using
+
+                    Using cmdProduct As New MySqlCommand("DELETE FROM PRODUCT WHERE Product_ID=@id", conn, tx)
+                        cmdProduct.Parameters.AddWithValue("@id", pId)
+                        Dim affected = cmdProduct.ExecuteNonQuery()
+                        If affected = 0 Then
+                            tx.Rollback()
+                            MessageBox.Show("Product not found or was already deleted.", "Delete Skipped", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                            Return
+                        End If
+                    End Using
+
+                    tx.Commit()
                 End Using
                 If _activeInvenCategoryBtn IsNot Nothing Then LoadInventoryCards(_activeInvenCategoryBtn.Tag.ToString())
             Catch ex As Exception

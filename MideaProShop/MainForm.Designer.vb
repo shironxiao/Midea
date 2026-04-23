@@ -34,7 +34,6 @@ Partial Class MainForm
         Me.pbLogo = New System.Windows.Forms.PictureBox()
         Me.pnlMainContent = New System.Windows.Forms.Panel()
         Me.pnlDashboard = New System.Windows.Forms.Panel()
-        Me.lblDashTitle = New System.Windows.Forms.Label()
         Me.flpCards = New System.Windows.Forms.FlowLayoutPanel()
         Me.pnlCard1 = New System.Windows.Forms.Panel()
         Me.lblCard1Value = New System.Windows.Forms.Label()
@@ -48,6 +47,7 @@ Partial Class MainForm
         Me.pnlCard4 = New System.Windows.Forms.Panel()
         Me.lblCard4Value = New System.Windows.Forms.Label()
         Me.lblCard4Title = New System.Windows.Forms.Label()
+        Me.lblDashTitle = New System.Windows.Forms.Label()
         Me.pnlSideBar.SuspendLayout()
         Me.pnlLogo.SuspendLayout()
         CType(Me.pbLogo, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -240,18 +240,6 @@ Partial Class MainForm
         Me.pnlDashboard.Size = New System.Drawing.Size(864, 601)
         Me.pnlDashboard.TabIndex = 0
         '
-        'lblDashTitle
-        '
-        Me.lblDashTitle.Dock = System.Windows.Forms.DockStyle.Top
-        Me.lblDashTitle.Font = New System.Drawing.Font("Segoe UI", 20.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblDashTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(30, Byte), Integer), CType(CType(30, Byte), Integer), CType(CType(30, Byte), Integer))
-        Me.lblDashTitle.Location = New System.Drawing.Point(0, 0)
-        Me.lblDashTitle.Name = "lblDashTitle"
-        Me.lblDashTitle.Padding = New System.Windows.Forms.Padding(30, 20, 0, 10)
-        Me.lblDashTitle.Size = New System.Drawing.Size(864, 70)
-        Me.lblDashTitle.TabIndex = 0
-        Me.lblDashTitle.Text = "Dashboard"
-        '
         'flpCards
         '
         Me.flpCards.Controls.Add(Me.pnlCard1)
@@ -276,18 +264,6 @@ Partial Class MainForm
         Me.pnlCard1.Size = New System.Drawing.Size(185, 130)
         Me.pnlCard1.TabIndex = 0
         '
-        'lblCard1Title
-        '
-        Me.lblCard1Title.Dock = System.Windows.Forms.DockStyle.Top
-        Me.lblCard1Title.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblCard1Title.ForeColor = System.Drawing.Color.White
-        Me.lblCard1Title.Location = New System.Drawing.Point(0, 0)
-        Me.lblCard1Title.Name = "lblCard1Title"
-        Me.lblCard1Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
-        Me.lblCard1Title.Size = New System.Drawing.Size(185, 45)
-        Me.lblCard1Title.TabIndex = 0
-        Me.lblCard1Title.Text = "Total Sales"
-        '
         'lblCard1Value
         '
         Me.lblCard1Value.Dock = System.Windows.Forms.DockStyle.Fill
@@ -300,6 +276,18 @@ Partial Class MainForm
         Me.lblCard1Value.TabIndex = 1
         Me.lblCard1Value.Text = "0"
         '
+        'lblCard1Title
+        '
+        Me.lblCard1Title.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblCard1Title.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblCard1Title.ForeColor = System.Drawing.Color.White
+        Me.lblCard1Title.Location = New System.Drawing.Point(0, 0)
+        Me.lblCard1Title.Name = "lblCard1Title"
+        Me.lblCard1Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
+        Me.lblCard1Title.Size = New System.Drawing.Size(185, 45)
+        Me.lblCard1Title.TabIndex = 0
+        Me.lblCard1Title.Text = "Total Sales"
+        '
         'pnlCard2
         '
         Me.pnlCard2.BackColor = System.Drawing.Color.FromArgb(CType(CType(40, Byte), Integer), CType(CType(167, Byte), Integer), CType(CType(69, Byte), Integer))
@@ -310,18 +298,6 @@ Partial Class MainForm
         Me.pnlCard2.Name = "pnlCard2"
         Me.pnlCard2.Size = New System.Drawing.Size(185, 130)
         Me.pnlCard2.TabIndex = 1
-        '
-        'lblCard2Title
-        '
-        Me.lblCard2Title.Dock = System.Windows.Forms.DockStyle.Top
-        Me.lblCard2Title.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblCard2Title.ForeColor = System.Drawing.Color.White
-        Me.lblCard2Title.Location = New System.Drawing.Point(0, 0)
-        Me.lblCard2Title.Name = "lblCard2Title"
-        Me.lblCard2Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
-        Me.lblCard2Title.Size = New System.Drawing.Size(185, 45)
-        Me.lblCard2Title.TabIndex = 0
-Me.lblCard2Title.Text = "Transactions"
         '
         'lblCard2Value
         '
@@ -335,6 +311,18 @@ Me.lblCard2Title.Text = "Transactions"
         Me.lblCard2Value.TabIndex = 1
         Me.lblCard2Value.Text = "0"
         '
+        'lblCard2Title
+        '
+        Me.lblCard2Title.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblCard2Title.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblCard2Title.ForeColor = System.Drawing.Color.White
+        Me.lblCard2Title.Location = New System.Drawing.Point(0, 0)
+        Me.lblCard2Title.Name = "lblCard2Title"
+        Me.lblCard2Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
+        Me.lblCard2Title.Size = New System.Drawing.Size(185, 45)
+        Me.lblCard2Title.TabIndex = 0
+        Me.lblCard2Title.Text = "Transactions"
+        '
         'pnlCard3
         '
         Me.pnlCard3.BackColor = System.Drawing.Color.FromArgb(CType(CType(255, Byte), Integer), CType(CType(152, Byte), Integer), CType(CType(0, Byte), Integer))
@@ -345,18 +333,6 @@ Me.lblCard2Title.Text = "Transactions"
         Me.pnlCard3.Name = "pnlCard3"
         Me.pnlCard3.Size = New System.Drawing.Size(185, 130)
         Me.pnlCard3.TabIndex = 2
-        '
-        'lblCard3Title
-        '
-        Me.lblCard3Title.Dock = System.Windows.Forms.DockStyle.Top
-        Me.lblCard3Title.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblCard3Title.ForeColor = System.Drawing.Color.White
-        Me.lblCard3Title.Location = New System.Drawing.Point(0, 0)
-        Me.lblCard3Title.Name = "lblCard3Title"
-        Me.lblCard3Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
-        Me.lblCard3Title.Size = New System.Drawing.Size(185, 45)
-        Me.lblCard3Title.TabIndex = 0
-        Me.lblCard3Title.Text = "Service Requests"
         '
         'lblCard3Value
         '
@@ -370,6 +346,18 @@ Me.lblCard2Title.Text = "Transactions"
         Me.lblCard3Value.TabIndex = 1
         Me.lblCard3Value.Text = "0"
         '
+        'lblCard3Title
+        '
+        Me.lblCard3Title.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblCard3Title.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblCard3Title.ForeColor = System.Drawing.Color.White
+        Me.lblCard3Title.Location = New System.Drawing.Point(0, 0)
+        Me.lblCard3Title.Name = "lblCard3Title"
+        Me.lblCard3Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
+        Me.lblCard3Title.Size = New System.Drawing.Size(185, 45)
+        Me.lblCard3Title.TabIndex = 0
+        Me.lblCard3Title.Text = "Service Requests"
+        '
         'pnlCard4
         '
         Me.pnlCard4.BackColor = System.Drawing.Color.FromArgb(CType(CType(220, Byte), Integer), CType(CType(53, Byte), Integer), CType(CType(69, Byte), Integer))
@@ -380,6 +368,18 @@ Me.lblCard2Title.Text = "Transactions"
         Me.pnlCard4.Name = "pnlCard4"
         Me.pnlCard4.Size = New System.Drawing.Size(185, 130)
         Me.pnlCard4.TabIndex = 3
+        '
+        'lblCard4Value
+        '
+        Me.lblCard4Value.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.lblCard4Value.Font = New System.Drawing.Font("Segoe UI", 22.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblCard4Value.ForeColor = System.Drawing.Color.White
+        Me.lblCard4Value.Location = New System.Drawing.Point(0, 45)
+        Me.lblCard4Value.Name = "lblCard4Value"
+        Me.lblCard4Value.Padding = New System.Windows.Forms.Padding(15, 0, 0, 0)
+        Me.lblCard4Value.Size = New System.Drawing.Size(185, 85)
+        Me.lblCard4Value.TabIndex = 1
+        Me.lblCard4Value.Text = "0"
         '
         'lblCard4Title
         '
@@ -393,17 +393,17 @@ Me.lblCard2Title.Text = "Transactions"
         Me.lblCard4Title.TabIndex = 0
         Me.lblCard4Title.Text = "Warranty Claims"
         '
-        'lblCard4Value
+        'lblDashTitle
         '
-        Me.lblCard4Value.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.lblCard4Value.Font = New System.Drawing.Font("Segoe UI", 22.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblCard4Value.ForeColor = System.Drawing.Color.White
-        Me.lblCard4Value.Location = New System.Drawing.Point(0, 45)
-        Me.lblCard4Value.Name = "lblCard4Value"
-        Me.lblCard4Value.Padding = New System.Windows.Forms.Padding(15, 0, 0, 0)
-        Me.lblCard4Value.Size = New System.Drawing.Size(185, 85)
-        Me.lblCard4Value.TabIndex = 1
-        Me.lblCard4Value.Text = "0"
+        Me.lblDashTitle.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblDashTitle.Font = New System.Drawing.Font("Segoe UI", 20.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblDashTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(30, Byte), Integer), CType(CType(30, Byte), Integer), CType(CType(30, Byte), Integer))
+        Me.lblDashTitle.Location = New System.Drawing.Point(0, 0)
+        Me.lblDashTitle.Name = "lblDashTitle"
+        Me.lblDashTitle.Padding = New System.Windows.Forms.Padding(30, 20, 0, 10)
+        Me.lblDashTitle.Size = New System.Drawing.Size(864, 70)
+        Me.lblDashTitle.TabIndex = 0
+        Me.lblDashTitle.Text = "Dashboard"
         '
         'MainForm
         '
