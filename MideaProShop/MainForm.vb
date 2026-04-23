@@ -899,6 +899,8 @@ Private Sub RefreshOrderPanel()
     ' ═══════════════════════════════════════════════════
     Private flpServiceRequests As FlowLayoutPanel
     Private _cmbStatusFilter As ComboBox
+    Private _txtSRSearch As TextBox
+    Private _srSearchDebounceTimer As Timer
     Private pnlSRDashboard As Panel
     Private pnlSRFormWrapper As Panel
     Private pnlSRDetailWrapper As Panel
@@ -932,6 +934,9 @@ Private Sub RefreshOrderPanel()
     Private _dtpSRCompleted As DateTimePicker
     Private _txtSRAddress As TextBox
     Private _cmbSRStatus As ComboBox
+    Private _lblSRFormTitle As Label
+    Private _btnSRSave As Button
+    Private _editingSRRequestId As Integer = 0
 
     Private Function BuildServiceRequestDashboard() As Panel
         Dim pnlMain As New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.FromArgb(245, 245, 248), .Visible = False}
@@ -944,11 +949,8 @@ Private Sub RefreshOrderPanel()
         
         Dim btnNewReq As New Button() With {.Text = "+ New Request", .Font = New Font("Segoe UI", 11, FontStyle.Bold), .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(140, 40), .Location = New Point(pnlTop.Width - 180, 20), .Anchor = AnchorStyles.Top Or AnchorStyles.Right, .Cursor = Cursors.Hand}
         btnNewReq.FlatAppearance.BorderSize = 0
-        AddHandler btnNewReq.Click, Sub() 
-                                        ClearServiceRequestForm()
-                                        LoadDataForSRForm()
-                                        pnlSRDashboard.Visible = False
-                                        pnlSRFormWrapper.Visible = True
+        AddHandler btnNewReq.Click, Sub()
+                                        OpenServiceRequestFormForCreate()
                                     End Sub
         pnlTop.Controls.Add(btnNewReq)
 
@@ -959,6 +961,56 @@ Private Sub RefreshOrderPanel()
         _cmbStatusFilter.SelectedIndex = 0
         AddHandler _cmbStatusFilter.SelectedIndexChanged, Sub() LoadServiceRequestsCards()
         pnlTop.Controls.Add(_cmbStatusFilter)
+
+        Dim lblSearch As New Label() With {.Text = "Search:", .Font = New Font("Segoe UI", 10), .AutoSize = True, .Location = New Point(720, 30)}
+        pnlTop.Controls.Add(lblSearch)
+        _txtSRSearch = New TextBox() With {.Font = New Font("Segoe UI", 10), .Location = New Point(775, 28), .Size = New Size(180, 25)}
+        _srSearchDebounceTimer = New Timer() With {.Interval = 180}
+        AddHandler _srSearchDebounceTimer.Tick,
+            Sub()
+                _srSearchDebounceTimer.Stop()
+                LoadServiceRequestsCards()
+            End Sub
+        AddHandler _txtSRSearch.TextChanged,
+            Sub()
+                _srSearchDebounceTimer.Stop()
+                _srSearchDebounceTimer.Start()
+            End Sub
+        AddHandler _txtSRSearch.KeyDown,
+            Sub(senderTxt, eTxt)
+                If eTxt.KeyCode = Keys.Enter Then
+                    _srSearchDebounceTimer.Stop()
+                    LoadServiceRequestsCards()
+                    eTxt.SuppressKeyPress = True
+                End If
+            End Sub
+        pnlTop.Controls.Add(_txtSRSearch)
+
+        Dim LayoutSRTopBar = Sub()
+                                 Dim rightPad As Integer = 20
+                                 Dim gap As Integer = 8
+                                 Dim firstRowY As Integer = 20
+                                 Dim filtersY As Integer = 78
+
+                                 btnNewReq.Location = New Point(Math.Max(20, pnlTop.ClientSize.Width - btnNewReq.Width - rightPad), firstRowY)
+
+                                 Dim leftStart As Integer = 20
+                                 lblSearch.Location = New Point(leftStart, filtersY)
+                                 _txtSRSearch.Location = New Point(lblSearch.Right + 6, filtersY - 2)
+
+                                 lblFilter.Location = New Point(_txtSRSearch.Right + 16, filtersY)
+                                 _cmbStatusFilter.Location = New Point(lblFilter.Right + 6, filtersY - 2)
+
+                                 If _cmbStatusFilter.Right > btnNewReq.Left - 10 Then
+                                     pnlTop.Height = 142
+                                     lblFilter.Location = New Point(leftStart, 108)
+                                     _cmbStatusFilter.Location = New Point(lblFilter.Right + 6, 106)
+                                 Else
+                                     pnlTop.Height = 112
+                                 End If
+                             End Sub
+        AddHandler pnlTop.SizeChanged, Sub() LayoutSRTopBar()
+        LayoutSRTopBar()
 
         pnlSRDashboard.Controls.Add(pnlTop)
 
@@ -1027,7 +1079,7 @@ Private Sub RefreshOrderPanel()
         ' --- FORM ---
         pnlSRFormWrapper = New Panel() With {.Dock = DockStyle.Fill, .Visible = False, .AutoScroll = True, .Padding = New Padding(30)}
         
-        Dim lblFormTitle As New Label() With {.Text = "Create New Service Request", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Dock = DockStyle.Top, .Height = 50}
+        _lblSRFormTitle = New Label() With {.Text = "Create New Service Request", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Dock = DockStyle.Top, .Height = 50}
 
         Dim formContainer As New Panel() With {.Dock = DockStyle.Top, .AutoSize = True, .BackColor = Color.White, .Padding = New Padding(20)}
         Dim yPos As Integer = 15
@@ -1135,21 +1187,26 @@ Private Sub RefreshOrderPanel()
         formContainer.Controls.Add(_cmbSRStatus)
         yPos += 80
 
-        Dim btnSaveReq As New Button() With {.Text = "Save Request", .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.White, .BackColor = Color.FromArgb(0, 120, 215), .FlatStyle = FlatStyle.Flat, .Size = New Size(150, 40), .Location = New Point(15, yPos), .Cursor = Cursors.Hand}
-        btnSaveReq.FlatAppearance.BorderSize = 0
-        AddHandler btnSaveReq.Click, AddressOf SaveServiceRequestForm_Click
-        formContainer.Controls.Add(btnSaveReq)
+        _btnSRSave = New Button() With {.Text = "Save Request", .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.White, .BackColor = Color.FromArgb(0, 120, 215), .FlatStyle = FlatStyle.Flat, .Size = New Size(150, 40), .Location = New Point(15, yPos), .Cursor = Cursors.Hand}
+        _btnSRSave.FlatAppearance.BorderSize = 0
+        AddHandler _btnSRSave.Click, AddressOf SaveServiceRequestForm_Click
+        formContainer.Controls.Add(_btnSRSave)
 
         Dim btnCancelReq As New Button() With {.Text = "Cancel", .Font = New Font("Segoe UI", 11), .ForeColor = Color.FromArgb(80, 80, 80), .BackColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(150, 40), .Location = New Point(180, yPos), .Cursor = Cursors.Hand}
         btnCancelReq.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
         AddHandler btnCancelReq.Click, Sub()
+                                           _editingSRRequestId = 0
+                                           If _optSRNewCust IsNot Nothing Then
+                                               _optSRNewCust.Enabled = True
+                                               _optSRExistCust.Enabled = True
+                                           End If
                                            pnlSRFormWrapper.Visible = False
                                            pnlSRDashboard.Visible = True
                                        End Sub
         formContainer.Controls.Add(btnCancelReq)
 
         pnlSRFormWrapper.Controls.Add(formContainer)
-        pnlSRFormWrapper.Controls.Add(lblFormTitle)
+        pnlSRFormWrapper.Controls.Add(_lblSRFormTitle)
         pnlMain.Controls.Add(pnlSRFormWrapper)
 
         ' Make sure dashboard loads data when becoming visible
@@ -1292,28 +1349,35 @@ Private Sub RefreshOrderPanel()
         Try
             If conn.State <> ConnectionState.Open Then OpenConnection()
             Dim statusFilter = If(_cmbStatusFilter IsNot Nothing AndAlso _cmbStatusFilter.SelectedItem IsNot Nothing, _cmbStatusFilter.SelectedItem.ToString(), "All")
+            Dim searchText = If(_txtSRSearch IsNot Nothing, _txtSRSearch.Text.Trim(), String.Empty)
             
-            Dim q As String = "SELECT SR.Request_ID, C.Full_Name as Customer, SR.Request_Date, SR.Request_Status, S.Service_Type " &
+            Dim q As String = "SELECT SR.Request_ID, C.Full_Name as Customer, SR.Request_Date, SR.Scheduled_Date, SR.Completed_Date, SR.Request_Status, S.Service_Type " &
                               "FROM SERVICE_REQUEST SR " &
                               "JOIN CUSTOMER C ON SR.Customer_ID = C.Customer_ID " &
                               "LEFT JOIN SERVICE S ON SR.Service_ID = S.Service_ID"
-            
-            If statusFilter <> "All" Then
-                q &= " WHERE SR.Request_Status = @status"
+
+            Dim conditions As New List(Of String) From {"SR.Warranty_ID IS NULL"}
+            If statusFilter <> "All" Then conditions.Add("SR.Request_Status = @status")
+            If Not String.IsNullOrWhiteSpace(searchText) Then
+                conditions.Add("(C.Full_Name LIKE @search OR CAST(SR.Request_ID AS CHAR) LIKE @search)")
             End If
+            If conditions.Count > 0 Then q &= " WHERE " & String.Join(" AND ", conditions)
             
             Using cmd As New MySqlCommand(q, conn)
                 If statusFilter <> "All" Then cmd.Parameters.AddWithValue("@status", statusFilter)
+                If Not String.IsNullOrWhiteSpace(searchText) Then cmd.Parameters.AddWithValue("@search", "%" & searchText & "%")
                 Using reader = cmd.ExecuteReader()
                     While reader.Read()
                         Dim rId = Convert.ToInt32(reader("Request_ID"))
                         Dim cName = reader("Customer").ToString()
                         Dim rDate = Convert.ToDateTime(reader("Request_Date")).ToShortDateString()
+                        Dim schDate As String = If(reader("Scheduled_Date") Is DBNull.Value, "N/A", Convert.ToDateTime(reader("Scheduled_Date")).ToShortDateString())
+                        Dim compDate As String = If(reader("Completed_Date") Is DBNull.Value, "", Convert.ToDateTime(reader("Completed_Date")).ToShortDateString())
                         Dim rStat = reader("Request_Status").ToString()
                         Dim sType = reader("Service_Type").ToString()
 
                         Dim card As New Panel() With {
-                            .Size = New Size(320, 260),
+                            .Size = New Size(320, 245),
                             .Margin = New Padding(10),
                             .BackColor = Color.White,
                             .BorderStyle = BorderStyle.FixedSingle
@@ -1322,17 +1386,28 @@ Private Sub RefreshOrderPanel()
                         Dim lblCust As New Label() With {.Text = cName, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215), .Location = New Point(10, 15), .AutoSize = True}
                         card.Controls.Add(lblCust)
 
-                        Dim lblSvc As New Label() With {.Text = "Service: " & sType, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 45), .AutoSize = True}
+                        Dim lblSvc As New Label() With {.Text = "Service: " & sType, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 46), .AutoSize = True}
                         card.Controls.Add(lblSvc)
 
-                        Dim lblDate As New Label() With {.Text = "Date: " & rDate, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 70), .AutoSize = True}
+                        Dim lblDate As New Label() With {.Text = "Requested: " & rDate, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 70), .AutoSize = True}
                         card.Controls.Add(lblDate)
+
+                        Dim lblSchedDate As New Label() With {.Text = "Scheduled: " & schDate, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 92), .AutoSize = True}
+                        card.Controls.Add(lblSchedDate)
+
+                        If rStat = "Completed" Then
+                            Dim lblCompDate As New Label() With {.Text = "Completed: " & compDate, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .ForeColor = Color.ForestGreen, .Location = New Point(10, 114), .AutoSize = True}
+                            card.Controls.Add(lblCompDate)
+                        End If
+
+                        Dim sep As New Panel() With {.BackColor = Color.FromArgb(230, 230, 230), .Location = New Point(10, 138), .Size = New Size(300, 1)}
+                        card.Controls.Add(sep)
 
                         Dim btnDetails As New Button() With {
                             .Text = "View Full Details",
                             .Font = New Font("Segoe UI", 9, FontStyle.Bold),
                             .Size = New Size(145, 32),
-                            .Location = New Point(10, 110),
+                            .Location = New Point(10, 150),
                             .FlatStyle = FlatStyle.Flat,
                             .Cursor = Cursors.Hand,
                             .BackColor = Color.FromArgb(230, 240, 255),
@@ -1341,40 +1416,102 @@ Private Sub RefreshOrderPanel()
                         }
                         btnDetails.FlatAppearance.BorderSize = 0
                         AddHandler btnDetails.Click, Sub(senderBtn, eBtn)
-                                                         ShowServiceRequestDetails(rId)
+                                                         OpenServiceRequestDetailsFromWarranty(rId)
                                                      End Sub
                         card.Controls.Add(btnDetails)
 
-                        Dim btnStatus As New Button() With {
-                            .Text = rStat,
-                            .Font = New Font("Segoe UI", 10, FontStyle.Bold),
-                            .Size = New Size(300, 35),
-                            .Location = New Point(10, 215),
+                        Dim btnEdit As New Button() With {
+                            .Text = "Edit",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(70, 32),
+                            .Location = New Point(165, 150),
                             .FlatStyle = FlatStyle.Flat,
                             .Cursor = Cursors.Hand,
-                            .Tag = rId
+                            .BackColor = Color.FromArgb(255, 243, 224),
+                            .ForeColor = Color.FromArgb(166, 102, 0)
+                        }
+                        btnEdit.FlatAppearance.BorderSize = 0
+                        AddHandler btnEdit.Click, Sub(senderBtn, eBtn)
+                                                      OpenServiceRequestEditFromWarranty(rId)
+                                                  End Sub
+                        card.Controls.Add(btnEdit)
+
+                        Dim btnDelete As New Button() With {
+                            .Text = "Delete",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(70, 32),
+                            .Location = New Point(240, 150),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(255, 230, 230),
+                            .ForeColor = Color.FromArgb(180, 0, 0)
+                        }
+                        btnDelete.FlatAppearance.BorderSize = 0
+                        AddHandler btnDelete.Click, Sub(senderBtn, eBtn)
+                                                        DeleteServiceRequest(rId)
+                                                    End Sub
+                        card.Controls.Add(btnDelete)
+
+                        Dim lblStatus As New Label() With {
+                            .Text = rStat,
+                            .Font = New Font("Segoe UI", 10, FontStyle.Bold),
+                            .Size = New Size(120, 24),
+                            .Location = New Point(190, 15),
+                            .BackColor = Color.Transparent,
+                            .TextAlign = ContentAlignment.MiddleRight
                         }
 
                         Select Case rStat
-                            Case "Pending" : btnStatus.BackColor = Color.Orange : btnStatus.ForeColor = Color.White
-                            Case "Scheduled" : btnStatus.BackColor = Color.LightSkyBlue : btnStatus.ForeColor = Color.Black
-                            Case "In Progress" : btnStatus.BackColor = Color.Gold : btnStatus.ForeColor = Color.Black
-                            Case "Completed" : btnStatus.BackColor = Color.LimeGreen : btnStatus.ForeColor = Color.White
-                            Case "Cancelled" : btnStatus.BackColor = Color.Crimson : btnStatus.ForeColor = Color.White
-                            Case Else : btnStatus.BackColor = Color.Gray : btnStatus.ForeColor = Color.White
+                            Case "Pending" : lblStatus.ForeColor = Color.Orange
+                            Case "Scheduled" : lblStatus.ForeColor = Color.DeepSkyBlue
+                            Case "In Progress" : lblStatus.ForeColor = Color.Goldenrod
+                            Case "Completed" : lblStatus.ForeColor = Color.ForestGreen
+                            Case "Cancelled" : lblStatus.ForeColor = Color.Crimson
+                            Case Else : lblStatus.ForeColor = Color.Gray
                         End Select
                         
-                        btnStatus.FlatAppearance.BorderSize = 0
-                        AddHandler btnStatus.Click, Sub(senderBtn, eBtn)
-                                                        Dim cMenu As New ContextMenuStrip()
-                                                        For Each st In {"Pending", "Scheduled", "In Progress", "Completed", "Cancelled"}
-                                                            Dim itm = cMenu.Items.Add(st)
-                                                            Dim sItemStr = st
-                                                            AddHandler itm.Click, Sub(sItm, eItm) UpdateSRStatus(rId, sItemStr)
-                                                        Next
-                                                        cMenu.Show(btnStatus, New Point(0, btnStatus.Height))
-                                                    End Sub
-                        card.Controls.Add(btnStatus)
+                        card.Controls.Add(lblStatus)
+
+                        Dim nextStatus As String = GetNextSRStatus(rStat)
+                        Dim btnUpdateText As String = If(String.IsNullOrEmpty(nextStatus), "No Next Status", "Update to " & nextStatus)
+
+                        Dim btnUpdateStatus As New Button() With {
+                            .Text = btnUpdateText,
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(145, 34),
+                            .Location = New Point(10, 200),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(230, 240, 255),
+                            .ForeColor = Color.FromArgb(0, 90, 170)
+                        }
+                        btnUpdateStatus.FlatAppearance.BorderSize = 0
+                        btnUpdateStatus.Enabled = Not String.IsNullOrEmpty(nextStatus)
+                        AddHandler btnUpdateStatus.Click, Sub(senderBtn, eBtn)
+                                                              If String.IsNullOrEmpty(nextStatus) Then Return
+                                                              UpdateSRStatus(rId, nextStatus)
+                                                          End Sub
+                        card.Controls.Add(btnUpdateStatus)
+
+                        Dim btnCancelStatus As New Button() With {
+                            .Text = "Cancel Request",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(145, 34),
+                            .Location = New Point(165, 200),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(255, 230, 230),
+                            .ForeColor = Color.FromArgb(180, 0, 0)
+                        }
+                        btnCancelStatus.FlatAppearance.BorderSize = 0
+                        btnCancelStatus.Enabled = (rStat <> "Completed" AndAlso rStat <> "Cancelled")
+                        AddHandler btnCancelStatus.Click, Sub(senderBtn, eBtn)
+                                                              If MessageBox.Show("Set this request to Cancelled?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) <> DialogResult.Yes Then
+                                                                  Return
+                                                              End If
+                                                              UpdateSRStatus(rId, "Cancelled")
+                                                          End Sub
+                        card.Controls.Add(btnCancelStatus)
 
                         flpServiceRequests.Controls.Add(card)
                     End While
@@ -1387,15 +1524,434 @@ Private Sub RefreshOrderPanel()
     Private Sub UpdateSRStatus(reqId As Integer, newStatus As String)
         Try
             If conn.State <> ConnectionState.Open Then OpenConnection()
-            Dim q As String = "UPDATE SERVICE_REQUEST SET Request_Status = @s WHERE Request_ID = @id"
+            Dim q As String = "UPDATE SERVICE_REQUEST " &
+                              "SET Request_Status = @s, " &
+                              "    Completed_Date = CASE WHEN @s = 'Completed' THEN CURDATE() ELSE NULL END " &
+                              "WHERE Request_ID = @id"
             Using cmd As New MySqlCommand(q, conn)
                 cmd.Parameters.AddWithValue("@s", newStatus)
                 cmd.Parameters.AddWithValue("@id", reqId)
                 cmd.ExecuteNonQuery()
             End Using
             LoadServiceRequestsCards()
+            LoadWarrantyClaimsCards()
         Catch ex As Exception
             MessageBox.Show("Error updating status: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Function GetNextSRStatus(currentStatus As String) As String
+        Select Case currentStatus
+            Case "Pending"
+                Return "Scheduled"
+            Case "Scheduled"
+                Return "In Progress"
+            Case "In Progress"
+                Return "Completed"
+            Case Else
+                Return String.Empty
+        End Select
+    End Function
+
+    Private Sub OpenServiceRequestDetailsFromWarranty(reqId As Integer)
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+
+            Dim q As String =
+                "SELECT " &
+                "SR.Request_ID, SR.Request_Date, SR.Scheduled_Date, SR.Completed_Date, SR.Request_Status, SR.Service_Address, " &
+                "C.Full_Name AS Customer_Name, C.Contact_Number AS Customer_Contact, " &
+                "W.Warranty_ID, " &
+                "S.Service_Type, S.Service_Description, S.Service_Fee, " &
+                "ST.Full_Name AS Staff_Name, " &
+                "TS.Full_Name AS Technician_Name " &
+                "FROM SERVICE_REQUEST SR " &
+                "JOIN CUSTOMER C ON SR.Customer_ID = C.Customer_ID " &
+                "LEFT JOIN WARRANTY W ON SR.Warranty_ID = W.Warranty_ID " &
+                "LEFT JOIN SERVICE S ON SR.Service_ID = S.Service_ID " &
+                "LEFT JOIN STAFF ST ON SR.Staff_ID = ST.Staff_ID " &
+                "LEFT JOIN TECHNICIAN T ON SR.Technician_ID = T.Technician_ID " &
+                "LEFT JOIN STAFF TS ON T.Staff_ID = TS.Staff_ID " &
+                "WHERE SR.Request_ID = @id LIMIT 1"
+
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@id", reqId)
+                Using reader = cmd.ExecuteReader()
+                    If Not reader.Read() Then
+                        MessageBox.Show("Service request not found.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        Return
+                    End If
+
+                    Dim dlg As New Form() With {
+                        .Text = "Warranty Request Details #" & reqId.ToString(),
+                        .StartPosition = FormStartPosition.CenterParent,
+                        .Size = New Size(760, 520),
+                        .FormBorderStyle = FormBorderStyle.FixedDialog,
+                        .MaximizeBox = False,
+                        .MinimizeBox = False
+                    }
+
+                    Dim pnl As New Panel() With {.Dock = DockStyle.Fill, .AutoScroll = True, .Padding = New Padding(16), .BackColor = Color.White}
+                    dlg.Controls.Add(pnl)
+
+                    Dim y As Integer = 10
+                    Dim addRow = Sub(labelText As String, valueText As String, bold As Boolean)
+                                     Dim lbl As New Label() With {
+                                         .Text = labelText & valueText,
+                                         .Font = New Font("Segoe UI", If(bold, 10.5F, 10), If(bold, FontStyle.Bold, FontStyle.Regular)),
+                                         .AutoSize = True,
+                                         .MaximumSize = New Size(700, 0),
+                                         .Location = New Point(10, y)
+                                     }
+                                     pnl.Controls.Add(lbl)
+                                     y += lbl.Height + 10
+                                 End Sub
+
+                    addRow("Request ID: ", reader("Request_ID").ToString(), True)
+                    addRow("Customer: ", reader("Customer_Name").ToString() & " (" & reader("Customer_Contact").ToString() & ")", False)
+                    addRow("Warranty ID: ", If(reader("Warranty_ID") Is DBNull.Value, "N/A", reader("Warranty_ID").ToString()), False)
+                    addRow("Status: ", reader("Request_Status").ToString(), True)
+                    addRow("Requested Date: ", Convert.ToDateTime(reader("Request_Date")).ToString("yyyy-MM-dd"), False)
+                    addRow("Scheduled Date: ", If(reader("Scheduled_Date") Is DBNull.Value, "N/A", Convert.ToDateTime(reader("Scheduled_Date")).ToString("yyyy-MM-dd")), False)
+                    addRow("Completed Date: ", If(reader("Completed_Date") Is DBNull.Value, "N/A", Convert.ToDateTime(reader("Completed_Date")).ToString("yyyy-MM-dd")), False)
+                    addRow("Service: ", If(reader("Service_Type") Is DBNull.Value, "N/A", reader("Service_Type").ToString()), False)
+                    addRow("Service Description: ", If(reader("Service_Description") Is DBNull.Value, "N/A", reader("Service_Description").ToString()), False)
+                    addRow("Service Fee: ", If(reader("Service_Fee") Is DBNull.Value, "N/A", Convert.ToDecimal(reader("Service_Fee")).ToString("N2")), False)
+                    addRow("Coordinator Staff: ", If(reader("Staff_Name") Is DBNull.Value, "N/A", reader("Staff_Name").ToString()), False)
+                    addRow("Technician: ", If(reader("Technician_Name") Is DBNull.Value, "Unassigned", reader("Technician_Name").ToString()), False)
+                    addRow("Service Address: ", reader("Service_Address").ToString(), False)
+
+                    Dim btnClose As New Button() With {
+                        .Text = "Close",
+                        .Font = New Font("Segoe UI", 10, FontStyle.Bold),
+                        .Size = New Size(120, 36),
+                        .BackColor = Color.FromArgb(230, 240, 255),
+                        .ForeColor = Color.FromArgb(0, 90, 170),
+                        .FlatStyle = FlatStyle.Flat,
+                        .Location = New Point(590, Math.Max(y + 10, 430))
+                    }
+                    btnClose.FlatAppearance.BorderSize = 0
+                    AddHandler btnClose.Click, Sub() dlg.Close()
+                    pnl.Controls.Add(btnClose)
+
+                    dlg.ShowDialog(Me)
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error loading warranty request details: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub OpenServiceRequestEditFromWarranty(reqId As Integer)
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+
+            Dim dtServices As New DataTable()
+            Using da As New MySqlDataAdapter("SELECT Service_ID, Service_Type FROM SERVICE", conn)
+                da.Fill(dtServices)
+            End Using
+
+            Dim dtStaff As New DataTable()
+            Using da As New MySqlDataAdapter("SELECT Staff_ID, Full_Name FROM STAFF", conn)
+                da.Fill(dtStaff)
+            End Using
+
+            Dim dtTech As New DataTable()
+            Dim qTech As String = "SELECT T.Technician_ID, S.Full_Name FROM TECHNICIAN T JOIN STAFF S ON T.Staff_ID = S.Staff_ID"
+            Using da As New MySqlDataAdapter(qTech, conn)
+                da.Fill(dtTech)
+            End Using
+
+            Dim customerName As String = ""
+            Dim warrantyId As String = ""
+            Dim requestDate As DateTime = DateTime.Now
+            Dim scheduledDate As DateTime? = Nothing
+            Dim serviceId As Integer = 0
+            Dim staffId As Integer = 0
+            Dim technicianId As Integer? = Nothing
+            Dim address As String = ""
+            Dim status As String = "Pending"
+
+            Dim q As String = "SELECT SR.Request_Date, SR.Scheduled_Date, SR.Service_ID, SR.Staff_ID, SR.Technician_ID, SR.Service_Address, SR.Request_Status, " &
+                              "C.Full_Name as Customer_Name, IFNULL(SR.Warranty_ID, 0) as Warranty_ID " &
+                              "FROM SERVICE_REQUEST SR JOIN CUSTOMER C ON SR.Customer_ID = C.Customer_ID WHERE SR.Request_ID = @id LIMIT 1"
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@id", reqId)
+                Using reader = cmd.ExecuteReader()
+                    If Not reader.Read() Then
+                        MessageBox.Show("Service request not found.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        Return
+                    End If
+
+                    customerName = reader("Customer_Name").ToString()
+                    warrantyId = reader("Warranty_ID").ToString()
+                    requestDate = Convert.ToDateTime(reader("Request_Date"))
+                    scheduledDate = If(reader("Scheduled_Date") Is DBNull.Value, CType(Nothing, DateTime?), Convert.ToDateTime(reader("Scheduled_Date")))
+                    serviceId = Convert.ToInt32(reader("Service_ID"))
+                    staffId = Convert.ToInt32(reader("Staff_ID"))
+                    technicianId = If(reader("Technician_ID") Is DBNull.Value, CType(Nothing, Integer?), Convert.ToInt32(reader("Technician_ID")))
+                    address = reader("Service_Address").ToString()
+                    status = reader("Request_Status").ToString()
+                End Using
+            End Using
+
+            Dim dlg As New Form() With {
+                .Text = "Edit Warranty Request #" & reqId.ToString(),
+                .StartPosition = FormStartPosition.CenterParent,
+                .Size = New Size(620, 560),
+                .FormBorderStyle = FormBorderStyle.FixedDialog,
+                .MaximizeBox = False,
+                .MinimizeBox = False
+            }
+
+            Dim y As Integer = 16
+            Dim lblCustomer As New Label() With {.Text = "Customer: " & customerName, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Location = New Point(20, y), .AutoSize = True}
+            dlg.Controls.Add(lblCustomer)
+            y += 28
+            Dim lblWarranty As New Label() With {.Text = "Warranty ID: " & warrantyId, .Font = New Font("Segoe UI", 10), .Location = New Point(20, y), .AutoSize = True}
+            dlg.Controls.Add(lblWarranty)
+            y += 28
+            Dim lblReqDate As New Label() With {.Text = "Request Date: " & requestDate.ToString("yyyy-MM-dd"), .Font = New Font("Segoe UI", 10), .Location = New Point(20, y), .AutoSize = True}
+            dlg.Controls.Add(lblReqDate)
+            y += 34
+
+            Dim lblSvc As New Label() With {.Text = "Service", .Font = New Font("Segoe UI", 10), .Location = New Point(20, y), .AutoSize = True}
+            dlg.Controls.Add(lblSvc)
+            Dim cmbService As New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Location = New Point(20, y + 22), .Size = New Size(260, 28), .DataSource = dtServices, .DisplayMember = "Service_Type", .ValueMember = "Service_ID"}
+            dlg.Controls.Add(cmbService)
+
+            Dim lblStaff As New Label() With {.Text = "Staff Coordinator", .Font = New Font("Segoe UI", 10), .Location = New Point(300, y), .AutoSize = True}
+            dlg.Controls.Add(lblStaff)
+            Dim cmbStaff As New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Location = New Point(300, y + 22), .Size = New Size(280, 28), .DataSource = dtStaff, .DisplayMember = "Full_Name", .ValueMember = "Staff_ID"}
+            dlg.Controls.Add(cmbStaff)
+            y += 70
+
+            Dim lblTech As New Label() With {.Text = "Technician (Optional)", .Font = New Font("Segoe UI", 10), .Location = New Point(20, y), .AutoSize = True}
+            dlg.Controls.Add(lblTech)
+            Dim cmbTech As New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Location = New Point(20, y + 22), .Size = New Size(260, 28)}
+            cmbTech.Items.Add("(Unassigned)")
+            For Each row As DataRow In dtTech.Rows
+                cmbTech.Items.Add(New KeyValuePair(Of Integer, String)(Convert.ToInt32(row("Technician_ID")), row("Full_Name").ToString()))
+            Next
+            cmbTech.DisplayMember = "Value"
+            cmbTech.ValueMember = "Key"
+            dlg.Controls.Add(cmbTech)
+
+            Dim lblStatus As New Label() With {.Text = "Status", .Font = New Font("Segoe UI", 10), .Location = New Point(300, y), .AutoSize = True}
+            dlg.Controls.Add(lblStatus)
+            Dim cmbStatus As New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Location = New Point(300, y + 22), .Size = New Size(280, 28)}
+            cmbStatus.Items.AddRange(New String() {"Pending", "Scheduled", "In Progress", "Completed", "Cancelled"})
+            dlg.Controls.Add(cmbStatus)
+            y += 70
+
+            Dim lblScheduled As New Label() With {.Text = "Scheduled Date", .Font = New Font("Segoe UI", 10), .Location = New Point(20, y), .AutoSize = True}
+            dlg.Controls.Add(lblScheduled)
+            Dim dtpScheduled As New DateTimePicker() With {.Format = DateTimePickerFormat.Short, .ShowCheckBox = True, .Location = New Point(20, y + 22), .Size = New Size(260, 28), .Font = New Font("Segoe UI", 10)}
+            dlg.Controls.Add(dtpScheduled)
+            y += 70
+
+            Dim lblAddr As New Label() With {.Text = "Service Address", .Font = New Font("Segoe UI", 10), .Location = New Point(20, y), .AutoSize = True}
+            dlg.Controls.Add(lblAddr)
+            Dim txtAddress As New TextBox() With {.Font = New Font("Segoe UI", 10), .Location = New Point(20, y + 22), .Size = New Size(560, 90), .Multiline = True, .Text = address}
+            dlg.Controls.Add(txtAddress)
+            y += 130
+
+            cmbService.SelectedValue = serviceId
+            cmbStaff.SelectedValue = staffId
+            cmbStatus.SelectedItem = status
+            If cmbStatus.SelectedIndex = -1 Then cmbStatus.SelectedIndex = 0
+            If scheduledDate.HasValue Then
+                dtpScheduled.Checked = True
+                dtpScheduled.Value = scheduledDate.Value
+            Else
+                dtpScheduled.Checked = False
+            End If
+
+            cmbTech.SelectedIndex = 0
+            If technicianId.HasValue Then
+                For i As Integer = 0 To cmbTech.Items.Count - 1
+                    If TypeOf cmbTech.Items(i) Is KeyValuePair(Of Integer, String) Then
+                        Dim pair = DirectCast(cmbTech.Items(i), KeyValuePair(Of Integer, String))
+                        If pair.Key = technicianId.Value Then
+                            cmbTech.SelectedIndex = i
+                            Exit For
+                        End If
+                    End If
+                Next
+            End If
+
+            Dim btnSave As New Button() With {.Text = "Save Changes", .Font = New Font("Segoe UI", 10, FontStyle.Bold), .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(150, 38), .Location = New Point(270, y)}
+            btnSave.FlatAppearance.BorderSize = 0
+            AddHandler btnSave.Click,
+                Sub()
+                    If cmbService.SelectedValue Is Nothing OrElse cmbStaff.SelectedValue Is Nothing Then
+                        MessageBox.Show("Service and Staff are required.", "Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        Return
+                    End If
+                    If String.IsNullOrWhiteSpace(txtAddress.Text) Then
+                        MessageBox.Show("Service address is required.", "Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        Return
+                    End If
+
+                    Try
+                        If conn.State <> ConnectionState.Open Then OpenConnection()
+                        Dim qUpdate As String =
+                            "UPDATE SERVICE_REQUEST SET " &
+                            "Service_ID = @sid, Staff_ID = @stid, Technician_ID = @tid, Scheduled_Date = @sdate, Service_Address = @addr, Request_Status = @status, " &
+                            "Completed_Date = CASE WHEN @status = 'Completed' THEN IFNULL(Completed_Date, CURDATE()) ELSE NULL END " &
+                            "WHERE Request_ID = @id"
+                        Using cmdUpdate As New MySqlCommand(qUpdate, conn)
+                            cmdUpdate.Parameters.AddWithValue("@sid", Convert.ToInt32(cmbService.SelectedValue))
+                            cmdUpdate.Parameters.AddWithValue("@stid", Convert.ToInt32(cmbStaff.SelectedValue))
+                            If cmbTech.SelectedIndex <= 0 Then
+                                cmdUpdate.Parameters.AddWithValue("@tid", DBNull.Value)
+                            Else
+                                Dim selectedTech = DirectCast(cmbTech.SelectedItem, KeyValuePair(Of Integer, String))
+                                cmdUpdate.Parameters.AddWithValue("@tid", selectedTech.Key)
+                            End If
+                            If dtpScheduled.Checked Then
+                                cmdUpdate.Parameters.AddWithValue("@sdate", dtpScheduled.Value.Date)
+                            Else
+                                cmdUpdate.Parameters.AddWithValue("@sdate", DBNull.Value)
+                            End If
+                            cmdUpdate.Parameters.AddWithValue("@addr", txtAddress.Text.Trim())
+                            cmdUpdate.Parameters.AddWithValue("@status", cmbStatus.SelectedItem.ToString())
+                            cmdUpdate.Parameters.AddWithValue("@id", reqId)
+                            cmdUpdate.ExecuteNonQuery()
+                        End Using
+
+                        LoadServiceRequestsCards()
+                        LoadWarrantyClaimsCards()
+                        MessageBox.Show("Warranty request updated successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        dlg.DialogResult = DialogResult.OK
+                        dlg.Close()
+                    Catch exSave As Exception
+                        MessageBox.Show("Error updating request: " & exSave.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    End Try
+                End Sub
+            dlg.Controls.Add(btnSave)
+
+            Dim btnCancel As New Button() With {.Text = "Cancel", .Font = New Font("Segoe UI", 10), .BackColor = Color.White, .ForeColor = Color.FromArgb(80, 80, 80), .FlatStyle = FlatStyle.Flat, .Size = New Size(120, 38), .Location = New Point(440, y)}
+            btnCancel.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
+            AddHandler btnCancel.Click, Sub() dlg.Close()
+            dlg.Controls.Add(btnCancel)
+
+            dlg.ShowDialog(Me)
+        Catch ex As Exception
+            MessageBox.Show("Error opening edit dialog: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub OpenServiceRequestFormForCreate()
+        _editingSRRequestId = 0
+        ClearServiceRequestForm()
+        LoadDataForSRForm()
+        If _lblSRFormTitle IsNot Nothing Then _lblSRFormTitle.Text = "Create New Service Request"
+        If _btnSRSave IsNot Nothing Then _btnSRSave.Text = "Save Request"
+        If _optSRNewCust IsNot Nothing Then
+            _optSRNewCust.Enabled = True
+            _optSRExistCust.Enabled = True
+        End If
+        pnlSRDashboard.Visible = False
+        pnlSRFormWrapper.Visible = True
+    End Sub
+
+    Private Sub OpenServiceRequestFormForEdit(reqId As Integer)
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+
+            LoadDataForSRForm()
+            ClearServiceRequestForm()
+
+            Dim customerId As Integer = 0
+            Dim serviceId As Integer = 0
+            Dim staffId As Integer = 0
+            Dim technicianId As Integer? = Nothing
+            Dim warrantyId As Integer? = Nothing
+            Dim requestDate As DateTime = DateTime.Now
+            Dim scheduledDate As DateTime? = Nothing
+            Dim serviceAddress As String = ""
+            Dim requestStatus As String = "Pending"
+
+            Dim q As String = "SELECT Customer_ID, Service_ID, Staff_ID, Technician_ID, Warranty_ID, Request_Date, Scheduled_Date, Service_Address, Request_Status " &
+                              "FROM SERVICE_REQUEST WHERE Request_ID = @id LIMIT 1"
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@id", reqId)
+                Using reader = cmd.ExecuteReader()
+                    If Not reader.Read() Then
+                        MessageBox.Show("Service request not found.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        Return
+                    End If
+
+                    _editingSRRequestId = reqId
+                    _optSRExistCust.Checked = True
+                    _optSRNewCust.Enabled = False
+                    _optSRExistCust.Enabled = False
+
+                    customerId = Convert.ToInt32(reader("Customer_ID"))
+                    serviceId = Convert.ToInt32(reader("Service_ID"))
+                    staffId = Convert.ToInt32(reader("Staff_ID"))
+                    technicianId = If(reader("Technician_ID") Is DBNull.Value, CType(Nothing, Integer?), Convert.ToInt32(reader("Technician_ID")))
+                    warrantyId = If(reader("Warranty_ID") Is DBNull.Value, CType(Nothing, Integer?), Convert.ToInt32(reader("Warranty_ID")))
+                    requestDate = Convert.ToDateTime(reader("Request_Date"))
+                    scheduledDate = If(reader("Scheduled_Date") Is DBNull.Value, CType(Nothing, DateTime?), Convert.ToDateTime(reader("Scheduled_Date")))
+                    serviceAddress = reader("Service_Address").ToString()
+                    requestStatus = reader("Request_Status").ToString()
+                End Using
+            End Using
+
+            _cmbSRExistCust.SelectedValue = customerId
+            LoadWarrantiesForCustomer()
+
+            _cmbSRService.SelectedValue = serviceId
+            _cmbSRStaff.SelectedValue = staffId
+            If technicianId.HasValue Then
+                _cmbSRTechnician.SelectedValue = technicianId.Value
+            Else
+                _cmbSRTechnician.SelectedIndex = -1
+            End If
+            If warrantyId.HasValue Then
+                _cmbSRWarranty.SelectedValue = warrantyId.Value
+            Else
+                _cmbSRWarranty.SelectedIndex = -1
+            End If
+
+            _dtpSRRequest.Value = requestDate
+            If scheduledDate.HasValue Then
+                _dtpSRScheduled.Checked = True
+                _dtpSRScheduled.Value = scheduledDate.Value
+            Else
+                _dtpSRScheduled.Checked = False
+            End If
+            _txtSRAddress.Text = serviceAddress
+            _cmbSRStatus.SelectedItem = requestStatus
+            If _cmbSRStatus.SelectedIndex = -1 Then _cmbSRStatus.SelectedIndex = 0
+
+            If _lblSRFormTitle IsNot Nothing Then _lblSRFormTitle.Text = "Edit Service Request #" & reqId.ToString()
+            If _btnSRSave IsNot Nothing Then _btnSRSave.Text = "Update Request"
+            pnlSRDashboard.Visible = False
+            pnlSRFormWrapper.Visible = True
+        Catch ex As Exception
+            MessageBox.Show("Error loading service request for edit: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub DeleteServiceRequest(reqId As Integer)
+        If MessageBox.Show("Delete Service Request #" & reqId.ToString() & "?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) <> DialogResult.Yes Then
+            Return
+        End If
+
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+            Using cmd As New MySqlCommand("DELETE FROM SERVICE_REQUEST WHERE Request_ID = @id", conn)
+                cmd.Parameters.AddWithValue("@id", reqId)
+                cmd.ExecuteNonQuery()
+            End Using
+            LoadServiceRequestsCards()
+            LoadWarrantyClaimsCards()
+            MessageBox.Show("Service request deleted successfully.", "Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        Catch ex As Exception
+            MessageBox.Show("Error deleting service request: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Sub
 
@@ -1463,6 +2019,13 @@ Private Sub RefreshOrderPanel()
     End Sub
 
     Private Sub ClearServiceRequestForm()
+        _editingSRRequestId = 0
+        If _optSRNewCust IsNot Nothing Then
+            _optSRNewCust.Enabled = True
+            _optSRExistCust.Enabled = True
+        End If
+        If _lblSRFormTitle IsNot Nothing Then _lblSRFormTitle.Text = "Create New Service Request"
+        If _btnSRSave IsNot Nothing Then _btnSRSave.Text = "Save Request"
         _optSRNewCust.Checked = True
         _txtSRNewCustName.Clear()
         _txtSRNewCustContact.Clear()
@@ -1521,10 +2084,14 @@ Private Sub RefreshOrderPanel()
                 Return
             End If
 
-            ' Execute Insertion
-            Dim qInsert As String = "INSERT INTO SERVICE_REQUEST (Customer_ID, Service_ID, Staff_ID, Technician_ID, Warranty_ID, Request_Date, Scheduled_Date, Service_Address, Request_Status) " &
-                                    "VALUES (@cid, @sid, @stid, @tid, @wid, @rdate, @sdate, @addr, @status)"
-            Using sqlCmd As New MySqlCommand(qInsert, conn)
+            Dim qSave As String
+            If _editingSRRequestId > 0 Then
+                qSave = "UPDATE SERVICE_REQUEST SET Customer_ID = @cid, Service_ID = @sid, Staff_ID = @stid, Technician_ID = @tid, Warranty_ID = @wid, Request_Date = @rdate, Scheduled_Date = @sdate, Service_Address = @addr, Request_Status = @status WHERE Request_ID = @id"
+            Else
+                qSave = "INSERT INTO SERVICE_REQUEST (Customer_ID, Service_ID, Staff_ID, Technician_ID, Warranty_ID, Request_Date, Scheduled_Date, Service_Address, Request_Status) VALUES (@cid, @sid, @stid, @tid, @wid, @rdate, @sdate, @addr, @status)"
+            End If
+
+            Using sqlCmd As New MySqlCommand(qSave, conn)
                 sqlCmd.Parameters.AddWithValue("@cid", custId)
                 sqlCmd.Parameters.AddWithValue("@sid", Convert.ToInt32(_cmbSRService.SelectedValue))
                 sqlCmd.Parameters.AddWithValue("@stid", Convert.ToInt32(_cmbSRStaff.SelectedValue))
@@ -1552,11 +2119,13 @@ Private Sub RefreshOrderPanel()
                 ' Left out Completed_Date for initial creation
                 sqlCmd.Parameters.AddWithValue("@addr", _txtSRAddress.Text)
                 sqlCmd.Parameters.AddWithValue("@status", _cmbSRStatus.SelectedItem.ToString())
+                If _editingSRRequestId > 0 Then sqlCmd.Parameters.AddWithValue("@id", _editingSRRequestId)
 
                 sqlCmd.ExecuteNonQuery()
             End Using
 
-            MessageBox.Show("Service Request generated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            MessageBox.Show(If(_editingSRRequestId > 0, "Service Request updated successfully!", "Service Request generated successfully!"), "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            _editingSRRequestId = 0
             ClearServiceRequestForm()
             pnlSRFormWrapper.Visible = False
             pnlSRDashboard.Visible = True
@@ -1588,10 +2157,10 @@ Private Sub RefreshOrderPanel()
         Dim lblTitle As New Label() With {.Text = "Warranty Claims Dashboard", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .AutoSize = True, .Location = New Point(20, 20)}
         pnlTop.Controls.Add(lblTitle)
         
-        Dim lblFilter As New Label() With {.Text = "Filter Resolution:", .Font = New Font("Segoe UI", 10), .AutoSize = True, .Location = New Point(450, 30)}
+        Dim lblFilter As New Label() With {.Text = "Filter Status:", .Font = New Font("Segoe UI", 10), .AutoSize = True, .Location = New Point(450, 30)}
         pnlTop.Controls.Add(lblFilter)
         _cmbWCStatusFilter = New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Location = New Point(590, 28), .Size = New Size(150, 25)}
-        _cmbWCStatusFilter.Items.AddRange(New String() {"All", "Pending Review", "Approved - Fixing", "Approved - Replaced", "Denied"})
+        _cmbWCStatusFilter.Items.AddRange(New String() {"All", "Pending", "Scheduled", "In Progress", "Completed", "Cancelled"})
         _cmbWCStatusFilter.SelectedIndex = 0
         AddHandler _cmbWCStatusFilter.SelectedIndexChanged, Sub() LoadWarrantyClaimsCards()
         pnlTop.Controls.Add(_cmbWCStatusFilter)
@@ -1666,86 +2235,156 @@ Private Sub RefreshOrderPanel()
             If conn.State <> ConnectionState.Open Then OpenConnection()
             Dim statusFilter = If(_cmbWCStatusFilter IsNot Nothing AndAlso _cmbWCStatusFilter.SelectedItem IsNot Nothing, _cmbWCStatusFilter.SelectedItem.ToString(), "All")
             
-            Dim q As String = "SELECT WC.Claim_ID, C.Full_Name as Customer, WC.Claim_Date, WC.Claim_Description, WC.Claim_Resolution, " &
+            Dim q As String = "SELECT SR.Request_ID, C.Full_Name as Customer, SR.Request_Date, SR.Scheduled_Date, SR.Completed_Date, SR.Request_Status, " &
+                              "W.Warranty_ID, IFNULL(S.Service_Type, 'N/A') as Service_Type, " &
                               "IFNULL(GROUP_CONCAT(DISTINCT PR.Product_Name ORDER BY PR.Product_Name SEPARATOR ', '), 'N/A') AS Product_Names " &
-                              "FROM WARRANTY_CLAIM WC " &
-                              "JOIN WARRANTY W ON WC.Warranty_ID = W.Warranty_ID " &
-                              "JOIN PURCHASE P ON W.Purchase_ID = P.Purchase_ID " &
-                              "JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID " &
+                              "FROM SERVICE_REQUEST SR " &
+                              "JOIN CUSTOMER C ON SR.Customer_ID = C.Customer_ID " &
+                              "JOIN WARRANTY W ON SR.Warranty_ID = W.Warranty_ID " &
+                              "LEFT JOIN SERVICE S ON SR.Service_ID = S.Service_ID " &
+                              "LEFT JOIN PURCHASE P ON W.Purchase_ID = P.Purchase_ID " &
                               "LEFT JOIN PURCHASE_ITEMS PI ON P.Purchase_ID = PI.Purchase_ID " &
-                              "LEFT JOIN PRODUCT PR ON PI.Product_ID = PR.Product_ID"
+                              "LEFT JOIN PRODUCT PR ON PI.Product_ID = PR.Product_ID " &
+                              "WHERE SR.Warranty_ID IS NOT NULL"
             
-            If statusFilter <> "All" Then q &= " WHERE WC.Claim_Resolution = @status"
-            q &= " GROUP BY WC.Claim_ID, C.Full_Name, WC.Claim_Date, WC.Claim_Description, WC.Claim_Resolution"
+            If statusFilter <> "All" Then q &= " AND SR.Request_Status = @status"
+            q &= " GROUP BY SR.Request_ID, C.Full_Name, SR.Request_Date, SR.Scheduled_Date, SR.Completed_Date, SR.Request_Status, W.Warranty_ID, S.Service_Type"
             
             Using cmd As New MySqlCommand(q, conn)
                 If statusFilter <> "All" Then cmd.Parameters.AddWithValue("@status", statusFilter)
                 Using reader = cmd.ExecuteReader()
                     While reader.Read()
-                        Dim cId = Convert.ToInt32(reader("Claim_ID"))
+                        Dim rId = Convert.ToInt32(reader("Request_ID"))
                         Dim cName = reader("Customer").ToString()
-                        Dim claimDateStr = Convert.ToDateTime(reader("Claim_Date")).ToShortDateString()
-                        Dim cDesc = reader("Claim_Description").ToString()
-                        Dim cRes = reader("Claim_Resolution").ToString()
+                        Dim requestDateStr = Convert.ToDateTime(reader("Request_Date")).ToShortDateString()
+                        Dim schedDate As String = If(reader("Scheduled_Date") Is DBNull.Value, "N/A", Convert.ToDateTime(reader("Scheduled_Date")).ToShortDateString())
+                        Dim completedDate As String = If(reader("Completed_Date") Is DBNull.Value, "N/A", Convert.ToDateTime(reader("Completed_Date")).ToShortDateString())
+                        Dim requestStatus = reader("Request_Status").ToString()
+                        Dim warrantyId = reader("Warranty_ID").ToString()
+                        Dim serviceType = reader("Service_Type").ToString()
                         Dim pNames = reader("Product_Names").ToString()
-                        If String.IsNullOrEmpty(cRes) Then cRes = "Pending Review"
 
-                        Dim card As New Panel() With {.Size = New Size(360, 280), .Margin = New Padding(10), .BackColor = Color.White, .BorderStyle = BorderStyle.FixedSingle}
+                        Dim card As New Panel() With {.Size = New Size(380, 245), .Margin = New Padding(10), .BackColor = Color.White, .BorderStyle = BorderStyle.FixedSingle}
                         
                         Dim lblCust As New Label() With {.Text = cName, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215), .Location = New Point(10, 10), .AutoSize = True}
                         card.Controls.Add(lblCust)
 
-                        Dim lblProd As New Label() With {.Text = "Product: " & pNames, .Font = New Font("Segoe UI", 9), .ForeColor = Color.FromArgb(80, 80, 80), .Location = New Point(10, 40), .Size = New Size(340, 30)}
+                        Dim lblStatus As New Label() With {.Text = requestStatus, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Location = New Point(265, 12), .Size = New Size(105, 20), .TextAlign = ContentAlignment.MiddleRight}
+                        Select Case requestStatus
+                            Case "Pending" : lblStatus.ForeColor = Color.Orange
+                            Case "Scheduled" : lblStatus.ForeColor = Color.DeepSkyBlue
+                            Case "In Progress" : lblStatus.ForeColor = Color.Goldenrod
+                            Case "Completed" : lblStatus.ForeColor = Color.ForestGreen
+                            Case "Cancelled" : lblStatus.ForeColor = Color.Crimson
+                            Case Else : lblStatus.ForeColor = Color.Gray
+                        End Select
+                        card.Controls.Add(lblStatus)
+
+                        Dim lblWarranty As New Label() With {.Text = "Warranty ID: " & warrantyId, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80, 80, 80), .Location = New Point(10, 40), .AutoSize = True}
+                        card.Controls.Add(lblWarranty)
+
+                        Dim lblProd As New Label() With {.Text = "Product: " & pNames, .Font = New Font("Segoe UI", 9), .ForeColor = Color.FromArgb(80, 80, 80), .Location = New Point(10, 62), .Size = New Size(360, 30)}
                         card.Controls.Add(lblProd)
 
-                        Dim lblDate As New Label() With {.Text = "Date: " & claimDateStr, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 75), .AutoSize = True}
+                        Dim lblService As New Label() With {.Text = "Service: " & serviceType, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80, 80, 80), .Location = New Point(10, 96), .AutoSize = True}
+                        card.Controls.Add(lblService)
+
+                        Dim lblDate As New Label() With {.Text = "Requested: " & requestDateStr & "  |  Scheduled: " & schedDate, .Font = New Font("Segoe UI", 10), .ForeColor = Color.FromArgb(80,80,80), .Location = New Point(10, 118), .AutoSize = True}
                         card.Controls.Add(lblDate)
 
-                        Dim txtDescEdit As New TextBox() With {
-                            .Font = New Font("Segoe UI", 10),
-                            .Location = New Point(10, 100),
-                            .Size = New Size(340, 70),
-                            .Multiline = True,
-                            .Text = cDesc
-                        }
-                        card.Controls.Add(txtDescEdit)
+                        If requestStatus = "Completed" Then
+                            Dim lblCompleted As New Label() With {.Text = "Completed: " & completedDate, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .ForeColor = Color.ForestGreen, .Location = New Point(10, 140), .AutoSize = True}
+                            card.Controls.Add(lblCompleted)
+                        End If
 
-                        Dim btnSaveDesc As New Button() With {
-                            .Text = "Save Description",
+                        Dim btnDetails As New Button() With {
+                            .Text = "View Request Details",
                             .Font = New Font("Segoe UI", 9, FontStyle.Bold),
-                            .Size = New Size(130, 28),
-                            .Location = New Point(10, 178),
+                            .Size = New Size(165, 32),
+                            .Location = New Point(10, 160),
                             .FlatStyle = FlatStyle.Flat,
                             .Cursor = Cursors.Hand,
                             .BackColor = Color.FromArgb(230, 240, 255),
                             .ForeColor = Color.FromArgb(0, 90, 170)
                         }
-                        btnSaveDesc.FlatAppearance.BorderSize = 0
-                        AddHandler btnSaveDesc.Click, Sub(senderBtn, eBtn)
-                                                           UpdateWCDescription(cId, txtDescEdit.Text.Trim())
-                                                       End Sub
-                        card.Controls.Add(btnSaveDesc)
+                        btnDetails.FlatAppearance.BorderSize = 0
+                        AddHandler btnDetails.Click, Sub(senderBtn, eBtn)
+                                                         OpenServiceRequestDetailsFromWarranty(rId)
+                                                     End Sub
+                        card.Controls.Add(btnDetails)
 
-                        Dim btnRes As New Button() With {.Text = cRes, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Size = New Size(340, 35), .Location = New Point(10, 230), .FlatStyle = FlatStyle.Flat, .Cursor = Cursors.Hand, .Tag = cId}
-                        Select Case cRes
-                            Case "Pending Review" : btnRes.BackColor = Color.Orange : btnRes.ForeColor = Color.White
-                            Case "Approved - Fixing" : btnRes.BackColor = Color.Gold : btnRes.ForeColor = Color.Black
-                            Case "Approved - Replaced" : btnRes.BackColor = Color.LimeGreen : btnRes.ForeColor = Color.White
-                            Case "Denied" : btnRes.BackColor = Color.Crimson : btnRes.ForeColor = Color.White
-                            Case Else : btnRes.BackColor = Color.Gray : btnRes.ForeColor = Color.White
-                        End Select
-                        
-                        btnRes.FlatAppearance.BorderSize = 0
-                        AddHandler btnRes.Click, Sub(senderBtn, eBtn)
-                                                     Dim cMenu As New ContextMenuStrip()
-                                                     For Each st In {"Pending Review", "Approved - Fixing", "Approved - Replaced", "Denied"}
-                                                         Dim itm = cMenu.Items.Add(st)
-                                                         Dim sItemStr = st
-                                                         AddHandler itm.Click, Sub(sItm, eItm) UpdateWCResolution(cId, sItemStr)
-                                                     Next
-                                                     cMenu.Show(btnRes, New Point(0, btnRes.Height))
-                                                 End Sub
-                        card.Controls.Add(btnRes)
+                        Dim btnEdit As New Button() With {
+                            .Text = "Edit",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(90, 32),
+                            .Location = New Point(185, 160),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(255, 243, 224),
+                            .ForeColor = Color.FromArgb(166, 102, 0)
+                        }
+                        btnEdit.FlatAppearance.BorderSize = 0
+                        AddHandler btnEdit.Click, Sub(senderBtn, eBtn)
+                                                      OpenServiceRequestEditFromWarranty(rId)
+                                                  End Sub
+                        card.Controls.Add(btnEdit)
+
+                        Dim btnDelete As New Button() With {
+                            .Text = "Delete",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(90, 32),
+                            .Location = New Point(280, 160),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(255, 230, 230),
+                            .ForeColor = Color.FromArgb(180, 0, 0)
+                        }
+                        btnDelete.FlatAppearance.BorderSize = 0
+                        AddHandler btnDelete.Click, Sub(senderBtn, eBtn)
+                                                        DeleteServiceRequest(rId)
+                                                    End Sub
+                        card.Controls.Add(btnDelete)
+
+                        Dim nextStatus As String = GetNextSRStatus(requestStatus)
+                        Dim btnUpdateText As String = If(String.IsNullOrEmpty(nextStatus), "No Next Status", "Update to " & nextStatus)
+
+                        Dim btnUpdateStatus As New Button() With {
+                            .Text = btnUpdateText,
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(180, 34),
+                            .Location = New Point(10, 200),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(230, 240, 255),
+                            .ForeColor = Color.FromArgb(0, 90, 170),
+                            .Enabled = Not String.IsNullOrEmpty(nextStatus)
+                        }
+                        btnUpdateStatus.FlatAppearance.BorderSize = 0
+                        AddHandler btnUpdateStatus.Click, Sub(senderBtn, eBtn)
+                                                              If String.IsNullOrEmpty(nextStatus) Then Return
+                                                              UpdateSRStatus(rId, nextStatus)
+                                                          End Sub
+                        card.Controls.Add(btnUpdateStatus)
+
+                        Dim btnCancelStatus As New Button() With {
+                            .Text = "Cancel Request",
+                            .Font = New Font("Segoe UI", 9, FontStyle.Bold),
+                            .Size = New Size(180, 34),
+                            .Location = New Point(195, 200),
+                            .FlatStyle = FlatStyle.Flat,
+                            .Cursor = Cursors.Hand,
+                            .BackColor = Color.FromArgb(255, 230, 230),
+                            .ForeColor = Color.FromArgb(180, 0, 0),
+                            .Enabled = (requestStatus <> "Completed" AndAlso requestStatus <> "Cancelled")
+                        }
+                        btnCancelStatus.FlatAppearance.BorderSize = 0
+                        AddHandler btnCancelStatus.Click, Sub(senderBtn, eBtn)
+                                                              If MessageBox.Show("Set this request to Cancelled?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) <> DialogResult.Yes Then
+                                                                  Return
+                                                              End If
+                                                              UpdateSRStatus(rId, "Cancelled")
+                                                          End Sub
+                        card.Controls.Add(btnCancelStatus)
                         flpWarrantyClaims.Controls.Add(card)
                     End While
                 End Using
