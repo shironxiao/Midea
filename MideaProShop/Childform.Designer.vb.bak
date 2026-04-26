@@ -1,0 +1,244 @@
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+Partial Class Childform
+    Inherits System.Windows.Forms.Form
+
+    'Form overrides dispose to clean up the component list.
+    <System.Diagnostics.DebuggerNonUserCode()> _
+    Protected Overrides Sub Dispose(ByVal disposing As Boolean)
+        Try
+            If disposing AndAlso components IsNot Nothing Then
+                components.Dispose()
+            End If
+        Finally
+            MyBase.Dispose(disposing)
+        End Try
+    End Sub
+
+    'Required by the Windows Form Designer
+    Private components As System.ComponentModel.IContainer
+
+    'NOTE: The following procedure is required by the Windows Form Designer
+    'It can be modified using the Windows Form Designer.  
+    'Do not modify it using the code editor.
+    <System.Diagnostics.DebuggerStepThrough()> _
+    Private Sub InitializeComponent()
+        Me.lblDashTitle = New System.Windows.Forms.Label()
+        Me.flpCards = New System.Windows.Forms.FlowLayoutPanel()
+        Me.pnlCard1 = New System.Windows.Forms.Panel()
+        Me.lblCard1Value = New System.Windows.Forms.Label()
+        Me.lblCard1Title = New System.Windows.Forms.Label()
+        Me.pnlCard2 = New System.Windows.Forms.Panel()
+        Me.lblCard2Value = New System.Windows.Forms.Label()
+        Me.lblCard2Title = New System.Windows.Forms.Label()
+        Me.pnlCard3 = New System.Windows.Forms.Panel()
+        Me.lblCard3Value = New System.Windows.Forms.Label()
+        Me.lblCard3Title = New System.Windows.Forms.Label()
+        Me.pnlCard4 = New System.Windows.Forms.Panel()
+        Me.lblCard4Value = New System.Windows.Forms.Label()
+        Me.lblCard4Title = New System.Windows.Forms.Label()
+        Me.flpCards.SuspendLayout()
+        Me.pnlCard1.SuspendLayout()
+        Me.pnlCard2.SuspendLayout()
+        Me.pnlCard3.SuspendLayout()
+        Me.pnlCard4.SuspendLayout()
+        Me.SuspendLayout()
+        '
+        'lblDashTitle
+        '
+        Me.lblDashTitle.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblDashTitle.Font = New System.Drawing.Font("Segoe UI", 20.0!, System.Drawing.FontStyle.Bold)
+        Me.lblDashTitle.ForeColor = System.Drawing.Color.FromArgb(30, 30, 30)
+        Me.lblDashTitle.Location = New System.Drawing.Point(0, 0)
+        Me.lblDashTitle.Name = "lblDashTitle"
+        Me.lblDashTitle.Padding = New System.Windows.Forms.Padding(30, 20, 0, 10)
+        Me.lblDashTitle.Size = New System.Drawing.Size(864, 70)
+        Me.lblDashTitle.TabIndex = 0
+        Me.lblDashTitle.Text = "Dashboard"
+        '
+        'flpCards
+        '
+        Me.flpCards.Controls.Add(Me.pnlCard1)
+        Me.flpCards.Controls.Add(Me.pnlCard2)
+        Me.flpCards.Controls.Add(Me.pnlCard3)
+        Me.flpCards.Controls.Add(Me.pnlCard4)
+        Me.flpCards.Dock = System.Windows.Forms.DockStyle.Top
+        Me.flpCards.Location = New System.Drawing.Point(0, 70)
+        Me.flpCards.Name = "flpCards"
+        Me.flpCards.Padding = New System.Windows.Forms.Padding(25, 10, 25, 10)
+        Me.flpCards.Size = New System.Drawing.Size(864, 160)
+        Me.flpCards.TabIndex = 1
+        '
+        'pnlCard1
+        '
+        Me.pnlCard1.BackColor = System.Drawing.Color.FromArgb(0, 120, 215)
+        Me.pnlCard1.Controls.Add(Me.lblCard1Value)
+        Me.pnlCard1.Controls.Add(Me.lblCard1Title)
+        Me.pnlCard1.Location = New System.Drawing.Point(28, 13)
+        Me.pnlCard1.Margin = New System.Windows.Forms.Padding(3, 3, 15, 3)
+        Me.pnlCard1.Name = "pnlCard1"
+        Me.pnlCard1.Size = New System.Drawing.Size(185, 130)
+        Me.pnlCard1.TabIndex = 0
+        '
+        'lblCard1Value
+        '
+        Me.lblCard1Value.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.lblCard1Value.Font = New System.Drawing.Font("Segoe UI", 22.0!, System.Drawing.FontStyle.Bold)
+        Me.lblCard1Value.ForeColor = System.Drawing.Color.White
+        Me.lblCard1Value.Location = New System.Drawing.Point(0, 45)
+        Me.lblCard1Value.Name = "lblCard1Value"
+        Me.lblCard1Value.Padding = New System.Windows.Forms.Padding(15, 0, 0, 0)
+        Me.lblCard1Value.Size = New System.Drawing.Size(185, 85)
+        Me.lblCard1Value.TabIndex = 1
+        Me.lblCard1Value.Text = "0"
+        '
+        'lblCard1Title
+        '
+        Me.lblCard1Title.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblCard1Title.Font = New System.Drawing.Font("Segoe UI", 10.0!)
+        Me.lblCard1Title.ForeColor = System.Drawing.Color.White
+        Me.lblCard1Title.Location = New System.Drawing.Point(0, 0)
+        Me.lblCard1Title.Name = "lblCard1Title"
+        Me.lblCard1Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
+        Me.lblCard1Title.Size = New System.Drawing.Size(185, 45)
+        Me.lblCard1Title.TabIndex = 0
+        Me.lblCard1Title.Text = "Total Sales"
+        '
+        'pnlCard2
+        '
+        Me.pnlCard2.BackColor = System.Drawing.Color.FromArgb(40, 167, 69)
+        Me.pnlCard2.Controls.Add(Me.lblCard2Value)
+        Me.pnlCard2.Controls.Add(Me.lblCard2Title)
+        Me.pnlCard2.Location = New System.Drawing.Point(231, 13)
+        Me.pnlCard2.Margin = New System.Windows.Forms.Padding(3, 3, 15, 3)
+        Me.pnlCard2.Name = "pnlCard2"
+        Me.pnlCard2.Size = New System.Drawing.Size(185, 130)
+        Me.pnlCard2.TabIndex = 1
+        '
+        'lblCard2Value
+        '
+        Me.lblCard2Value.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.lblCard2Value.Font = New System.Drawing.Font("Segoe UI", 22.0!, System.Drawing.FontStyle.Bold)
+        Me.lblCard2Value.ForeColor = System.Drawing.Color.White
+        Me.lblCard2Value.Location = New System.Drawing.Point(0, 45)
+        Me.lblCard2Value.Name = "lblCard2Value"
+        Me.lblCard2Value.Padding = New System.Windows.Forms.Padding(15, 0, 0, 0)
+        Me.lblCard2Value.Size = New System.Drawing.Size(185, 85)
+        Me.lblCard2Value.TabIndex = 1
+        Me.lblCard2Value.Text = "0"
+        '
+        'lblCard2Title
+        '
+        Me.lblCard2Title.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblCard2Title.Font = New System.Drawing.Font("Segoe UI", 10.0!)
+        Me.lblCard2Title.ForeColor = System.Drawing.Color.White
+        Me.lblCard2Title.Location = New System.Drawing.Point(0, 0)
+        Me.lblCard2Title.Name = "lblCard2Title"
+        Me.lblCard2Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
+        Me.lblCard2Title.Size = New System.Drawing.Size(185, 45)
+        Me.lblCard2Title.TabIndex = 0
+        Me.lblCard2Title.Text = "Transactions"
+        '
+        'pnlCard3
+        '
+        Me.pnlCard3.BackColor = System.Drawing.Color.FromArgb(255, 152, 0)
+        Me.pnlCard3.Controls.Add(Me.lblCard3Value)
+        Me.pnlCard3.Controls.Add(Me.lblCard3Title)
+        Me.pnlCard3.Location = New System.Drawing.Point(434, 13)
+        Me.pnlCard3.Margin = New System.Windows.Forms.Padding(3, 3, 15, 3)
+        Me.pnlCard3.Name = "pnlCard3"
+        Me.pnlCard3.Size = New System.Drawing.Size(185, 130)
+        Me.pnlCard3.TabIndex = 2
+        '
+        'lblCard3Value
+        '
+        Me.lblCard3Value.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.lblCard3Value.Font = New System.Drawing.Font("Segoe UI", 22.0!, System.Drawing.FontStyle.Bold)
+        Me.lblCard3Value.ForeColor = System.Drawing.Color.White
+        Me.lblCard3Value.Location = New System.Drawing.Point(0, 45)
+        Me.lblCard3Value.Name = "lblCard3Value"
+        Me.lblCard3Value.Padding = New System.Windows.Forms.Padding(15, 0, 0, 0)
+        Me.lblCard3Value.Size = New System.Drawing.Size(185, 85)
+        Me.lblCard3Value.TabIndex = 1
+        Me.lblCard3Value.Text = "0"
+        '
+        'lblCard3Title
+        '
+        Me.lblCard3Title.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblCard3Title.Font = New System.Drawing.Font("Segoe UI", 10.0!)
+        Me.lblCard3Title.ForeColor = System.Drawing.Color.White
+        Me.lblCard3Title.Location = New System.Drawing.Point(0, 0)
+        Me.lblCard3Title.Name = "lblCard3Title"
+        Me.lblCard3Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
+        Me.lblCard3Title.Size = New System.Drawing.Size(185, 45)
+        Me.lblCard3Title.TabIndex = 0
+        Me.lblCard3Title.Text = "Service Requests"
+        '
+        'pnlCard4
+        '
+        Me.pnlCard4.BackColor = System.Drawing.Color.FromArgb(220, 53, 69)
+        Me.pnlCard4.Controls.Add(Me.lblCard4Value)
+        Me.pnlCard4.Controls.Add(Me.lblCard4Title)
+        Me.pnlCard4.Location = New System.Drawing.Point(637, 13)
+        Me.pnlCard4.Margin = New System.Windows.Forms.Padding(3, 3, 15, 3)
+        Me.pnlCard4.Name = "pnlCard4"
+        Me.pnlCard4.Size = New System.Drawing.Size(185, 130)
+        Me.pnlCard4.TabIndex = 3
+        '
+        'lblCard4Value
+        '
+        Me.lblCard4Value.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.lblCard4Value.Font = New System.Drawing.Font("Segoe UI", 22.0!, System.Drawing.FontStyle.Bold)
+        Me.lblCard4Value.ForeColor = System.Drawing.Color.White
+        Me.lblCard4Value.Location = New System.Drawing.Point(0, 45)
+        Me.lblCard4Value.Name = "lblCard4Value"
+        Me.lblCard4Value.Padding = New System.Windows.Forms.Padding(15, 0, 0, 0)
+        Me.lblCard4Value.Size = New System.Drawing.Size(185, 85)
+        Me.lblCard4Value.TabIndex = 1
+        Me.lblCard4Value.Text = "0"
+        '
+        'lblCard4Title
+        '
+        Me.lblCard4Title.Dock = System.Windows.Forms.DockStyle.Top
+        Me.lblCard4Title.Font = New System.Drawing.Font("Segoe UI", 10.0!)
+        Me.lblCard4Title.ForeColor = System.Drawing.Color.White
+        Me.lblCard4Title.Location = New System.Drawing.Point(0, 0)
+        Me.lblCard4Title.Name = "lblCard4Title"
+        Me.lblCard4Title.Padding = New System.Windows.Forms.Padding(15, 15, 0, 0)
+        Me.lblCard4Title.Size = New System.Drawing.Size(185, 45)
+        Me.lblCard4Title.TabIndex = 0
+        Me.lblCard4Title.Text = "Warranty Claims"
+        '
+        'Childform
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.BackColor = System.Drawing.Color.FromArgb(245, 245, 248)
+        Me.ClientSize = New System.Drawing.Size(864, 601)
+        Me.Controls.Add(Me.flpCards)
+        Me.Controls.Add(Me.lblDashTitle)
+        Me.Name = "Childform"
+        Me.Text = "Dashboard"
+        Me.flpCards.ResumeLayout(False)
+        Me.pnlCard1.ResumeLayout(False)
+        Me.pnlCard2.ResumeLayout(False)
+        Me.pnlCard3.ResumeLayout(False)
+        Me.pnlCard4.ResumeLayout(False)
+        Me.ResumeLayout(False)
+
+    End Sub
+
+    Friend WithEvents lblDashTitle As System.Windows.Forms.Label
+    Friend WithEvents flpCards As System.Windows.Forms.FlowLayoutPanel
+    Friend WithEvents pnlCard1 As System.Windows.Forms.Panel
+    Friend WithEvents lblCard1Value As System.Windows.Forms.Label
+    Friend WithEvents lblCard1Title As System.Windows.Forms.Label
+    Friend WithEvents pnlCard2 As System.Windows.Forms.Panel
+    Friend WithEvents lblCard2Value As System.Windows.Forms.Label
+    Friend WithEvents lblCard2Title As System.Windows.Forms.Label
+    Friend WithEvents pnlCard3 As System.Windows.Forms.Panel
+    Friend WithEvents lblCard3Value As System.Windows.Forms.Label
+    Friend WithEvents lblCard3Title As System.Windows.Forms.Label
+    Friend WithEvents pnlCard4 As System.Windows.Forms.Panel
+    Friend WithEvents lblCard4Value As System.Windows.Forms.Label
+    Friend WithEvents lblCard4Title As System.Windows.Forms.Label
+End Class

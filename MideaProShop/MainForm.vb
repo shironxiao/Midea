@@ -1,6 +1,8 @@
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
+Imports System.Windows.Forms.DataVisualization.Charting
+Imports System.IO
 Imports MySql.Data.MySqlClient
 
 
@@ -14,6 +16,9 @@ Public Class MainForm
     Private pnlSales As Panel
     Private pnlServiceReq As Panel
     Private pnlWarranty As Panel
+    Private pnlInventory As Panel
+    Private pnlReports As Panel
+    Private pnlLogs As Panel
     Private pnlTransact As Panel
     Private pnlCheckout As Panel
 
@@ -33,13 +38,32 @@ Public Class MainForm
     
     Private flpRecentActivity As FlowLayoutPanel
     Private _cmbDashTimeFilter As ComboBox
-    Private btnAdmin As Button
-    Private pnlAdmin As Panel
-    Private pnlAdminLogin As Panel
-    Private pnlAdminInterface As Panel
-    Private txtAdminUser As TextBox
-    Private txtAdminPass As TextBox
-    Private _activeAdminButton As Button = Nothing
+    Private btnReports As Button
+    Private btnLogs As Button
+
+    ' Inventory components
+    Private flpInvenStockCards As FlowLayoutPanel
+    Private _activeInvenCategoryBtn As Button = Nothing
+    Private pnlInvenEditor As Panel
+    Private _editProductId As Integer = 0
+    Private txtInvName, txtInvBrand, txtInvDesc As TextBox
+    Private numInvPrice, numInvStock, numInvReorder As NumericUpDown
+    Private cmbInvCategory As ComboBox
+    Private _optNewSupplier As RadioButton
+    Private _optExistingSupplier As RadioButton
+    Private _pnlNewSupplier As Panel
+    Private _pnlExistingSupplier As Panel
+    Private _cmbExistingSupplier As ComboBox
+    Private _txtNewSupplierName, _txtNewSupplierContact, _txtNewSupplierAddress As TextBox
+
+    ' Reports / Logs components
+    Private chartSales As Chart
+    Private dgvOrders As DataGridView
+    Private dgvLogs As DataGridView
+    Private txtReportSearch As TextBox
+    Private txtLogSearch As TextBox
+    Private cmbReportRange As ComboBox
+    Private cmbLogRange As ComboBox
 
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' Open database connection
@@ -84,16 +108,23 @@ Public Class MainForm
         pnlCheckout = BuildCheckoutPanel()
         pnlServiceReq = BuildServiceRequestDashboard()
         pnlWarranty = BuildWarrantyDashboard()
+        pnlInventory = BuildInventoryDashboard()
+        pnlReports = BuildReportsPanel()
+        pnlLogs = BuildLogsPanel()
         pnlTransact = BuildTransactionsDashboard()
 
-        ' Hide products sidebar button
-        btnProducts.Visible = False
+        btnProducts.Visible = True
+        btnProducts.Text = "   Inventory"
+        CreateSidebarReportsAndLogsButtons()
 
         ' Add all panels to main content area
         pnlMainContent.Controls.Add(pnlSales)
         pnlMainContent.Controls.Add(pnlCheckout)
         pnlMainContent.Controls.Add(pnlServiceReq)
         pnlMainContent.Controls.Add(pnlWarranty)
+        pnlMainContent.Controls.Add(pnlInventory)
+        pnlMainContent.Controls.Add(pnlReports)
+        pnlMainContent.Controls.Add(pnlLogs)
         pnlMainContent.Controls.Add(pnlTransact)
 
         ' Inject Recent Activity into Dashboard
@@ -138,7 +169,7 @@ Public Class MainForm
                                  Next
                              End Sub
         SetupCardClick(pnlCard1, AddressOf btnTransactions_Click)
-        SetupCardClick(pnlCard2, AddressOf btnTransactions_Click)
+        SetupCardClick(pnlCard2, AddressOf btnProducts_Click)
         SetupCardClick(pnlCard3, AddressOf btnServiceRequests_Click)
         SetupCardClick(pnlCard4, AddressOf btnWarrantyClaims_Click)
 
@@ -150,28 +181,6 @@ Public Class MainForm
         SetActiveButton(btnDashboard)
         ShowPanel(pnlDashboard)
         LoadDashboardData()
-
-        ' Inject Admin Button natively
-        btnAdmin = New Button() With {
-            .Dock = DockStyle.Bottom,
-            .Height = 50,
-            .FlatStyle = FlatStyle.Flat,
-            .Text = "   Admin",
-            .TextAlign = ContentAlignment.MiddleLeft,
-            .Font = btnDashboard.Font,
-            .ForeColor = Color.White,
-            .Cursor = Cursors.Hand,
-            .Padding = New Padding(15, 0, 0, 0)
-        }
-        btnAdmin.FlatAppearance.BorderSize = 0
-        btnAdmin.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 100, 195)
-        btnAdmin.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 90, 180)
-        pnlSideBar.Controls.Add(btnAdmin)
-        
-        pnlAdmin = BuildAdminContainer()
-        pnlMainContent.Controls.Add(pnlAdmin)
-        
-        AddHandler btnAdmin.Click, AddressOf btnAdmin_Click
     End Sub
 
     ' ═══════════════════════════════════════════════════
@@ -687,6 +696,53 @@ Public Class MainForm
         RefreshOrderPanel()
     End Sub
 
+    Private Function GetProductStock(productId As Integer) As Integer
+        Try
+            Using conn As New MySqlConnection(connectionString)
+                conn.Open()
+                Using cmd As New MySqlCommand("SELECT Stock_Quantity FROM PRODUCT WHERE Product_ID = @pid", conn)
+                    cmd.Parameters.AddWithValue("@pid", productId)
+                    Dim result = cmd.ExecuteScalar()
+                    If result Is Nothing OrElse result Is DBNull.Value Then
+                        Return 0
+                    End If
+                    Return Convert.ToInt32(result)
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Unable to validate stock quantity: " & ex.Message, "Stock Check Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return Integer.MaxValue
+        End Try
+    End Function
+
+    Private Sub ChangeOrderQuantity(productId As Integer, quantityDelta As Integer)
+        If Not _orderItems.ContainsKey(productId) Then Return
+        Dim currentQty = _orderItems(productId).Item3
+        SetOrderQuantity(productId, currentQty + quantityDelta, True)
+    End Sub
+
+    Private Sub SetOrderQuantity(productId As Integer, requestedQty As Integer, showWarning As Boolean)
+        If Not _orderItems.ContainsKey(productId) Then Return
+
+        If requestedQty <= 0 Then
+            _orderItems.Remove(productId)
+            RefreshOrderPanel()
+            Return
+        End If
+
+        Dim maxStock = GetProductStock(productId)
+        If requestedQty > maxStock Then
+            If showWarning Then
+                MessageBox.Show("Cannot set quantity above available stock of " & maxStock & ".", "Low Stock", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            End If
+            Return
+        End If
+
+        Dim current = _orderItems(productId)
+        _orderItems(productId) = Tuple.Create(current.Item1, current.Item2, requestedQty)
+        RefreshOrderPanel()
+    End Sub
+
 Private Sub RefreshOrderPanel()
         _orderItemsPanel.SuspendLayout()
         _orderItemsPanel.Controls.Clear()
@@ -708,13 +764,13 @@ Private Sub RefreshOrderPanel()
             rowPanel.Margin = New Padding(0, 2, 0, 2)
             rowPanel.BackColor = Color.White
 
-            ' Product name (anchored left-right, leaves room for buttons)
+            ' Product name (anchored left-right, leaves room for qty controls)
             Dim lblItemName As New Label()
             lblItemName.Text = prodName
             lblItemName.Font = New Font("Segoe UI", 9, FontStyle.Regular)
             lblItemName.ForeColor = Color.FromArgb(50, 50, 50)
             lblItemName.Location = New Point(0, 5)
-            lblItemName.Size = New Size(rowWidth - 75, 20)
+            lblItemName.Size = New Size(rowWidth - 130, 20)
             lblItemName.Anchor = AnchorStyles.Left Or AnchorStyles.Top Or AnchorStyles.Right
             rowPanel.Controls.Add(lblItemName)
 
@@ -727,24 +783,89 @@ Private Sub RefreshOrderPanel()
             lblItemPrice.AutoSize = True
             rowPanel.Controls.Add(lblItemPrice)
 
-            ' Quantity badge (anchored to right)
-            Dim lblQty As New Label()
-            lblQty.Text = qty.ToString()
-            lblQty.Font = New Font("Segoe UI", 9, FontStyle.Bold)
-            lblQty.ForeColor = Color.White
-            lblQty.BackColor = Color.FromArgb(0, 120, 215)
-            lblQty.Size = New Size(26, 26)
-            lblQty.TextAlign = ContentAlignment.MiddleCenter
-            lblQty.Location = New Point(rowWidth - 36, 14)
-            lblQty.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-            rowPanel.Controls.Add(lblQty)
+            ' Quantity controls (minus / editable qty / plus)
+            Dim btnMinus As New Button()
+            btnMinus.Text = "-"
+            btnMinus.Font = New Font("Segoe UI", 9, FontStyle.Bold)
+            btnMinus.Size = New Size(24, 24)
+            btnMinus.Location = New Point(rowWidth - 122, 16)
+            btnMinus.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+            btnMinus.FlatStyle = FlatStyle.Flat
+            btnMinus.BackColor = Color.FromArgb(245, 245, 245)
+            btnMinus.ForeColor = Color.FromArgb(60, 60, 60)
+            btnMinus.FlatAppearance.BorderSize = 1
+            btnMinus.FlatAppearance.BorderColor = Color.FromArgb(220, 220, 220)
+            btnMinus.Cursor = Cursors.Hand
+            btnMinus.Tag = prodId
+            AddHandler btnMinus.Click, Sub(s, ev)
+                                           Dim key = CInt(DirectCast(s, Button).Tag)
+                                           ChangeOrderQuantity(key, -1)
+                                       End Sub
+            rowPanel.Controls.Add(btnMinus)
 
-            ' Remove button (anchored to right)
+            Dim txtQty As New TextBox()
+            txtQty.Text = qty.ToString()
+            txtQty.Font = New Font("Segoe UI", 9, FontStyle.Bold)
+            txtQty.Size = New Size(34, 24)
+            txtQty.Location = New Point(rowWidth - 96, 16)
+            txtQty.TextAlign = HorizontalAlignment.Center
+            txtQty.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+            txtQty.Tag = prodId
+            AddHandler txtQty.KeyPress, Sub(s, ev)
+                                            If Not Char.IsControl(ev.KeyChar) AndAlso Not Char.IsDigit(ev.KeyChar) Then
+                                                ev.Handled = True
+                                            End If
+                                        End Sub
+            AddHandler txtQty.KeyDown, Sub(s, ev)
+                                           If ev.KeyCode = Keys.Enter Then
+                                               Dim qtyBox = DirectCast(s, TextBox)
+                                               Dim key = CInt(qtyBox.Tag)
+                                               Dim newQty As Integer
+                                               If Integer.TryParse(qtyBox.Text.Trim(), newQty) Then
+                                                   SetOrderQuantity(key, newQty, True)
+                                               Else
+                                                   qtyBox.Text = _orderItems(key).Item3.ToString()
+                                               End If
+                                               ev.SuppressKeyPress = True
+                                           End If
+                                       End Sub
+            AddHandler txtQty.Leave, Sub(s, ev)
+                                         Dim qtyBox = DirectCast(s, TextBox)
+                                         Dim key = CInt(qtyBox.Tag)
+                                         Dim newQty As Integer
+                                         If Integer.TryParse(qtyBox.Text.Trim(), newQty) Then
+                                             SetOrderQuantity(key, newQty, False)
+                                         ElseIf _orderItems.ContainsKey(key) Then
+                                             qtyBox.Text = _orderItems(key).Item3.ToString()
+                                         End If
+                                     End Sub
+            rowPanel.Controls.Add(txtQty)
+
+            Dim btnPlus As New Button()
+            btnPlus.Text = "+"
+            btnPlus.Font = New Font("Segoe UI", 9, FontStyle.Bold)
+            btnPlus.Size = New Size(24, 24)
+            btnPlus.Location = New Point(rowWidth - 60, 16)
+            btnPlus.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+            btnPlus.FlatStyle = FlatStyle.Flat
+            btnPlus.BackColor = Color.FromArgb(245, 245, 245)
+            btnPlus.ForeColor = Color.FromArgb(60, 60, 60)
+            btnPlus.FlatAppearance.BorderSize = 1
+            btnPlus.FlatAppearance.BorderColor = Color.FromArgb(220, 220, 220)
+            btnPlus.Cursor = Cursors.Hand
+            btnPlus.Tag = prodId
+            AddHandler btnPlus.Click, Sub(s, ev)
+                                          Dim key = CInt(DirectCast(s, Button).Tag)
+                                          ChangeOrderQuantity(key, 1)
+                                      End Sub
+            rowPanel.Controls.Add(btnPlus)
+
+            ' Remove item button
             Dim btnRemove As New Button()
             btnRemove.Text = "✕"
             btnRemove.Font = New Font("Segoe UI", 8)
             btnRemove.Size = New Size(22, 22)
-            btnRemove.Location = New Point(rowWidth - 64, 16)
+            btnRemove.Location = New Point(rowWidth - 30, 16)
             btnRemove.Anchor = AnchorStyles.Top Or AnchorStyles.Right
             btnRemove.FlatStyle = FlatStyle.Flat
             btnRemove.BackColor = Color.FromArgb(255, 230, 230)
@@ -754,14 +875,7 @@ Private Sub RefreshOrderPanel()
             btnRemove.Tag = prodId
             AddHandler btnRemove.Click, Sub(s, ev)
                                             Dim key = CInt(DirectCast(s, Button).Tag)
-                                            If _orderItems.ContainsKey(key) Then
-                                                Dim cur = _orderItems(key)
-                                                If cur.Item3 > 1 Then
-                                                    _orderItems(key) = Tuple.Create(cur.Item1, cur.Item2, cur.Item3 - 1)
-                                                Else
-                                                    _orderItems.Remove(key)
-                                                End If
-                                            End If
+                                            If _orderItems.ContainsKey(key) Then _orderItems.Remove(key)
                                             RefreshOrderPanel()
                                         End Sub
             rowPanel.Controls.Add(btnRemove)
@@ -2718,6 +2832,765 @@ Private Sub RefreshOrderPanel()
     End Sub
 
     ' ═══════════════════════════════════════════════════
+    '  INVENTORY PANEL
+    ' ═══════════════════════════════════════════════════
+    Private Function BuildInventoryDashboard() As Panel
+        pnlInventory = New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.FromArgb(245, 245, 248), .Visible = False}
+
+        Dim pnlTop As New Panel() With {.Dock = DockStyle.Top, .Height = 80, .Padding = New Padding(20)}
+        Dim lblTitle As New Label() With {.Text = "Inventory Tracking & CRUD", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .AutoSize = True, .Location = New Point(20, 20)}
+        pnlTop.Controls.Add(lblTitle)
+
+        Dim btnAdd As New Button() With {.Text = "+ Add Product", .Font = New Font("Segoe UI", 10, FontStyle.Bold), .BackColor = Color.FromArgb(0, 153, 102), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(140, 40), .Cursor = Cursors.Hand}
+        btnAdd.FlatAppearance.BorderSize = 0
+        AddHandler pnlTop.Resize, Sub() btnAdd.Location = New Point(pnlTop.Width - 170, 20)
+        AddHandler btnAdd.Click, Sub() ShowProductEditor(0)
+        pnlTop.Controls.Add(btnAdd)
+        pnlInventory.Controls.Add(pnlTop)
+
+        Dim pnlFilters As New FlowLayoutPanel() With {.Dock = DockStyle.Top, .Height = 55, .BackColor = Color.FromArgb(245, 245, 248), .Padding = New Padding(22, 5, 10, 5), .WrapContents = False, .AutoScroll = True}
+        Dim categories() As String = {"All", "Air Conditioners", "Washing Machines", "Televisions", "Refrigerators"}
+        For Each cat As String In categories
+            Dim btn As New Button() With {.Text = cat, .Font = New Font("Segoe UI", 9.5F, FontStyle.Regular), .FlatStyle = FlatStyle.Flat, .Cursor = Cursors.Hand, .AutoSize = True, .Padding = New Padding(12, 2, 12, 2), .Margin = New Padding(3, 3, 6, 3), .Height = 34, .BackColor = Color.White, .ForeColor = Color.FromArgb(60, 60, 60), .Tag = cat}
+            btn.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
+            btn.FlatAppearance.BorderSize = 1
+            AddHandler btn.Click, AddressOf InvenCategoryFilter_Click
+            pnlFilters.Controls.Add(btn)
+        Next
+        pnlInventory.Controls.Add(pnlFilters)
+        pnlFilters.BringToFront()
+
+        flpInvenStockCards = New FlowLayoutPanel() With {.Dock = DockStyle.Fill, .AutoScroll = True, .Padding = New Padding(20), .BackColor = Color.FromArgb(245, 245, 248)}
+        pnlInventory.Controls.Add(flpInvenStockCards)
+        flpInvenStockCards.BringToFront()
+
+        BuildInventoryEditor()
+        AddHandler pnlInventory.Resize, Sub()
+                                            If pnlInvenEditor IsNot Nothing AndAlso pnlInvenEditor.Visible Then
+                                                PositionInventoryEditor()
+                                            End If
+                                        End Sub
+
+        AddHandler pnlInventory.VisibleChanged, Sub(s, ev)
+                                                    If pnlInventory.Visible Then
+                                                        If _activeInvenCategoryBtn Is Nothing AndAlso pnlFilters.Controls.Count > 0 Then
+                                                            InvenCategoryFilter_Click(pnlFilters.Controls(0), EventArgs.Empty)
+                                                        ElseIf _activeInvenCategoryBtn IsNot Nothing Then
+                                                            LoadInventoryCards(_activeInvenCategoryBtn.Tag.ToString())
+                                                        End If
+                                                    End If
+                                                End Sub
+        Return pnlInventory
+    End Function
+
+    Private Sub PositionInventoryEditor()
+        If pnlInvenEditor Is Nothing OrElse pnlInventory Is Nothing Then Return
+
+        Dim desiredWidth As Integer = 480
+        Dim desiredHeight As Integer = 680
+        Dim availableWidth As Integer = Math.Max(320, pnlInventory.ClientSize.Width - 30)
+        Dim availableHeight As Integer = Math.Max(300, pnlInventory.ClientSize.Height - 30)
+
+        pnlInvenEditor.Size = New Size(Math.Min(desiredWidth, availableWidth), Math.Min(desiredHeight, availableHeight))
+        pnlInvenEditor.Location = New Point(
+            Math.Max(10, (pnlInventory.ClientSize.Width - pnlInvenEditor.Width) \ 2),
+            Math.Max(10, (pnlInventory.ClientSize.Height - pnlInvenEditor.Height) \ 2)
+        )
+    End Sub
+
+    Private Sub BuildInventoryEditor()
+        pnlInvenEditor = New Panel() With {.Size = New Size(480, 680), .BackColor = Color.White, .Visible = False, .BorderStyle = BorderStyle.FixedSingle, .AutoScroll = True}
+
+        Dim lblHeader As New Label() With {.Text = "Product Editor", .Font = New Font("Segoe UI", 16, FontStyle.Bold), .Location = New Point(20, 15), .AutoSize = True}
+        pnlInvenEditor.Controls.Add(lblHeader)
+
+        Dim yLoc As Integer = 55
+        Dim addField = Function(lblText As String, ctrl As Control) As Control
+                           Dim lbl As New Label() With {.Text = lblText, .Location = New Point(20, yLoc), .AutoSize = True, .Font = New Font("Segoe UI", 9.5F)}
+                           pnlInvenEditor.Controls.Add(lbl)
+                           ctrl.Location = New Point(150, yLoc - 2)
+                           ctrl.Width = 280
+                           ctrl.Font = New Font("Segoe UI", 9.5F)
+                           pnlInvenEditor.Controls.Add(ctrl)
+                           yLoc += 35
+                           Return ctrl
+                       End Function
+
+        txtInvName = DirectCast(addField("Name:", New TextBox()), TextBox)
+        txtInvBrand = DirectCast(addField("Brand:", New TextBox()), TextBox)
+        cmbInvCategory = DirectCast(addField("Category:", New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList}), ComboBox)
+        cmbInvCategory.Items.AddRange({"Air Conditioners", "Washing Machines", "Televisions", "Refrigerators"})
+        numInvPrice = DirectCast(addField("Unit Price:", New NumericUpDown() With {.Maximum = 1000000, .DecimalPlaces = 2}), NumericUpDown)
+        numInvStock = DirectCast(addField("Stock Qty:", New NumericUpDown() With {.Maximum = 10000}), NumericUpDown)
+        numInvReorder = DirectCast(addField("Reorder Lvl:", New NumericUpDown() With {.Maximum = 10000}), NumericUpDown)
+
+        Dim lblSuppSel As New Label() With {.Text = "Supplier Details", .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Location = New Point(20, yLoc), .AutoSize = True}
+        pnlInvenEditor.Controls.Add(lblSuppSel)
+        yLoc += 25
+
+        _optNewSupplier = New RadioButton() With {.Text = "New Supplier", .Font = New Font("Segoe UI", 9.5F), .Location = New Point(20, yLoc), .AutoSize = True, .Checked = True}
+        _optExistingSupplier = New RadioButton() With {.Text = "Existing Supplier", .Font = New Font("Segoe UI", 9.5F), .Location = New Point(150, yLoc), .AutoSize = True}
+        pnlInvenEditor.Controls.Add(_optNewSupplier)
+        pnlInvenEditor.Controls.Add(_optExistingSupplier)
+        yLoc += 25
+
+        _pnlNewSupplier = New Panel() With {.Location = New Point(20, yLoc), .Size = New Size(420, 100), .BackColor = Color.White}
+        Dim ny As Integer = 0
+        Dim addSuppTxt = Function(lblText As String, pnl As Panel) As TextBox
+                             Dim lbl As New Label() With {.Text = lblText, .Font = New Font("Segoe UI", 9.0F), .Location = New Point(0, ny), .AutoSize = True}
+                             pnl.Controls.Add(lbl)
+                             Dim txt As New TextBox() With {.Font = New Font("Segoe UI", 9.5F), .Location = New Point(145, ny - 2), .Width = 265}
+                             pnl.Controls.Add(txt)
+                             ny += 30
+                             Return txt
+                         End Function
+        _txtNewSupplierName = addSuppTxt("Supplier Name:", _pnlNewSupplier)
+        _txtNewSupplierContact = addSuppTxt("Contact Number:", _pnlNewSupplier)
+        _txtNewSupplierAddress = addSuppTxt("Warehouse Address:", _pnlNewSupplier)
+        pnlInvenEditor.Controls.Add(_pnlNewSupplier)
+
+        _pnlExistingSupplier = New Panel() With {.Location = New Point(20, yLoc), .Size = New Size(420, 100), .BackColor = Color.White, .Visible = False}
+        Dim lblE1 As New Label() With {.Text = "Search Supplier:", .Font = New Font("Segoe UI", 9.0F), .Location = New Point(0, 5), .AutoSize = True}
+        _pnlExistingSupplier.Controls.Add(lblE1)
+        _cmbExistingSupplier = New ComboBox() With {.Font = New Font("Segoe UI", 9.5F), .Location = New Point(130, 3), .Size = New Size(280, 25), .DropDownStyle = ComboBoxStyle.DropDownList}
+        _pnlExistingSupplier.Controls.Add(_cmbExistingSupplier)
+        pnlInvenEditor.Controls.Add(_pnlExistingSupplier)
+
+        AddHandler _optNewSupplier.CheckedChanged, Sub()
+                                                       _pnlNewSupplier.Visible = _optNewSupplier.Checked
+                                                       _pnlExistingSupplier.Visible = _optExistingSupplier.Checked
+                                                   End Sub
+        yLoc += 110
+
+        txtInvDesc = DirectCast(addField("Description:", New TextBox() With {.Multiline = True, .Height = 50}), TextBox)
+        yLoc += 25
+
+        Dim btnSave As New Button() With {.Text = "Save", .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Location = New Point(150, yLoc), .Size = New Size(120, 35), .Cursor = Cursors.Hand}
+        btnSave.FlatAppearance.BorderSize = 0
+        AddHandler btnSave.Click, AddressOf SaveProduct
+        pnlInvenEditor.Controls.Add(btnSave)
+
+        Dim btnCancel As New Button() With {.Text = "Cancel", .BackColor = Color.LightGray, .FlatStyle = FlatStyle.Flat, .Location = New Point(290, yLoc), .Size = New Size(120, 35), .Cursor = Cursors.Hand}
+        btnCancel.FlatAppearance.BorderSize = 0
+        AddHandler btnCancel.Click, Sub() pnlInvenEditor.Visible = False
+        pnlInvenEditor.Controls.Add(btnCancel)
+
+        pnlInventory.Controls.Add(pnlInvenEditor)
+        pnlInvenEditor.BringToFront()
+    End Sub
+
+    Private Sub InvenCategoryFilter_Click(sender As Object, e As EventArgs)
+        Dim btn = DirectCast(sender, Button)
+        If _activeInvenCategoryBtn IsNot Nothing Then
+            _activeInvenCategoryBtn.BackColor = Color.White
+            _activeInvenCategoryBtn.ForeColor = Color.FromArgb(60, 60, 60)
+            _activeInvenCategoryBtn.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
+            _activeInvenCategoryBtn.Font = New Font("Segoe UI", 9.5F, FontStyle.Regular)
+        End If
+        btn.BackColor = Color.FromArgb(30, 30, 30)
+        btn.ForeColor = Color.White
+        btn.FlatAppearance.BorderColor = Color.FromArgb(30, 30, 30)
+        btn.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
+        _activeInvenCategoryBtn = btn
+        LoadInventoryCards(btn.Tag.ToString())
+    End Sub
+
+    Private Sub LoadInventoryCards(category As String)
+        If flpInvenStockCards Is Nothing Then Return
+        flpInvenStockCards.SuspendLayout()
+        flpInvenStockCards.Controls.Clear()
+
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+            Dim q As String = "SELECT Product_ID, Product_Name, Brand, Unit_Price, Product_Description, Stock_Quantity, Reorder_Level FROM PRODUCT"
+            If category <> "All" Then q &= " WHERE Product_Category = @cat"
+
+            Using cmd As New MySqlCommand(q, conn)
+                If category <> "All" Then cmd.Parameters.AddWithValue("@cat", category)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Dim pId = Convert.ToInt32(reader("Product_ID"))
+                        Dim pName = reader("Product_Name").ToString()
+                        Dim pBrand = reader("Brand").ToString()
+                        Dim unitPrice = Convert.ToDecimal(reader("Unit_Price"))
+                        Dim pDesc = reader("Product_Description").ToString()
+                        Dim stock = Convert.ToInt32(reader("Stock_Quantity"))
+                        Dim reorder = Convert.ToInt32(reader("Reorder_Level"))
+
+                        Dim card As New Panel() With {.Size = New Size(240, 190), .Margin = New Padding(10), .BackColor = Color.White}
+                        AddHandler card.Paint, Sub(s, ev) ev.Graphics.DrawRectangle(Pens.LightGray, 0, 0, card.Width - 1, card.Height - 1)
+
+                        card.Controls.Add(New Label() With {.Text = pName, .Font = New Font("Segoe UI", 11, FontStyle.Bold), .Location = New Point(10, 10), .AutoSize = True})
+                        card.Controls.Add(New Label() With {.Text = pBrand, .Font = New Font("Segoe UI", 9), .ForeColor = Color.Gray, .Location = New Point(10, 35), .AutoSize = True})
+
+                        Dim lblDesc As New Label() With {.Text = If(pDesc.Length > 50, pDesc.Substring(0, 50) & "...", pDesc), .Font = New Font("Segoe UI", 8), .ForeColor = Color.DimGray, .Location = New Point(10, 55), .Size = New Size(220, 30)}
+                        card.Controls.Add(lblDesc)
+
+                        Dim lblPrice As New Label() With {.Text = "Price: ₱" & unitPrice.ToString("N2"), .Font = New Font("Segoe UI", 9, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Location = New Point(10, 90), .AutoSize = True}
+                        card.Controls.Add(lblPrice)
+
+                        Dim isLow = (stock <= reorder)
+                        Dim lblQty As New Label() With {.Text = "Stock: " & stock, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .Location = New Point(10, 112), .AutoSize = True}
+                        lblQty.ForeColor = If(isLow, Color.FromArgb(220, 53, 69), Color.FromArgb(0, 153, 102))
+                        card.Controls.Add(lblQty)
+
+                        Dim btnEdit As New Button() With {.Text = "Edit", .Size = New Size(70, 30), .Location = New Point(10, 140), .FlatStyle = FlatStyle.Flat, .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White, .Cursor = Cursors.Hand}
+                        btnEdit.FlatAppearance.BorderSize = 0
+                        AddHandler btnEdit.Click, Sub() ShowProductEditor(pId)
+                        card.Controls.Add(btnEdit)
+
+                        Dim btnAddStock As New Button() With {.Text = "+Stock", .Size = New Size(70, 30), .Location = New Point(85, 140), .FlatStyle = FlatStyle.Flat, .BackColor = Color.FromArgb(0, 153, 102), .ForeColor = Color.White, .Cursor = Cursors.Hand}
+                        btnAddStock.FlatAppearance.BorderSize = 0
+                        AddHandler btnAddStock.Click, Sub() AddProductStock(pId, pName)
+                        card.Controls.Add(btnAddStock)
+
+                        Dim btnDel As New Button() With {.Text = "Delete", .Size = New Size(70, 30), .Location = New Point(160, 140), .FlatStyle = FlatStyle.Flat, .BackColor = Color.FromArgb(220, 53, 69), .ForeColor = Color.White, .Cursor = Cursors.Hand}
+                        btnDel.FlatAppearance.BorderSize = 0
+                        AddHandler btnDel.Click, Sub() DeleteProduct(pId, pName)
+                        card.Controls.Add(btnDel)
+
+                        flpInvenStockCards.Controls.Add(card)
+                    End While
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error loading inventory: " & ex.Message, "Inventory", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        End Try
+        flpInvenStockCards.ResumeLayout()
+    End Sub
+
+    Private Sub LoadInventorySupplierList()
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+            Dim dtSupp As New DataTable()
+            Using da As New MySqlDataAdapter("SELECT Supplier_ID, Supplier_Name FROM SUPPLIER", conn)
+                da.Fill(dtSupp)
+            End Using
+            _cmbExistingSupplier.DataSource = dtSupp
+            _cmbExistingSupplier.DisplayMember = "Supplier_Name"
+            _cmbExistingSupplier.ValueMember = "Supplier_ID"
+            _cmbExistingSupplier.SelectedIndex = -1
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub ShowProductEditor(pId As Integer)
+        _editProductId = pId
+        LoadInventorySupplierList()
+
+        If pId = 0 Then
+            txtInvName.Text = ""
+            txtInvBrand.Text = ""
+            txtInvDesc.Text = ""
+            numInvPrice.Value = 0
+            numInvStock.Value = 0
+            numInvReorder.Value = 0
+            If cmbInvCategory.Items.Count > 0 Then cmbInvCategory.SelectedIndex = 0
+
+            _optNewSupplier.Checked = True
+            _txtNewSupplierName.Clear()
+            _txtNewSupplierContact.Clear()
+            _txtNewSupplierAddress.Clear()
+        Else
+            Try
+                If conn.State <> ConnectionState.Open Then OpenConnection()
+                Using cmd As New MySqlCommand("SELECT * FROM PRODUCT WHERE Product_ID=@id", conn)
+                    cmd.Parameters.AddWithValue("@id", pId)
+                    Using reader = cmd.ExecuteReader()
+                        If reader.Read() Then
+                            txtInvName.Text = reader("Product_Name").ToString()
+                            txtInvBrand.Text = reader("Brand").ToString()
+                            txtInvDesc.Text = reader("Product_Description").ToString()
+                            numInvPrice.Value = Math.Min(numInvPrice.Maximum, Convert.ToDecimal(reader("Unit_Price")))
+                            numInvStock.Value = Math.Min(numInvStock.Maximum, Convert.ToInt32(reader("Stock_Quantity")))
+                            numInvReorder.Value = Math.Min(numInvReorder.Maximum, Convert.ToInt32(reader("Reorder_Level")))
+                            cmbInvCategory.SelectedItem = reader("Product_Category").ToString()
+
+                            If Not IsDBNull(reader("Supplier_ID")) Then
+                                _optExistingSupplier.Checked = True
+                                _cmbExistingSupplier.SelectedValue = Convert.ToInt32(reader("Supplier_ID"))
+                            End If
+                        End If
+                    End Using
+                End Using
+            Catch ex As Exception
+            End Try
+        End If
+
+        PositionInventoryEditor()
+        pnlInvenEditor.Visible = True
+        pnlInvenEditor.BringToFront()
+    End Sub
+
+    Private Sub SaveProduct(sender As Object, e As EventArgs)
+        If String.IsNullOrWhiteSpace(txtInvName.Text) Then
+            MessageBox.Show("Name cannot be empty.", "Validation Error")
+            Return
+        End If
+
+        Dim supplierId As Integer = 0
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+
+            If _optNewSupplier.Checked Then
+                If String.IsNullOrWhiteSpace(_txtNewSupplierName.Text) Then
+                    MessageBox.Show("Supplier Name cannot be empty.", "Validation Error")
+                    Return
+                End If
+                Dim qSupp As String = "INSERT INTO SUPPLIER (Supplier_Name, Contact_Number, Warehouse_Address) VALUES (@n, @c, @a); SELECT LAST_INSERT_ID();"
+                Using cmdSupp As New MySqlCommand(qSupp, conn)
+                    cmdSupp.Parameters.AddWithValue("@n", _txtNewSupplierName.Text.Trim())
+                    cmdSupp.Parameters.AddWithValue("@c", _txtNewSupplierContact.Text.Trim())
+                    cmdSupp.Parameters.AddWithValue("@a", _txtNewSupplierAddress.Text.Trim())
+                    supplierId = Convert.ToInt32(cmdSupp.ExecuteScalar())
+                End Using
+            Else
+                If _cmbExistingSupplier.SelectedValue Is Nothing Then
+                    MessageBox.Show("Please select an existing supplier.", "Validation Error")
+                    Return
+                End If
+                supplierId = Convert.ToInt32(_cmbExistingSupplier.SelectedValue)
+            End If
+
+            Dim q As String
+            If _editProductId = 0 Then
+                q = "INSERT INTO PRODUCT (Product_Name, Brand, Unit_Price, Product_Category, Product_Description, Stock_Quantity, Reorder_Level, Supplier_ID) VALUES (@n, @b, @p, @c, @d, @s, @r, @supp)"
+            Else
+                q = "UPDATE PRODUCT SET Product_Name=@n, Brand=@b, Unit_Price=@p, Product_Category=@c, Product_Description=@d, Stock_Quantity=@s, Reorder_Level=@r, Supplier_ID=@supp WHERE Product_ID=@id"
+            End If
+
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@n", txtInvName.Text)
+                cmd.Parameters.AddWithValue("@b", txtInvBrand.Text)
+                cmd.Parameters.AddWithValue("@p", numInvPrice.Value)
+                cmd.Parameters.AddWithValue("@c", If(cmbInvCategory.SelectedItem, "Air Conditioners"))
+                cmd.Parameters.AddWithValue("@d", txtInvDesc.Text)
+                cmd.Parameters.AddWithValue("@s", numInvStock.Value)
+                cmd.Parameters.AddWithValue("@r", numInvReorder.Value)
+                cmd.Parameters.AddWithValue("@supp", supplierId)
+                If _editProductId > 0 Then cmd.Parameters.AddWithValue("@id", _editProductId)
+                cmd.ExecuteNonQuery()
+            End Using
+
+            pnlInvenEditor.Visible = False
+            If _activeInvenCategoryBtn IsNot Nothing Then LoadInventoryCards(_activeInvenCategoryBtn.Tag.ToString())
+        Catch ex As Exception
+            MessageBox.Show("Error saving: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub DeleteProduct(pId As Integer, pName As String)
+        If MessageBox.Show("Are you sure you want to delete '" & pName & "'?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) = DialogResult.Yes Then
+            Try
+                If conn.State <> ConnectionState.Open Then OpenConnection()
+                Using tx = conn.BeginTransaction()
+                    Using cmdItems As New MySqlCommand("DELETE FROM PURCHASE_ITEMS WHERE Product_ID=@id", conn, tx)
+                        cmdItems.Parameters.AddWithValue("@id", pId)
+                        cmdItems.ExecuteNonQuery()
+                    End Using
+
+                    Using cmdProduct As New MySqlCommand("DELETE FROM PRODUCT WHERE Product_ID=@id", conn, tx)
+                        cmdProduct.Parameters.AddWithValue("@id", pId)
+                        Dim affected = cmdProduct.ExecuteNonQuery()
+                        If affected = 0 Then
+                            tx.Rollback()
+                            MessageBox.Show("Product not found or was already deleted.", "Delete Skipped", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                            Return
+                        End If
+                    End Using
+
+                    tx.Commit()
+                End Using
+                If _activeInvenCategoryBtn IsNot Nothing Then LoadInventoryCards(_activeInvenCategoryBtn.Tag.ToString())
+            Catch ex As Exception
+                MessageBox.Show("Cannot delete product: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End If
+    End Sub
+
+    Private Sub AddProductStock(pId As Integer, pName As String)
+        Dim inputValue As String = InputBox("Enter stock quantity to add for '" & pName & "':", "Add Stock", "1").Trim()
+        If String.IsNullOrWhiteSpace(inputValue) Then Return
+
+        Dim qtyToAdd As Integer
+        If Not Integer.TryParse(inputValue, qtyToAdd) OrElse qtyToAdd <= 0 Then
+            MessageBox.Show("Please enter a valid positive whole number.", "Invalid Quantity", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+            Using cmd As New MySqlCommand("UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity + @qty WHERE Product_ID = @id", conn)
+                cmd.Parameters.AddWithValue("@qty", qtyToAdd)
+                cmd.Parameters.AddWithValue("@id", pId)
+                Dim affected = cmd.ExecuteNonQuery()
+                If affected > 0 Then
+                    MessageBox.Show("Stock updated successfully.", "Inventory", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Else
+                    MessageBox.Show("Product not found.", "Inventory", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+            End Using
+
+            If _activeInvenCategoryBtn IsNot Nothing Then
+                LoadInventoryCards(_activeInvenCategoryBtn.Tag.ToString())
+            Else
+                LoadInventoryCards("All")
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Error adding stock: " & ex.Message, "Inventory", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub CreateSidebarReportsAndLogsButtons()
+        btnReports = New Button() With {
+            .Dock = DockStyle.Top,
+            .Height = 50,
+            .FlatStyle = FlatStyle.Flat,
+            .Text = "   Reports",
+            .TextAlign = ContentAlignment.MiddleLeft,
+            .Font = btnDashboard.Font,
+            .ForeColor = Color.White,
+            .Cursor = Cursors.Hand,
+            .Padding = New Padding(15, 0, 0, 0)
+        }
+        btnReports.FlatAppearance.BorderSize = 0
+        btnReports.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 100, 195)
+        btnReports.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 90, 180)
+
+        btnLogs = New Button() With {
+            .Dock = DockStyle.Top,
+            .Height = 50,
+            .FlatStyle = FlatStyle.Flat,
+            .Text = "   Logs",
+            .TextAlign = ContentAlignment.MiddleLeft,
+            .Font = btnDashboard.Font,
+            .ForeColor = Color.White,
+            .Cursor = Cursors.Hand,
+            .Padding = New Padding(15, 0, 0, 0)
+        }
+        btnLogs.FlatAppearance.BorderSize = 0
+        btnLogs.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 100, 195)
+        btnLogs.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 90, 180)
+        AddHandler btnReports.Click, AddressOf btnReports_Click
+        AddHandler btnLogs.Click, AddressOf btnLogs_Click
+
+        pnlSideBar.Controls.Add(btnReports)
+        pnlSideBar.Controls.Add(btnLogs)
+        pnlSideBar.Controls.SetChildIndex(btnLogs, pnlSideBar.Controls.GetChildIndex(btnTransactions))
+        pnlSideBar.Controls.SetChildIndex(btnReports, pnlSideBar.Controls.GetChildIndex(btnTransactions))
+    End Sub
+
+    Private Function BuildReportsPanel() As Panel
+        Dim pnl As New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.FromArgb(245, 245, 248), .Visible = False}
+
+        Dim pnlTop As New Panel() With {.Dock = DockStyle.Top, .Height = 80, .Padding = New Padding(20)}
+        Dim lblTitle As New Label() With {.Text = "Sales Report", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .AutoSize = True, .Location = New Point(20, 20)}
+        pnlTop.Controls.Add(lblTitle)
+
+        Dim lblSearch As New Label() With {.Text = "Search:", .Font = New Font("Segoe UI", 10), .AutoSize = True}
+        pnlTop.Controls.Add(lblSearch)
+
+        txtReportSearch = New TextBox() With {.Font = New Font("Segoe UI", 10), .Size = New Size(200, 25)}
+        AddHandler txtReportSearch.TextChanged, Sub() LoadReportsData()
+        pnlTop.Controls.Add(txtReportSearch)
+
+        Dim lblRange As New Label() With {.Text = "Range:", .Font = New Font("Segoe UI", 10), .AutoSize = True}
+        pnlTop.Controls.Add(lblRange)
+
+        cmbReportRange = New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Size = New Size(120, 25)}
+        cmbReportRange.Items.AddRange({"Today", "This Week", "This Month", "This Year", "All Time"})
+        cmbReportRange.SelectedIndex = 4
+        AddHandler cmbReportRange.SelectedIndexChanged, Sub() LoadReportsData()
+        pnlTop.Controls.Add(cmbReportRange)
+
+        Dim btnRefresh As New Button() With {.Text = "Refresh Data", .Font = New Font("Segoe UI", 10, FontStyle.Bold), .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(140, 35), .Cursor = Cursors.Hand}
+        btnRefresh.FlatAppearance.BorderSize = 0
+        AddHandler btnRefresh.Click, Sub() LoadReportsData()
+        pnlTop.Controls.Add(btnRefresh)
+
+        Dim btnExport As New Button() With {.Text = "Export Excel", .Font = New Font("Segoe UI", 10, FontStyle.Bold), .BackColor = Color.FromArgb(40, 167, 69), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(140, 35), .Cursor = Cursors.Hand}
+        btnExport.FlatAppearance.BorderSize = 0
+        AddHandler btnExport.Click, Sub() ExportReportsToExcel()
+        pnlTop.Controls.Add(btnExport)
+
+        AddHandler pnlTop.Resize, Sub()
+                                      btnRefresh.Location = New Point(pnlTop.Width - 160, 25)
+                                      btnExport.Location = New Point(pnlTop.Width - 310, 25)
+                                      cmbReportRange.Location = New Point(pnlTop.Width - 440, 28)
+                                      lblRange.Location = New Point(pnlTop.Width - 500, 30)
+                                      txtReportSearch.Location = New Point(pnlTop.Width - 650, 28)
+                                      lblSearch.Location = New Point(pnlTop.Width - 710, 30)
+                                  End Sub
+
+        pnl.Controls.Add(pnlTop)
+
+        Dim pnlContent As New Panel() With {.Dock = DockStyle.Fill, .Padding = New Padding(20)}
+        pnl.Controls.Add(pnlContent)
+        pnlContent.BringToFront()
+
+        Dim tlpHolder As New TableLayoutPanel() With {.Dock = DockStyle.Fill, .RowCount = 2, .ColumnCount = 1}
+        tlpHolder.RowStyles.Add(New RowStyle(SizeType.Percent, 50.0F))
+        tlpHolder.RowStyles.Add(New RowStyle(SizeType.Percent, 50.0F))
+        pnlContent.Controls.Add(tlpHolder)
+
+        chartSales = New Chart() With {.Dock = DockStyle.Fill, .BackColor = Color.White, .MinimumSize = New Size(10, 10)}
+        Dim chartArea As New ChartArea("SalesArea")
+        chartArea.AxisX.MajorGrid.LineColor = Color.LightGray
+        chartArea.AxisY.MajorGrid.LineColor = Color.LightGray
+        chartSales.ChartAreas.Add(chartArea)
+
+        Dim series As New Series("Gross Sales")
+        series.ChartType = SeriesChartType.SplineArea
+        series.BorderWidth = 3
+        series.Color = Color.FromArgb(150, 0, 120, 215)
+        series.BorderColor = Color.FromArgb(0, 120, 215)
+        chartSales.Series.Add(series)
+
+        Dim pnlChartBdr As New Panel() With {.Dock = DockStyle.Fill, .Margin = New Padding(0, 0, 0, 10), .Padding = New Padding(1), .BackColor = Color.LightGray}
+        pnlChartBdr.Controls.Add(chartSales)
+        tlpHolder.Controls.Add(pnlChartBdr, 0, 0)
+
+        dgvOrders = New DataGridView() With {
+            .Dock = DockStyle.Fill,
+            .BackgroundColor = Color.White,
+            .BorderStyle = BorderStyle.None,
+            .AllowUserToAddRows = False,
+            .AllowUserToDeleteRows = False,
+            .ReadOnly = True,
+            .RowHeadersVisible = False,
+            .SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            .Font = New Font("Segoe UI", 10),
+            .GridColor = Color.FromArgb(230, 230, 230)
+        }
+        Dim pnlGridBdr As New Panel() With {.Dock = DockStyle.Fill, .Margin = New Padding(0, 10, 0, 0), .Padding = New Padding(1), .BackColor = Color.LightGray}
+        pnlGridBdr.Controls.Add(dgvOrders)
+        tlpHolder.Controls.Add(pnlGridBdr, 0, 1)
+
+        AddHandler pnl.VisibleChanged, Sub(s, ev)
+                                           If pnl.Visible Then LoadReportsData()
+                                       End Sub
+        Return pnl
+    End Function
+
+    Private Sub LoadReportsData()
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+
+            Dim reportDateCondition As String = BuildDateCondition(If(cmbReportRange IsNot Nothing AndAlso cmbReportRange.SelectedItem IsNot Nothing, cmbReportRange.SelectedItem.ToString(), "All Time"), "P.Purchase_Date")
+
+            Dim qChart As String = "SELECT DATE(P.Purchase_Date) as SalesDate, IFNULL(SUM(PI.Quantity * PI.Item_Price), 0) as DailyTotal " &
+                                   "FROM PURCHASE P " &
+                                   "LEFT JOIN PURCHASE_ITEMS PI ON P.Purchase_ID = PI.Purchase_ID "
+            If Not String.IsNullOrEmpty(reportDateCondition) Then qChart &= "WHERE " & reportDateCondition & " "
+            qChart &= 
+                                   "GROUP BY DATE(P.Purchase_Date) ORDER BY SalesDate ASC LIMIT 30"
+            Using cmd As New MySqlCommand(qChart, conn)
+                Using reader = cmd.ExecuteReader()
+                    chartSales.Series("Gross Sales").Points.Clear()
+                    While reader.Read()
+                        Dim sDate = Convert.ToDateTime(reader("SalesDate")).ToShortDateString()
+                        Dim dTotal = Convert.ToDouble(reader("DailyTotal"))
+                        chartSales.Series("Gross Sales").Points.AddXY(sDate, dTotal)
+                    End While
+                End Using
+            End Using
+
+            Dim qTable As String = "SELECT P.Purchase_ID as 'Order ID', C.Full_Name as Customer, P.Purchase_Date as 'Date', " &
+                                   "IFNULL((SELECT SUM(Quantity * Item_Price) FROM PURCHASE_ITEMS WHERE Purchase_ID = P.Purchase_ID), 0) as 'Total' " &
+                                   "FROM PURCHASE P JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID "
+
+            Dim searchTxt = If(txtReportSearch IsNot Nothing, txtReportSearch.Text.Trim(), "")
+            Dim whereClauses As New List(Of String)
+            If Not String.IsNullOrEmpty(reportDateCondition) Then whereClauses.Add(reportDateCondition)
+            If Not String.IsNullOrEmpty(searchTxt) Then whereClauses.Add("(C.Full_Name LIKE @search OR P.Purchase_ID LIKE @search)")
+            If whereClauses.Count > 0 Then qTable &= "WHERE " & String.Join(" AND ", whereClauses) & " "
+            qTable &= "ORDER BY P.Purchase_Date DESC"
+
+            Dim dtOrders As New DataTable()
+            Using da As New MySqlDataAdapter(qTable, conn)
+                If Not String.IsNullOrEmpty(searchTxt) Then
+                    da.SelectCommand.Parameters.AddWithValue("@search", "%" & searchTxt & "%")
+                End If
+                da.Fill(dtOrders)
+            End Using
+            dgvOrders.DataSource = dtOrders
+
+            If dgvOrders.Columns.Count > 0 AndAlso dgvOrders.Columns.Contains("Total") Then
+                dgvOrders.Columns("Total").DefaultCellStyle.Format = "N2"
+                dgvOrders.Columns("Total").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Unable to load reports: " & ex.Message, "Reports", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        End Try
+    End Sub
+
+    Private Sub ExportReportsToExcel()
+        If dgvOrders Is Nothing OrElse dgvOrders.Rows.Count = 0 Then
+            MessageBox.Show("There is no order data to export.", "Export Blocked", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        Using sfd As New SaveFileDialog()
+            sfd.Filter = "CSV Excel Format (*.csv)|*.csv|All files (*.*)|*.*"
+            sfd.FileName = "MideaProShop_Reports_" & DateTime.Now.ToString("yyyyMMdd") & ".csv"
+            If sfd.ShowDialog() = DialogResult.OK Then
+                Try
+                    Using sw As New StreamWriter(sfd.FileName)
+                        Dim headers As New List(Of String)
+                        For Each col As DataGridViewColumn In dgvOrders.Columns
+                            headers.Add("""" & col.HeaderText & """")
+                        Next
+                        sw.WriteLine(String.Join(",", headers))
+
+                        For Each row As DataGridViewRow In dgvOrders.Rows
+                            If Not row.IsNewRow Then
+                                Dim cells As New List(Of String)
+                                For Each cell As DataGridViewCell In row.Cells
+                                    Dim cellVal = If(cell.Value IsNot Nothing, cell.Value.ToString().Replace("""", """"""), "")
+                                    cells.Add("""" & cellVal & """")
+                                Next
+                                sw.WriteLine(String.Join(",", cells))
+                            End If
+                        Next
+                    End Using
+                    MessageBox.Show("Data successfully exported to Excel format!", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Catch ex As Exception
+                    MessageBox.Show("Error writing file: " & ex.Message, "Output Fault", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
+            End If
+        End Using
+    End Sub
+
+    Private Function BuildLogsPanel() As Panel
+        Dim pnl As New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.FromArgb(245, 245, 248), .Visible = False}
+
+        Dim pnlTop As New Panel() With {.Dock = DockStyle.Top, .Height = 80, .Padding = New Padding(20)}
+        Dim lblTitle As New Label() With {.Text = "System Logs", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .AutoSize = True, .Location = New Point(20, 20)}
+        pnlTop.Controls.Add(lblTitle)
+
+        Dim lblSearch As New Label() With {.Text = "Search Logs:", .Font = New Font("Segoe UI", 10), .AutoSize = True}
+        pnlTop.Controls.Add(lblSearch)
+
+        txtLogSearch = New TextBox() With {.Font = New Font("Segoe UI", 10), .Size = New Size(240, 25)}
+        AddHandler txtLogSearch.TextChanged, Sub() LoadLogsData()
+        pnlTop.Controls.Add(txtLogSearch)
+
+        Dim lblRange As New Label() With {.Text = "Range:", .Font = New Font("Segoe UI", 10), .AutoSize = True}
+        pnlTop.Controls.Add(lblRange)
+
+        cmbLogRange = New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Size = New Size(120, 25)}
+        cmbLogRange.Items.AddRange({"Today", "This Week", "This Month", "This Year", "All Time"})
+        cmbLogRange.SelectedIndex = 4
+        AddHandler cmbLogRange.SelectedIndexChanged, Sub() LoadLogsData()
+        pnlTop.Controls.Add(cmbLogRange)
+
+        Dim btnRefresh As New Button() With {.Text = "Refresh Data", .Font = New Font("Segoe UI", 10, FontStyle.Bold), .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White, .FlatStyle = FlatStyle.Flat, .Size = New Size(140, 35), .Cursor = Cursors.Hand}
+        btnRefresh.FlatAppearance.BorderSize = 0
+        AddHandler btnRefresh.Click, Sub() LoadLogsData()
+        pnlTop.Controls.Add(btnRefresh)
+
+        AddHandler pnlTop.Resize, Sub()
+                                      btnRefresh.Location = New Point(pnlTop.Width - 160, 25)
+                                      cmbLogRange.Location = New Point(pnlTop.Width - 430, 28)
+                                      lblRange.Location = New Point(pnlTop.Width - 490, 30)
+                                      txtLogSearch.Location = New Point(pnlTop.Width - 680, 28)
+                                      lblSearch.Location = New Point(pnlTop.Width - 770, 30)
+                                  End Sub
+
+        pnl.Controls.Add(pnlTop)
+
+        Dim pnlContent As New Panel() With {.Dock = DockStyle.Fill, .Padding = New Padding(20)}
+        pnl.Controls.Add(pnlContent)
+        pnlContent.BringToFront()
+
+        dgvLogs = New DataGridView() With {
+            .Dock = DockStyle.Fill,
+            .BackgroundColor = Color.White,
+            .BorderStyle = BorderStyle.None,
+            .AllowUserToAddRows = False,
+            .AllowUserToDeleteRows = False,
+            .ReadOnly = True,
+            .RowHeadersVisible = False,
+            .SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            .Font = New Font("Segoe UI", 10),
+            .GridColor = Color.FromArgb(230, 230, 230)
+        }
+
+        Dim pnlGridBdr As New Panel() With {.Dock = DockStyle.Fill, .Padding = New Padding(1), .BackColor = Color.LightGray}
+        pnlGridBdr.Controls.Add(dgvLogs)
+        pnlContent.Controls.Add(pnlGridBdr)
+
+        AddHandler pnl.VisibleChanged, Sub(s, ev)
+                                           If pnl.Visible Then LoadLogsData()
+                                       End Sub
+        Return pnl
+    End Function
+
+    Private Sub LoadLogsData()
+        Try
+            If conn.State <> ConnectionState.Open Then OpenConnection()
+            Dim logsDateCondition As String = BuildDateCondition(If(cmbLogRange IsNot Nothing AndAlso cmbLogRange.SelectedItem IsNot Nothing, cmbLogRange.SelectedItem.ToString(), "All Time"), "Log_Date")
+
+            Dim qTable As String = "SELECT * FROM (" &
+                                   "  SELECT 'Sale' AS Log_Type, P.Purchase_Date AS Log_Date, CONCAT('Sale #', P.Receipt_Number, ' to ', C.Full_Name) AS Description " &
+                                   "  FROM PURCHASE P JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID " &
+                                   "  UNION ALL " &
+                                   "  SELECT 'Service Request', SR.Request_Date, CONCAT('Service Request (', SR.Request_Status, ') - ', S.Service_Type, ' for ', C.Full_Name) " &
+                                   "  FROM SERVICE_REQUEST SR JOIN CUSTOMER C ON SR.Customer_ID = C.Customer_ID JOIN SERVICE S ON SR.Service_ID = S.Service_ID " &
+                                   "  UNION ALL " &
+                                   "  SELECT 'Warranty Claim', WC.Claim_Date, CONCAT('Warranty Claim for ', C.Full_Name, ': ', WC.Claim_Description) " &
+                                   "  FROM WARRANTY_CLAIM WC JOIN WARRANTY W ON WC.Warranty_ID = W.Warranty_ID JOIN PURCHASE P ON W.Purchase_ID = P.Purchase_ID JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID " &
+                                   "  UNION ALL " &
+                                   "  SELECT 'Inventory', CURDATE(), CONCAT('Current total units recorded: ', SUM(Stock_Quantity)) FROM PRODUCT " &
+                                   ") AS AllLogs "
+
+            Dim searchTxt = If(txtLogSearch IsNot Nothing, txtLogSearch.Text.Trim(), "")
+            Dim whereClauses As New List(Of String)
+            If Not String.IsNullOrEmpty(logsDateCondition) Then whereClauses.Add(logsDateCondition)
+            If Not String.IsNullOrEmpty(searchTxt) Then whereClauses.Add("(Description LIKE @search OR Log_Type LIKE @search)")
+            If whereClauses.Count > 0 Then qTable &= "WHERE " & String.Join(" AND ", whereClauses) & " "
+            qTable &= "ORDER BY Log_Date DESC, Log_Type ASC"
+
+            Dim dtLogs As New DataTable()
+            Using da As New MySqlDataAdapter(qTable, conn)
+                If Not String.IsNullOrEmpty(searchTxt) Then
+                    da.SelectCommand.Parameters.AddWithValue("@search", "%" & searchTxt & "%")
+                End If
+                da.Fill(dtLogs)
+            End Using
+
+            dtLogs.Columns("Log_Type").ColumnName = "Type"
+            dtLogs.Columns("Log_Date").ColumnName = "Date"
+            dtLogs.Columns("Description").ColumnName = "Movement Details"
+
+            dgvLogs.DataSource = dtLogs
+            If dgvLogs.Columns.Count > 0 Then
+                dgvLogs.Columns(0).Width = 150
+                dgvLogs.Columns(1).Width = 120
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Unable to load logs: " & ex.Message, "Logs", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        End Try
+    End Sub
+
+    Private Function BuildDateCondition(selectedRange As String, columnName As String) As String
+        Select Case selectedRange
+            Case "Today"
+                Return "DATE(" & columnName & ") = CURDATE()"
+            Case "This Week"
+                Return "YEARWEEK(" & columnName & ", 1) = YEARWEEK(CURDATE(), 1)"
+            Case "This Month"
+                Return "YEAR(" & columnName & ") = YEAR(CURDATE()) AND MONTH(" & columnName & ") = MONTH(CURDATE())"
+            Case "This Year"
+                Return "YEAR(" & columnName & ") = YEAR(CURDATE())"
+            Case Else
+                Return ""
+        End Select
+    End Function
+
+    ' ═══════════════════════════════════════════════════
     '  NAVIGATION
     ' ═══════════════════════════════════════════════════
 
@@ -2767,15 +3640,26 @@ Private Sub RefreshOrderPanel()
         ShowPanel(pnlWarranty)
     End Sub
 
+    Private Sub btnProducts_Click(sender As Object, e As EventArgs) Handles btnProducts.Click
+        SetActiveButton(btnProducts)
+        ShowPanel(pnlInventory)
+    End Sub
+
+    Private Sub btnReports_Click(sender As Object, e As EventArgs)
+        SetActiveButton(btnReports)
+        ShowPanel(pnlReports)
+    End Sub
+
+    Private Sub btnLogs_Click(sender As Object, e As EventArgs)
+        SetActiveButton(btnLogs)
+        ShowPanel(pnlLogs)
+    End Sub
+
     Private Sub btnTransactions_Click(sender As Object, e As EventArgs) Handles btnTransactions.Click
         SetActiveButton(btnTransactions)
         ShowPanel(pnlTransact)
     End Sub
 
-    Private Sub btnAdmin_Click(sender As Object, e As EventArgs)
-        SetActiveButton(btnAdmin)
-        ShowPanel(pnlAdmin)
-    End Sub
 
     ' Products Dashboard has been deprecated and removed.
 
@@ -2790,6 +3674,8 @@ Private Sub RefreshOrderPanel()
     Private lblTransactDetailCustomer As Label
     Private lblTransactDetailDate As Label
     Private lblTransactDetailTotal As Label
+    Private txtTransactSearch As TextBox
+    Private cmbTransactRange As ComboBox
 
     Private Function BuildTransactionsDashboard() As Panel
         Dim pnlMain As New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.FromArgb(245, 245, 248), .Visible = False}
@@ -2799,11 +3685,34 @@ Private Sub RefreshOrderPanel()
         Dim pnlTop As New Panel() With {.Dock = DockStyle.Top, .Height = 80, .Padding = New Padding(20)}
         Dim lblTitle As New Label() With {.Text = "Transactions Dashboard", .Font = New Font("Segoe UI", 20, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .AutoSize = True, .Location = New Point(20, 20)}
         pnlTop.Controls.Add(lblTitle)
-        
+
+        Dim lblSearch As New Label() With {.Text = "Search:", .Font = New Font("Segoe UI", 10), .AutoSize = True}
+        pnlTop.Controls.Add(lblSearch)
+
+        txtTransactSearch = New TextBox() With {.Font = New Font("Segoe UI", 10), .Size = New Size(180, 25)}
+        AddHandler txtTransactSearch.TextChanged, Sub() LoadTransactionsData()
+        pnlTop.Controls.Add(txtTransactSearch)
+
+        Dim lblRange As New Label() With {.Text = "Range:", .Font = New Font("Segoe UI", 10), .AutoSize = True}
+        pnlTop.Controls.Add(lblRange)
+
+        cmbTransactRange = New ComboBox() With {.DropDownStyle = ComboBoxStyle.DropDownList, .Font = New Font("Segoe UI", 10), .Size = New Size(120, 25)}
+        cmbTransactRange.Items.AddRange({"Today", "This Week", "This Month", "This Year", "All Time"})
+        cmbTransactRange.SelectedIndex = 4
+        AddHandler cmbTransactRange.SelectedIndexChanged, Sub() LoadTransactionsData()
+        pnlTop.Controls.Add(cmbTransactRange)
+
         Dim btnRefresh As New Button() With {.Text = "Refresh", .Font = New Font("Segoe UI", 11, FontStyle.Bold), .BackColor = Color.White, .ForeColor = Color.FromArgb(0, 120, 215), .FlatStyle = FlatStyle.Flat, .Size = New Size(100, 40), .Location = New Point(pnlTop.Width - 140, 20), .Anchor = AnchorStyles.Top Or AnchorStyles.Right, .Cursor = Cursors.Hand}
         btnRefresh.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200)
         AddHandler btnRefresh.Click, Sub() LoadTransactionsData()
         pnlTop.Controls.Add(btnRefresh)
+        AddHandler pnlTop.Resize, Sub()
+                                      btnRefresh.Location = New Point(pnlTop.Width - 140, 20)
+                                      cmbTransactRange.Location = New Point(pnlTop.Width - 270, 28)
+                                      lblRange.Location = New Point(pnlTop.Width - 330, 30)
+                                      txtTransactSearch.Location = New Point(pnlTop.Width - 520, 28)
+                                      lblSearch.Location = New Point(pnlTop.Width - 580, 30)
+                                  End Sub
 
         pnlTransactDashboard.Controls.Add(pnlTop)
 
@@ -2874,9 +3783,23 @@ Private Sub RefreshOrderPanel()
         Try
             If conn.State <> ConnectionState.Open Then OpenConnection()
 
-            Dim q As String = "SELECT P.Purchase_ID as Transaction_ID, P.Receipt_Number as Receipt_No, P.Purchase_Date as Date, C.Full_Name as Customer, IFNULL(SUM(PI.Quantity * PI.Item_Price), 0) as Total_Amount FROM PURCHASE P LEFT JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID LEFT JOIN PURCHASE_ITEMS PI ON P.Purchase_ID = PI.Purchase_ID GROUP BY P.Purchase_ID, P.Receipt_Number, P.Purchase_Date, C.Full_Name ORDER BY P.Purchase_ID DESC"
+            Dim transactDateCondition As String = BuildDateCondition(If(cmbTransactRange IsNot Nothing AndAlso cmbTransactRange.SelectedItem IsNot Nothing, cmbTransactRange.SelectedItem.ToString(), "All Time"), "P.Purchase_Date")
+            Dim searchTxt As String = If(txtTransactSearch IsNot Nothing, txtTransactSearch.Text.Trim(), "")
+
+            Dim q As String = "SELECT P.Purchase_ID as Transaction_ID, P.Receipt_Number as Receipt_No, P.Purchase_Date as Date, C.Full_Name as Customer, IFNULL(SUM(PI.Quantity * PI.Item_Price), 0) as Total_Amount " &
+                              "FROM PURCHASE P " &
+                              "LEFT JOIN CUSTOMER C ON P.Customer_ID = C.Customer_ID " &
+                              "LEFT JOIN PURCHASE_ITEMS PI ON P.Purchase_ID = PI.Purchase_ID "
+            Dim whereClauses As New List(Of String)
+            If Not String.IsNullOrEmpty(transactDateCondition) Then whereClauses.Add(transactDateCondition)
+            If Not String.IsNullOrEmpty(searchTxt) Then whereClauses.Add("(C.Full_Name LIKE @search OR P.Receipt_Number LIKE @search OR CAST(P.Purchase_ID AS CHAR) LIKE @search)")
+            If whereClauses.Count > 0 Then q &= "WHERE " & String.Join(" AND ", whereClauses) & " "
+            q &= "GROUP BY P.Purchase_ID, P.Receipt_Number, P.Purchase_Date, C.Full_Name ORDER BY P.Purchase_ID DESC"
             
             Using cmd As New MySqlCommand(q, conn)
+                If Not String.IsNullOrEmpty(searchTxt) Then
+                    cmd.Parameters.AddWithValue("@search", "%" & searchTxt & "%")
+                End If
                 Using reader = cmd.ExecuteReader()
                     While reader.Read()
                         Dim pId = Convert.ToInt32(reader("Transaction_ID"))
@@ -3064,83 +3987,6 @@ Private Sub RefreshOrderPanel()
             ' Silent catch
         End Try
     End Sub
-
-    ' ═══════════════════════════════════════════════════
-    '  ADMIN MODULE
-    ' ═══════════════════════════════════════════════════
-
-    Private Function BuildAdminContainer() As Panel
-        Dim pnlMain As New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.FromArgb(245, 245, 248), .Visible = False}
-
-        ' --- 1. Login State ---
-        pnlAdminLogin = New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.FromArgb(240, 240, 245)}
-        Dim pnlLoginBox As New Panel() With {.Size = New Size(350, 300), .BackColor = Color.White}
-        
-        pnlLoginBox.Location = New Point(Math.Max((pnlMainContent.Width - pnlLoginBox.Width) / 2, 100), Math.Max((pnlMainContent.Height - pnlLoginBox.Height) / 2, 100))
-        pnlLoginBox.Anchor = AnchorStyles.None ' to keep it centered
-        
-        Dim lblLoginTitle As New Label() With {.Text = "Admin Access", .Font = New Font("Segoe UI", 16, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30), .Location = New Point(30, 30), .AutoSize = True}
-        pnlLoginBox.Controls.Add(lblLoginTitle)
-
-        Dim lblU As New Label() With {.Text = "Username", .Font = New Font("Segoe UI", 10), .Location = New Point(30, 80), .AutoSize = True}
-        pnlLoginBox.Controls.Add(lblU)
-        txtAdminUser = New TextBox() With {.Font = New Font("Segoe UI", 11), .Location = New Point(30, 105), .Width = 290}
-        pnlLoginBox.Controls.Add(txtAdminUser)
-        
-        Dim lblP As New Label() With {.Text = "Password", .Font = New Font("Segoe UI", 10), .Location = New Point(30, 150), .AutoSize = True}
-        pnlLoginBox.Controls.Add(lblP)
-        txtAdminPass = New TextBox() With {.Font = New Font("Segoe UI", 11), .Location = New Point(30, 175), .Width = 290, .PasswordChar = "*"}
-        pnlLoginBox.Controls.Add(txtAdminPass)
-
-        Dim btnLogin As New Button() With {.Text = "Login", .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.White, .BackColor = Color.FromArgb(0, 120, 215), .FlatStyle = FlatStyle.Flat, .Location = New Point(30, 230), .Size = New Size(290, 40), .Cursor = Cursors.Hand}
-        btnLogin.FlatAppearance.BorderSize = 0
-        AddHandler btnLogin.Click, Sub()
-                                       Dim approved As Boolean = False
-                                       Try
-                                           Dim q As String = "SELECT COUNT(*) FROM ADMIN_CREDENTIALS WHERE username=@u AND password=@p AND id=1"
-                                           Using cmd As New MySqlCommand(q, conn)
-                                               cmd.Parameters.AddWithValue("@u", txtAdminUser.Text)
-                                               cmd.Parameters.AddWithValue("@p", txtAdminPass.Text)
-                                               If Convert.ToInt32(cmd.ExecuteScalar()) > 0 Then approved = True
-                                           End Using
-                                       Catch e As Exception
-                                       End Try
-
-                                       If approved Then
-                                           txtAdminUser.Text = ""
-                                           txtAdminPass.Text = ""
-                                           Dim frmAdmin As New admin()
-                                           frmAdmin.StartPosition = FormStartPosition.CenterScreen
-                                           
-                                           Me.Hide()
-                                           frmAdmin.ShowDialog()
-                                           
-                                           ' Reset to dashboard to avoid lingering on login screen
-                                           SetActiveButton(btnDashboard)
-                                           ShowPanel(pnlDashboard)
-                                           
-                                           Me.Show()
-                                       Else
-                                           MessageBox.Show("Invalid User or Password", "Access Denied", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                                       End If
-                                   End Sub
-        pnlLoginBox.Controls.Add(btnLogin)
-
-        ' Logic to center box initially
-        AddHandler pnlMain.VisibleChanged, Sub()
-                                               If pnlMain.Visible Then
-                                                    pnlLoginBox.Location = New Point((pnlMain.Width - pnlLoginBox.Width) / 2, (pnlMain.Height - pnlLoginBox.Height) / 2)
-                                               End If
-                                           End Sub
-        AddHandler pnlMain.Resize, Sub()
-                                       pnlLoginBox.Location = New Point((pnlMain.Width - pnlLoginBox.Width) / 2, (pnlMain.Height - pnlLoginBox.Height) / 2)
-                                   End Sub
-
-        pnlAdminLogin.Controls.Add(pnlLoginBox)
-        pnlMain.Controls.Add(pnlAdminLogin)
-
-        Return pnlMain
-    End Function
 
     Private Sub MainForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         ' Close database connection

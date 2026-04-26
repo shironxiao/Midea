@@ -1,0 +1,612 @@
+                Dim qAlter As String = "ALTER TABLE SERVICE_REQUEST ADD COLUMN Request_Type VARCHAR(50) DEFAULT 'Standard';"
+                Using cmdAlter As New MySqlCommand(qAlter, conn)
+                    cmdAlter.ExecuteNonQuery()
+                End Using
+            Catch exAlter As Exception
+            End Try
+
+            Dim qWarranty As String = "CREATE TABLE IF NOT EXISTS WARRANTY (Warranty_ID INT PRIMARY KEY AUTO_INCREMENT, Purchase_ID INT, Warranty_StartDate DATETIME, Warranty_EndDate DATETIME, Warranty_Status VARCHAR(20));"
+            Using cmd As New MySqlCommand(qWarranty, conn)
+                cmd.ExecuteNonQuery()
+            End Using
+
+            Try
+                Dim qPopulate As String = "INSERT INTO WARRANTY (Purchase_ID, Warranty_StartDate, Warranty_EndDate, Warranty_Status) " &
+                                          "SELECT Purchase_ID, Purchase_Date, DATE_ADD(Purchase_Date, INTERVAL 1 YEAR), 'Active' " &
+                                          "FROM PURCHASE " &
+                                          "WHERE Purchase_ID NOT IN (SELECT Purchase_ID FROM WARRANTY)"
+                Using cmdPopulate As New MySqlCommand(qPopulate, conn)
+                    cmdPopulate.ExecuteNonQuery()
+                End Using
+            Catch exPop As Exception
+            End Try
+
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub SR_LoadServices()
+        sv_dgvServices.Rows.Clear()
+        Try
+            OpenConnection()
+            Using cmd As New MySqlCommand("SELECT Service_ID, Service_Type, Service_Description, Service_Fee FROM SERVICE", conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        sv_dgvServices.Rows.Add(reader(0), reader(1), reader(2), reader(3))
+                    End While
+                End Using
+            End Using
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub sv_btnSave_Click(sender As Object, e As EventArgs) Handles sv_btnSave.Click
+        If String.IsNullOrWhiteSpace(sv_txtType.Text) Then
+            MessageBox.Show("Please enter a service type.", "Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Try
+            OpenConnection()
+            If _editServiceId > 0 Then
+                Using cmd As New MySqlCommand("UPDATE SERVICE SET Service_Type = @t, Service_Description = @d, Service_Fee = @f WHERE Service_ID = @id", conn)
+                    cmd.Parameters.AddWithValue("@t", sv_txtType.Text)
+                    cmd.Parameters.AddWithValue("@d", sv_txtDesc.Text)
+                    cmd.Parameters.AddWithValue("@f", sv_numFee.Value)
+                    cmd.Parameters.AddWithValue("@id", _editServiceId)
+                    cmd.ExecuteNonQuery()
+                End Using
+                MessageBox.Show("Service updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Else
+                Using cmd As New MySqlCommand("INSERT INTO SERVICE (Service_Type, Service_Description, Service_Fee) VALUES (@t, @d, @f)", conn)
+                    cmd.Parameters.AddWithValue("@t", sv_txtType.Text)
+                    cmd.Parameters.AddWithValue("@d", sv_txtDesc.Text)
+                    cmd.Parameters.AddWithValue("@f", sv_numFee.Value)
+                    cmd.ExecuteNonQuery()
+                End Using
+                MessageBox.Show("Service added successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            End If
+            
+            sv_btnCancel_Click(Nothing, Nothing)
+            SR_LoadServices()
+            SR_PopulateDropdowns()
+        Catch ex As Exception
+            MessageBox.Show("Error saving service: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub sv_btnCancel_Click(sender As Object, e As EventArgs) Handles sv_btnCancel.Click
+        _editServiceId = 0
+        sv_txtType.Clear()
+        sv_txtDesc.Clear()
+        sv_numFee.Value = 0
+        sv_btnSave.Text = "Save Service"
+        sv_btnCancel.Visible = False
+    End Sub
+
+    Private Sub sv_dgvServices_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles sv_dgvServices.CellContentClick
+        If e.RowIndex < 0 Then Return
+
+        Dim row = sv_dgvServices.Rows(e.RowIndex)
+        Dim srvId = Convert.ToInt32(row.Cells("sv_colID").Value)
+
+        ' Edit Button
+        If e.ColumnIndex = sv_dgvServices.Columns("sv_colActionEdit").Index Then
+            _editServiceId = srvId
+            sv_txtType.Text = row.Cells("sv_colType").Value.ToString()
+            sv_txtDesc.Text = If(row.Cells("sv_colDesc").Value IsNot Nothing, row.Cells("sv_colDesc").Value.ToString(), "")
+            sv_numFee.Value = Convert.ToDecimal(row.Cells("sv_colFee").Value)
+            
+            sv_btnSave.Text = "Update Service"
+            sv_btnCancel.Visible = True
+        End If
+
+        ' Delete Button
+        If e.ColumnIndex = sv_dgvServices.Columns("sv_colActionDelete").Index Then
+            If MessageBox.Show("Are you sure you want to delete this service?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) = DialogResult.Yes Then
+                Try
+                    OpenConnection()
+                    ' Validation check
+                    Dim count As Integer = 0
+                    Using checkCmd As New MySqlCommand("SELECT COUNT(*) FROM SERVICE_REQUEST WHERE Service_ID = @id", conn)
+                        checkCmd.Parameters.AddWithValue("@id", srvId)
+                        count = Convert.ToInt32(checkCmd.ExecuteScalar())
+                    End Using
+
+                    If count > 0 Then
+                        MessageBox.Show("Cannot delete this service because it is actively used in past or pending Service Requests.", "Constraint Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        Return
+                    End If
+
+                    Using cmd As New MySqlCommand("DELETE FROM SERVICE WHERE Service_ID = @id", conn)
+                        cmd.Parameters.AddWithValue("@id", srvId)
+                        cmd.ExecuteNonQuery()
+                    End Using
+                    MessageBox.Show("Service deleted successfully.", "Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    SR_LoadServices()
+                    SR_PopulateDropdowns()
+                Catch ex As Exception
+                    MessageBox.Show("Error deleting service: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
+            End If
+        End If
+    End Sub
+
+    ' ==============================
+    ' VIEW SERVICE REQUESTS LOGIC (VR_)
+    ' ==============================
+    Private Sub SR_LoadRequests()
+        vr_dgvRequests.Rows.Clear()
+        Try
+            OpenConnection()
+            Dim q As String = "SELECT sr.Request_ID, c.Full_Name, s.Service_Type, st.Full_Name, IFNULL(tc.Full_Name, 'Unassigned'), sr.Request_Date, sr.Scheduled_Date, sr.Request_Status " &
+                              "FROM SERVICE_REQUEST sr " &
+                              "JOIN CUSTOMER c ON sr.Customer_ID = c.Customer_ID " &
+                              "JOIN SERVICE s ON sr.Service_ID = s.Service_ID " &
+                              "JOIN STAFF st ON sr.Staff_ID = st.Staff_ID " &
+                              "LEFT JOIN TECHNICIAN t ON sr.Technician_ID = t.Technician_ID " &
+                              "LEFT JOIN STAFF tc ON t.Staff_ID = tc.Staff_ID WHERE 1=1"
+
+            If vr_cmbFilterStatus.SelectedIndex > 0 Then
+                q &= " AND sr.Request_Status = @stat"
+            End If
+
+            Dim searchTxt = vr_txtSearch.Text.Trim()
+            If Not String.IsNullOrWhiteSpace(searchTxt) AndAlso searchTxt <> "Search by Customer Name..." Then
+                q &= " AND c.Full_Name LIKE @search"
+            End If
+
+            q &= " ORDER BY sr.Request_Date DESC"
+
+            Using cmd As New MySqlCommand(q, conn)
+                If vr_cmbFilterStatus.SelectedIndex > 0 Then
+                    cmd.Parameters.AddWithValue("@stat", vr_cmbFilterStatus.SelectedItem.ToString())
+                End If
+                If Not String.IsNullOrWhiteSpace(searchTxt) AndAlso searchTxt <> "Search by Customer Name..." Then
+                    cmd.Parameters.AddWithValue("@search", "%" & searchTxt & "%")
+                End If
+
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Dim sched = If(reader.IsDBNull(6), "Not Scheduled", Convert.ToDateTime(reader(6)).ToString("d"))
+                        vr_dgvRequests.Rows.Add(reader(0), reader(1), reader(2), reader(3), reader(4), Convert.ToDateTime(reader(5)).ToString("d"), sched, reader(7))
+                    End While
+                End Using
+            End Using
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub vr_cmbFilterStatus_SelectedIndexChanged(sender As Object, e As EventArgs) Handles vr_cmbFilterStatus.SelectedIndexChanged
+        SR_LoadRequests()
+    End Sub
+
+    Private Sub vr_txtSearch_TextChanged(sender As Object, e As EventArgs) Handles vr_txtSearch.TextChanged
+        SR_LoadRequests()
+    End Sub
+
+    Private Sub vr_txtSearch_Enter(sender As Object, e As EventArgs) Handles vr_txtSearch.Enter
+        If vr_txtSearch.Text = "Search by Customer Name..." Then
+            vr_txtSearch.Text = ""
+        End If
+    End Sub
+
+    Private Sub vr_txtSearch_Leave(sender As Object, e As EventArgs) Handles vr_txtSearch.Leave
+        If String.IsNullOrWhiteSpace(vr_txtSearch.Text) Then
+            vr_txtSearch.Text = "Search by Customer Name..."
+        End If
+    End Sub
+
+    Private Sub vr_dgvRequests_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles vr_dgvRequests.CellContentClick
+        If e.RowIndex >= 0 AndAlso e.ColumnIndex = vr_dgvRequests.Columns("vr_colActionUpdate").Index Then
+            Dim reqId = Convert.ToInt32(vr_dgvRequests.Rows(e.RowIndex).Cells("vr_colReqID").Value)
+            Dim currentStatus = vr_dgvRequests.Rows(e.RowIndex).Cells("vr_colStatus").Value.ToString()
+
+            Dim newStatus As String = InputBox("Enter new status (Pending, Scheduled, In Progress, Completed, Cancelled):", "Update Status", currentStatus)
+            If String.IsNullOrWhiteSpace(newStatus) Then Return
+
+            Dim validStatuses = {"Pending", "Scheduled", "In Progress", "Completed", "Cancelled"}
+            If Not validStatuses.Contains(newStatus, StringComparer.OrdinalIgnoreCase) Then
+                MessageBox.Show("Invalid status. Please enter one of the predefined statuses.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                Return
+            End If
+
+            ' Format correctly
+            Dim formattedStatus As String = validStatuses.First(Function(s) s.Equals(newStatus, StringComparison.OrdinalIgnoreCase))
+
+            Try
+                OpenConnection()
+                Dim updateQ As String = "UPDATE SERVICE_REQUEST SET Request_Status = @stat WHERE Request_ID = @id"
+                If formattedStatus = "Completed" Then
+                    updateQ = "UPDATE SERVICE_REQUEST SET Request_Status = @stat, Completed_Date = @cdate WHERE Request_ID = @id"
+                End If
+
+                Using cmd As New MySqlCommand(updateQ, conn)
+                    cmd.Parameters.AddWithValue("@stat", formattedStatus)
+                    cmd.Parameters.AddWithValue("@id", reqId)
+                    If formattedStatus = "Completed" Then
+                        cmd.Parameters.AddWithValue("@cdate", DateTime.Now)
+                    End If
+                    cmd.ExecuteNonQuery()
+                End Using
+
+                MessageBox.Show("Status updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                SR_LoadRequests()
+            Catch ex As Exception
+                MessageBox.Show("Failed to update status: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End If
+    End Sub
+
+    ' ==============================
+    ' ADD SERVICE REQUEST LOGIC (SR_)
+    ' ==============================
+    Private Sub SR_PopulateDropdowns()
+        Try
+            OpenConnection()
+            ' Customers
+            sr_cmbExistingCust.Items.Clear()
+            Using cmd As New MySqlCommand("SELECT Customer_ID, Full_Name FROM CUSTOMER", conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        sr_cmbExistingCust.Items.Add(New With {.Text = reader("Full_Name").ToString(), .Value = reader("Customer_ID")})
+                    End While
+                End Using
+            End Using
+            sr_cmbExistingCust.DisplayMember = "Text"
+            sr_cmbExistingCust.ValueMember = "Value"
+
+            ' Services
+            sr_cmbService.Items.Clear()
+            Using cmd As New MySqlCommand("SELECT Service_ID, Service_Type FROM SERVICE", conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        sr_cmbService.Items.Add(New With {.Text = reader("Service_Type").ToString(), .Value = reader("Service_ID")})
+                    End While
+                End Using
+            End Using
+            sr_cmbService.DisplayMember = "Text"
+            sr_cmbService.ValueMember = "Value"
+
+            ' Staff
+            sr_cmbStaff.Items.Clear()
+            Using cmd As New MySqlCommand("SELECT Staff_ID, Full_Name FROM STAFF", conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        sr_cmbStaff.Items.Add(New With {.Text = reader("Full_Name").ToString(), .Value = reader("Staff_ID")})
+                    End While
+                End Using
+            End Using
+            sr_cmbStaff.DisplayMember = "Text"
+            sr_cmbStaff.ValueMember = "Value"
+
+            ' Techs
+            sr_cmbTech.Items.Clear()
+            Using cmd As New MySqlCommand("SELECT T.Technician_ID, S.Full_Name FROM TECHNICIAN T JOIN STAFF S ON T.Staff_ID = S.Staff_ID", conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        sr_cmbTech.Items.Add(New With {.Text = reader("Full_Name").ToString(), .Value = reader("Technician_ID")})
+                    End While
+                End Using
+            End Using
+            sr_cmbTech.DisplayMember = "Text"
+            sr_cmbTech.ValueMember = "Value"
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub sr_cmbExistingCust_SelectedIndexChanged(sender As Object, e As EventArgs) Handles sr_cmbExistingCust.SelectedIndexChanged
+        If sr_cmbExistingCust.SelectedIndex = -1 Then Return
+        Dim cid = Convert.ToInt32(DirectCast(sr_cmbExistingCust.SelectedItem, Object).Value)
+
+        Try
+            OpenConnection()
+            ' Auto-fill address
+            Using cmdAddr As New MySqlCommand("SELECT Home_Address FROM CUSTOMER WHERE Customer_ID = @id", conn)
+                cmdAddr.Parameters.AddWithValue("@id", cid)
+                Dim addr = cmdAddr.ExecuteScalar()
+                If addr IsNot Nothing AndAlso Not DBNull.Value.Equals(addr) Then
+                    sr_txtAddress.Text = addr.ToString()
+                End If
+            End Using
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub sr_optCust_CheckedChanged(sender As Object, e As EventArgs) Handles sr_optExistingCust.CheckedChanged, sr_optNewCust.CheckedChanged
+        If sr_optExistingCust.Checked Then
+            sr_cmbExistingCust.Visible = True
+            sr_txtCustName.Visible = False
+            sr_txtCustContact.Visible = False
+            sr_txtCustAddress.Visible = False
+            sr_lblCust.Text = "Search Existing Customer:"
+        Else
+            sr_cmbExistingCust.Visible = False
+            sr_txtCustName.Visible = True
+            sr_txtCustContact.Visible = True
+            sr_txtCustAddress.Visible = True
+            sr_lblCust.Text = "New Customer Details:"
+        End If
+    End Sub
+
+    Private Sub sr_txtCustName_Enter(sender As Object, e As EventArgs) Handles sr_txtCustName.Enter
+        If sr_txtCustName.Text = "Name..." Then sr_txtCustName.Text = ""
+    End Sub
+    Private Sub sr_txtCustName_Leave(sender As Object, e As EventArgs) Handles sr_txtCustName.Leave
+        If String.IsNullOrWhiteSpace(sr_txtCustName.Text) Then sr_txtCustName.Text = "Name..."
+    End Sub
+    Private Sub sr_txtCustContact_Enter(sender As Object, e As EventArgs) Handles sr_txtCustContact.Enter
+        If sr_txtCustContact.Text = "Contact..." Then sr_txtCustContact.Text = ""
+    End Sub
+    Private Sub sr_txtCustContact_Leave(sender As Object, e As EventArgs) Handles sr_txtCustContact.Leave
+        If String.IsNullOrWhiteSpace(sr_txtCustContact.Text) Then sr_txtCustContact.Text = "Contact..."
+    End Sub
+    Private Sub sr_txtCustAddress_Enter(sender As Object, e As EventArgs) Handles sr_txtCustAddress.Enter
+        If sr_txtCustAddress.Text = "Customer Home Address..." Then sr_txtCustAddress.Text = ""
+    End Sub
+    Private Sub sr_txtCustAddress_Leave(sender As Object, e As EventArgs) Handles sr_txtCustAddress.Leave
+        If String.IsNullOrWhiteSpace(sr_txtCustAddress.Text) Then sr_txtCustAddress.Text = "Customer Home Address..."
+    End Sub
+    Private Sub sr_txtAddress_Enter(sender As Object, e As EventArgs) Handles sr_txtAddress.Enter
+        If sr_txtAddress.Text = "Service Address..." Then sr_txtAddress.Text = ""
+    End Sub
+    Private Sub sr_txtAddress_Leave(sender As Object, e As EventArgs) Handles sr_txtAddress.Leave
+        If String.IsNullOrWhiteSpace(sr_txtAddress.Text) Then sr_txtAddress.Text = "Service Address..."
+    End Sub
+
+    Private Sub sr_btnCancel_Click(sender As Object, e As EventArgs) Handles sr_btnCancel.Click
+        sr_optExistingCust.Checked = True
+        sr_cmbService.SelectedIndex = -1
+        sr_cmbStaff.SelectedIndex = -1
+        sr_cmbTech.SelectedIndex = -1
+        sr_txtAddress.Text = ""
+        sr_dtpRequest.Value = DateTime.Now
+        sr_dtpScheduled.Checked = False
+        sr_cmbStatus.SelectedIndex = 0
+    End Sub
+
+    Private Sub sr_btnSave_Click(sender As Object, e As EventArgs) Handles sr_btnSave.Click
+        Try
+            OpenConnection()
+            Using transaction = conn.BeginTransaction()
+                Try
+                    Dim customerId As Integer = 0
+                    If sr_optNewCust.Checked Then
+                        Using cmdCust As New MySqlCommand("INSERT INTO CUSTOMER (Full_Name, Contact_Number, Home_Address) VALUES (@name, @contact, @address)", conn, transaction)
+                            cmdCust.Parameters.AddWithValue("@name", sr_txtCustName.Text)
+                            cmdCust.Parameters.AddWithValue("@contact", sr_txtCustContact.Text)
+                            cmdCust.Parameters.AddWithValue("@address", sr_txtCustAddress.Text)
+                            cmdCust.ExecuteNonQuery()
+                            customerId = Convert.ToInt32(cmdCust.LastInsertedId)
+                        End Using
+                    Else
+                        If sr_cmbExistingCust.SelectedIndex = -1 Then
+                            MessageBox.Show("Please select a customer.")
+                            transaction.Rollback()
+                            Return
+                        End If
+                        customerId = Convert.ToInt32(DirectCast(sr_cmbExistingCust.SelectedItem, Object).Value)
+                    End If
+
+                    If sr_cmbService.SelectedIndex = -1 OrElse sr_cmbStaff.SelectedIndex = -1 Then
+                        MessageBox.Show("Please select a service and staff.")
+                        transaction.Rollback()
+                        Return
+                    End If
+
+                    Dim qSave As String = "INSERT INTO SERVICE_REQUEST (Customer_ID, Service_ID, Staff_ID, Technician_ID, Warranty_ID, Request_Date, Scheduled_Date, Service_Address, Request_Status) VALUES (@cid, @sid, @stid, @tid, @wid, @rdate, @sdate, @addr, @status)"
+                    Using sqlCmd As New MySqlCommand(qSave, conn, transaction)
+                        sqlCmd.Parameters.AddWithValue("@cid", customerId)
+                        sqlCmd.Parameters.AddWithValue("@sid", Convert.ToInt32(DirectCast(sr_cmbService.SelectedItem, Object).Value))
+                        sqlCmd.Parameters.AddWithValue("@stid", Convert.ToInt32(DirectCast(sr_cmbStaff.SelectedItem, Object).Value))
+
+                        If sr_cmbTech.SelectedIndex = -1 Then
+                            sqlCmd.Parameters.AddWithValue("@tid", DBNull.Value)
+                        Else
+                            sqlCmd.Parameters.AddWithValue("@tid", Convert.ToInt32(DirectCast(sr_cmbTech.SelectedItem, Object).Value))
+                        End If
+
+                        sqlCmd.Parameters.AddWithValue("@wid", DBNull.Value)
+
+                        sqlCmd.Parameters.AddWithValue("@rdate", sr_dtpRequest.Value.Date)
+
+                        If sr_dtpScheduled.Checked Then
+                            sqlCmd.Parameters.AddWithValue("@sdate", sr_dtpScheduled.Value.Date)
+                        Else
+                            sqlCmd.Parameters.AddWithValue("@sdate", DBNull.Value)
+                        End If
+
+                        sqlCmd.Parameters.AddWithValue("@addr", sr_txtAddress.Text)
+                        sqlCmd.Parameters.AddWithValue("@status", sr_cmbStatus.SelectedItem.ToString())
+                        sqlCmd.ExecuteNonQuery()
+                    End Using
+
+                    transaction.Commit()
+                    MessageBox.Show("Service request submitted successfully!")
+
+                    ' Clear
+                    sr_btnCancel_Click(Nothing, Nothing)
+
+                    SR_LoadRequests()
+                    O_RefreshCart() ' Just in case to reset customer dropdowns
+                Catch ex As Exception
+                    transaction.Rollback()
+                    Throw ex
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error submitting request: " & ex.Message)
+        End Try
+    End Sub
+
+    ' ==============================
+    ' VIEW WARRANTY LOGIC (WR_)
+    ' ==============================
+    Public Sub WR_LoadWarranties()
+        wr_dgvWarranties.Rows.Clear()
+        Try
+            OpenConnection()
+            Dim q As String = "SELECT C.Full_Name, P.Product_Name, PU.Purchase_Date, W.Warranty_StartDate, W.Warranty_EndDate, W.Warranty_Status " &
+                              "FROM WARRANTY W " &
+                              "JOIN PURCHASE PU ON W.Purchase_ID = PU.Purchase_ID " &
+                              "JOIN CUSTOMER C ON PU.Customer_ID = C.Customer_ID " &
+                              "JOIN PURCHASE_ITEMS PI ON PU.Purchase_ID = PI.Purchase_ID " &
+                              "JOIN PRODUCT P ON PI.Product_ID = P.Product_ID " &
+                              "WHERE (@search = '' OR C.Full_Name LIKE @search OR P.Product_Name LIKE @search) "
+
+            If wr_cmbFilterStatus.SelectedIndex = 1 Then
+                q &= "AND W.Warranty_EndDate >= NOW() "
+            ElseIf wr_cmbFilterStatus.SelectedIndex = 2 Then
+                q &= "AND W.Warranty_EndDate < NOW() "
+            End If
+
+            q &= "GROUP BY W.Warranty_ID, C.Full_Name, P.Product_Name, PU.Purchase_Date, W.Warranty_StartDate, W.Warranty_EndDate, W.Warranty_Status"
+            
+            Using cmd As New MySqlCommand(q, conn)
+                Dim searchParam As String = If(wr_txtSearch.Text = "Search by Customer or Product...", "", "%" & wr_txtSearch.Text & "%")
+                cmd.Parameters.AddWithValue("@search", searchParam)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Dim endDate As DateTime = Convert.ToDateTime(reader("Warranty_EndDate"))
+                        Dim status As String = If(endDate >= DateTime.Now, "Active", "Expired")
+                        wr_dgvWarranties.Rows.Add(reader("Full_Name"), reader("Product_Name"), Convert.ToDateTime(reader("Purchase_Date")).ToString("yyyy-MM-dd"), Convert.ToDateTime(reader("Warranty_StartDate")).ToString("yyyy-MM-dd"), endDate.ToString("yyyy-MM-dd"), status)
+                    End While
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error loading warranties: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub wr_txtSearch_TextChanged(sender As Object, e As EventArgs) Handles wr_txtSearch.TextChanged
+        If wr_txtSearch.Text <> "Search by Customer or Product..." Then WR_LoadWarranties()
+    End Sub
+
+    Private Sub wr_txtSearch_Enter(sender As Object, e As EventArgs) Handles wr_txtSearch.Enter
+        If wr_txtSearch.Text = "Search by Customer or Product..." Then wr_txtSearch.Text = ""
+    End Sub
+
+    Private Sub wr_txtSearch_Leave(sender As Object, e As EventArgs) Handles wr_txtSearch.Leave
+        If String.IsNullOrWhiteSpace(wr_txtSearch.Text) Then wr_txtSearch.Text = "Search by Customer or Product..."
+    End Sub
+
+    Private Sub wr_cmbFilterStatus_SelectedIndexChanged(sender As Object, e As EventArgs) Handles wr_cmbFilterStatus.SelectedIndexChanged
+        WR_LoadWarranties()
+    End Sub
+
+    Private Sub wr_dgvWarranties_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles wr_dgvWarranties.CellContentClick
+        If e.RowIndex < 0 Then Return
+        If e.ColumnIndex = wr_dgvWarranties.Columns("wr_colActionDetails").Index Then
+            MessageBox.Show("Warranty Details for " & wr_dgvWarranties.Rows(e.RowIndex).Cells("wr_colProd").Value.ToString(), "Details", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End If
+    End Sub
+
+    ' ==============================
+    ' FILE WARRANTY CLAIM LOGIC (FC_)
+    ' ==============================
+    Public Sub FC_LoadCustomers()
+        fc_cmbCustomer.Items.Clear()
+        fc_cmbCustomer.DropDownStyle = ComboBoxStyle.DropDown
+        fc_cmbCustomer.AutoCompleteMode = AutoCompleteMode.SuggestAppend
+        fc_cmbCustomer.AutoCompleteSource = AutoCompleteSource.ListItems
+        Try
+            OpenConnection()
+            ' Only load customers that have warranties
+            Dim q As String = "SELECT DISTINCT C.Customer_ID, C.Full_Name FROM CUSTOMER C JOIN PURCHASE PU ON C.Customer_ID = PU.Customer_ID JOIN WARRANTY W ON PU.Purchase_ID = W.Purchase_ID"
+            Using cmd As New MySqlCommand(q, conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        fc_cmbCustomer.Items.Add(New With {.Text = reader("Full_Name").ToString(), .Value = Convert.ToInt32(reader("Customer_ID"))})
+                    End While
+                End Using
+            End Using
+            fc_cmbCustomer.DisplayMember = "Text"
+            fc_cmbCustomer.ValueMember = "Value"
+            fc_cmbCustomer.SelectedIndex = -1
+            fc_cmbProduct.Items.Clear()
+            FC_ClearFields()
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub FC_ClearFields()
+        fc_txtPurchDate.Clear()
+        fc_txtStart.Clear()
+        fc_txtEnd.Clear()
+        fc_txtStatus.Clear()
+        fc_txtIssue.Clear()
+    End Sub
+
+    Private Sub fc_cmbCustomer_SelectedIndexChanged(sender As Object, e As EventArgs) Handles fc_cmbCustomer.SelectedIndexChanged
+        fc_cmbProduct.Items.Clear()
+        FC_ClearFields()
+        If fc_cmbCustomer.SelectedIndex = -1 Then Return
+
+        Dim custId As Integer
+        Try
+            custId = Convert.ToInt32(DirectCast(fc_cmbCustomer.SelectedItem, Object).Value)
+        Catch
+            Return
+        End Try
+
+        Try
+            OpenConnection()
+            Dim q As String = "SELECT W.Warranty_ID, P.Product_Name, PI.Quantity, PU.Purchase_Date " &
+                              "FROM WARRANTY W JOIN PURCHASE PU ON W.Purchase_ID = PU.Purchase_ID " &
+                              "JOIN PURCHASE_ITEMS PI ON PU.Purchase_ID = PI.Purchase_ID " &
+                              "JOIN PRODUCT P ON PI.Product_ID = P.Product_ID " &
+                              "WHERE PU.Customer_ID = @cid"
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@cid", custId)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Dim pdate As String = Convert.ToDateTime(reader("Purchase_Date")).ToString("yyyy-MM-dd")
+                        Dim txt As String = reader("Product_Name").ToString() & " - " & pdate
+                        Dim wid As Integer = Convert.ToInt32(reader("Warranty_ID"))
+                        fc_cmbProduct.Items.Add(New With {.Text = txt, .Value = wid})
+                    End While
+                End Using
+            End Using
+            fc_cmbProduct.DisplayMember = "Text"
+            fc_cmbProduct.ValueMember = "Value"
+        Catch ex As Exception
+            MessageBox.Show("Error loading products: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub fc_cmbProduct_SelectedIndexChanged(sender As Object, e As EventArgs) Handles fc_cmbProduct.SelectedIndexChanged
+        FC_ClearFields()
+        If fc_cmbProduct.SelectedIndex = -1 Then Return
+        
+        Dim wid As Integer
+        Try
+            wid = Convert.ToInt32(DirectCast(fc_cmbProduct.SelectedItem, Object).Value)
+        Catch
+            Return
+        End Try
+
+        Try
+            OpenConnection()
+            Dim q As String = "SELECT PU.Purchase_Date, W.Warranty_StartDate, W.Warranty_EndDate FROM WARRANTY W JOIN PURCHASE PU ON W.Purchase_ID = PU.Purchase_ID WHERE W.Warranty_ID = @wid"
+            Using cmd As New MySqlCommand(q, conn)
+                cmd.Parameters.AddWithValue("@wid", wid)
+                Using reader = cmd.ExecuteReader()
+                    If reader.Read() Then
+                        fc_txtPurchDate.Text = Convert.ToDateTime(reader("Purchase_Date")).ToString("yyyy-MM-dd")
+                        fc_txtStart.Text = Convert.ToDateTime(reader("Warranty_StartDate")).ToString("yyyy-MM-dd")
+                        Dim dtEnd As DateTime = Convert.ToDateTime(reader("Warranty_EndDate"))
+                        fc_txtEnd.Text = dtEnd.ToString("yyyy-MM-dd")
+                        fc_txtStatus.Text = If(dtEnd >= DateTime.Now, "Active", "Expired")
+                    End If
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error loading warranty details: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub fc_btnSubmit_Click(sender As Object, e As EventArgs) Handles fc_btnSubmit.Click
+        If fc_cmbCustomer.SelectedIndex = -1 OrElse fc_cmbProduct.SelectedIndex = -1 Then
+            MessageBox.Show("Please select a customer and product.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If

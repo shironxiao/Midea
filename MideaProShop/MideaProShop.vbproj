@@ -143,10 +143,10 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="admin.Designer.vb">
-      <DependentUpon>admin.vb</DependentUpon>
+    <Compile Include="Childform.Designer.vb">
+      <DependentUpon>Childform.vb</DependentUpon>
     </Compile>
-    <Compile Include="admin.vb">
+    <Compile Include="Childform.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm.vb">
@@ -154,6 +154,12 @@
     </Compile>
     <Compile Include="MainForm.Designer.vb">
       <DependentUpon>MainForm.vb</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MDIMainForm.Designer.vb">
+      <DependentUpon>MDIMainForm.vb</DependentUpon>
+    </Compile>
+    <Compile Include="MDIMainForm.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MideaProShopModule.vb" />
@@ -175,8 +181,14 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Childform.resx">
+      <DependentUpon>Childform.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MDIMainForm.resx">
+      <DependentUpon>MDIMainForm.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
