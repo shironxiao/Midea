@@ -41,7 +41,6 @@ Partial Class MDIMainForm
         Me.WarrantyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ViewWarrantyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.FileWarrantyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ViewToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SatffAndTechnicianToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.AddNewStaffToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ManageStaffToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -52,6 +51,7 @@ Partial Class MDIMainForm
         Me.WarrantyReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SupplierToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ManageSupplierToolStripMenuItem1 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ViewWarrantyClaimToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuStrip1.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -80,13 +80,13 @@ Partial Class MDIMainForm
         'AddNewPurchaseToolStripMenuItem
         '
         Me.AddNewPurchaseToolStripMenuItem.Name = "AddNewPurchaseToolStripMenuItem"
-        Me.AddNewPurchaseToolStripMenuItem.Size = New System.Drawing.Size(156, 22)
+        Me.AddNewPurchaseToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.AddNewPurchaseToolStripMenuItem.Text = "Add New Order"
         '
         'ViewOrdersToolStripMenuItem
         '
         Me.ViewOrdersToolStripMenuItem.Name = "ViewOrdersToolStripMenuItem"
-        Me.ViewOrdersToolStripMenuItem.Size = New System.Drawing.Size(156, 22)
+        Me.ViewOrdersToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.ViewOrdersToolStripMenuItem.Text = "View Orders"
         '
         'InventoryToolStripMenuItem
@@ -160,7 +160,7 @@ Partial Class MDIMainForm
         '
         'WarrantyToolStripMenuItem
         '
-        Me.WarrantyToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ViewWarrantyToolStripMenuItem, Me.FileWarrantyToolStripMenuItem, Me.ViewToolStripMenuItem})
+        Me.WarrantyToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ViewWarrantyToolStripMenuItem, Me.FileWarrantyToolStripMenuItem, Me.ViewWarrantyClaimToolStripMenuItem})
         Me.WarrantyToolStripMenuItem.Name = "WarrantyToolStripMenuItem"
         Me.WarrantyToolStripMenuItem.Size = New System.Drawing.Size(67, 20)
         Me.WarrantyToolStripMenuItem.Text = "Warranty"
@@ -168,20 +168,14 @@ Partial Class MDIMainForm
         'ViewWarrantyToolStripMenuItem
         '
         Me.ViewWarrantyToolStripMenuItem.Name = "ViewWarrantyToolStripMenuItem"
-        Me.ViewWarrantyToolStripMenuItem.Size = New System.Drawing.Size(187, 22)
+        Me.ViewWarrantyToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.ViewWarrantyToolStripMenuItem.Text = "View Warranty"
         '
         'FileWarrantyToolStripMenuItem
         '
         Me.FileWarrantyToolStripMenuItem.Name = "FileWarrantyToolStripMenuItem"
-        Me.FileWarrantyToolStripMenuItem.Size = New System.Drawing.Size(187, 22)
+        Me.FileWarrantyToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.FileWarrantyToolStripMenuItem.Text = "File Warranty Claim"
-        '
-        'ViewToolStripMenuItem
-        '
-        Me.ViewToolStripMenuItem.Name = "ViewToolStripMenuItem"
-        Me.ViewToolStripMenuItem.Size = New System.Drawing.Size(187, 22)
-        Me.ViewToolStripMenuItem.Text = "View Warranty Claim "
         '
         'SatffAndTechnicianToolStripMenuItem
         '
@@ -193,13 +187,13 @@ Partial Class MDIMainForm
         'AddNewStaffToolStripMenuItem
         '
         Me.AddNewStaffToolStripMenuItem.Name = "AddNewStaffToolStripMenuItem"
-        Me.AddNewStaffToolStripMenuItem.Size = New System.Drawing.Size(150, 22)
+        Me.AddNewStaffToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.AddNewStaffToolStripMenuItem.Text = "Add New Staff"
         '
         'ManageStaffToolStripMenuItem
         '
         Me.ManageStaffToolStripMenuItem.Name = "ManageStaffToolStripMenuItem"
-        Me.ManageStaffToolStripMenuItem.Size = New System.Drawing.Size(150, 22)
+        Me.ManageStaffToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.ManageStaffToolStripMenuItem.Text = "Manage Staff"
         '
         'ReportToolStripMenuItem
@@ -243,8 +237,14 @@ Partial Class MDIMainForm
         'ManageSupplierToolStripMenuItem1
         '
         Me.ManageSupplierToolStripMenuItem1.Name = "ManageSupplierToolStripMenuItem1"
-        Me.ManageSupplierToolStripMenuItem1.Size = New System.Drawing.Size(163, 22)
+        Me.ManageSupplierToolStripMenuItem1.Size = New System.Drawing.Size(180, 22)
         Me.ManageSupplierToolStripMenuItem1.Text = "Manage Supplier"
+        '
+        'ViewWarrantyClaimToolStripMenuItem
+        '
+        Me.ViewWarrantyClaimToolStripMenuItem.Name = "ViewWarrantyClaimToolStripMenuItem"
+        Me.ViewWarrantyClaimToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
+        Me.ViewWarrantyClaimToolStripMenuItem.Text = "View Warranty Claim"
         '
         'MDIMainForm
         '
@@ -281,7 +281,6 @@ Partial Class MDIMainForm
     Friend WithEvents WarrantyToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ViewWarrantyToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents FileWarrantyToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents ViewToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents SatffAndTechnicianToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents AddNewStaffToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ManageStaffToolStripMenuItem As ToolStripMenuItem
@@ -294,4 +293,5 @@ Partial Class MDIMainForm
     Friend WithEvents StocTransactionToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents SupplierToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ManageSupplierToolStripMenuItem1 As ToolStripMenuItem
+    Friend WithEvents ViewWarrantyClaimToolStripMenuItem As ToolStripMenuItem
 End Class
