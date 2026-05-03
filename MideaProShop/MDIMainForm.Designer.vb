@@ -37,21 +37,17 @@ Partial Class MDIMainForm
         Me.NewServiceRequestToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ViewServiceRequestToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ManageServiceToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.AssignTechnicianToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.WarrantyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ViewWarrantyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.FileWarrantyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ViewWarrantyClaimToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SatffAndTechnicianToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.AddNewStaffToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ManageStaffToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SaleReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.InventoryReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ServiceReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.WarrantyReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SupplierToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ManageSupplierToolStripMenuItem1 = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ViewWarrantyClaimToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuStrip1.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -80,13 +76,13 @@ Partial Class MDIMainForm
         'AddNewPurchaseToolStripMenuItem
         '
         Me.AddNewPurchaseToolStripMenuItem.Name = "AddNewPurchaseToolStripMenuItem"
-        Me.AddNewPurchaseToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.AddNewPurchaseToolStripMenuItem.Size = New System.Drawing.Size(156, 22)
         Me.AddNewPurchaseToolStripMenuItem.Text = "Add New Order"
         '
         'ViewOrdersToolStripMenuItem
         '
         Me.ViewOrdersToolStripMenuItem.Name = "ViewOrdersToolStripMenuItem"
-        Me.ViewOrdersToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ViewOrdersToolStripMenuItem.Size = New System.Drawing.Size(156, 22)
         Me.ViewOrdersToolStripMenuItem.Text = "View Orders"
         '
         'InventoryToolStripMenuItem
@@ -118,18 +114,18 @@ Partial Class MDIMainForm
         'LowStockAlertToolStripMenuItem
         '
         Me.LowStockAlertToolStripMenuItem.Name = "LowStockAlertToolStripMenuItem"
-        Me.LowStockAlertToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.LowStockAlertToolStripMenuItem.Size = New System.Drawing.Size(167, 22)
         Me.LowStockAlertToolStripMenuItem.Text = "Low Stock Alerts"
         '
         'StocTransactionToolStripMenuItem
         '
         Me.StocTransactionToolStripMenuItem.Name = "StocTransactionToolStripMenuItem"
-        Me.StocTransactionToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.StocTransactionToolStripMenuItem.Size = New System.Drawing.Size(167, 22)
         Me.StocTransactionToolStripMenuItem.Text = "Stock Transaction"
         '
         'ServiceToolStripMenuItem
         '
-        Me.ServiceToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.NewServiceRequestToolStripMenuItem, Me.ViewServiceRequestToolStripMenuItem, Me.ManageServiceToolStripMenuItem, Me.AssignTechnicianToolStripMenuItem})
+        Me.ServiceToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.NewServiceRequestToolStripMenuItem, Me.ViewServiceRequestToolStripMenuItem, Me.ManageServiceToolStripMenuItem})
         Me.ServiceToolStripMenuItem.Name = "ServiceToolStripMenuItem"
         Me.ServiceToolStripMenuItem.Size = New System.Drawing.Size(56, 20)
         Me.ServiceToolStripMenuItem.Text = "Service"
@@ -152,12 +148,6 @@ Partial Class MDIMainForm
         Me.ManageServiceToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.ManageServiceToolStripMenuItem.Text = "Manage Service"
         '
-        'AssignTechnicianToolStripMenuItem
-        '
-        Me.AssignTechnicianToolStripMenuItem.Name = "AssignTechnicianToolStripMenuItem"
-        Me.AssignTechnicianToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
-        Me.AssignTechnicianToolStripMenuItem.Text = "Assign Technician"
-        '
         'WarrantyToolStripMenuItem
         '
         Me.WarrantyToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ViewWarrantyToolStripMenuItem, Me.FileWarrantyToolStripMenuItem, Me.ViewWarrantyClaimToolStripMenuItem})
@@ -176,6 +166,12 @@ Partial Class MDIMainForm
         Me.FileWarrantyToolStripMenuItem.Name = "FileWarrantyToolStripMenuItem"
         Me.FileWarrantyToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
         Me.FileWarrantyToolStripMenuItem.Text = "File Warranty Claim"
+        '
+        'ViewWarrantyClaimToolStripMenuItem
+        '
+        Me.ViewWarrantyClaimToolStripMenuItem.Name = "ViewWarrantyClaimToolStripMenuItem"
+        Me.ViewWarrantyClaimToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
+        Me.ViewWarrantyClaimToolStripMenuItem.Text = "View Warranty Claim"
         '
         'SatffAndTechnicianToolStripMenuItem
         '
@@ -198,7 +194,7 @@ Partial Class MDIMainForm
         '
         'ReportToolStripMenuItem
         '
-        Me.ReportToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaleReportToolStripMenuItem, Me.InventoryReportToolStripMenuItem, Me.ServiceReportToolStripMenuItem, Me.WarrantyReportToolStripMenuItem})
+        Me.ReportToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaleReportToolStripMenuItem})
         Me.ReportToolStripMenuItem.Name = "ReportToolStripMenuItem"
         Me.ReportToolStripMenuItem.Size = New System.Drawing.Size(54, 20)
         Me.ReportToolStripMenuItem.Text = "Report"
@@ -208,24 +204,6 @@ Partial Class MDIMainForm
         Me.SaleReportToolStripMenuItem.Name = "SaleReportToolStripMenuItem"
         Me.SaleReportToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.SaleReportToolStripMenuItem.Text = "Sale Report"
-        '
-        'InventoryReportToolStripMenuItem
-        '
-        Me.InventoryReportToolStripMenuItem.Name = "InventoryReportToolStripMenuItem"
-        Me.InventoryReportToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.InventoryReportToolStripMenuItem.Text = "Inventory Report"
-        '
-        'ServiceReportToolStripMenuItem
-        '
-        Me.ServiceReportToolStripMenuItem.Name = "ServiceReportToolStripMenuItem"
-        Me.ServiceReportToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.ServiceReportToolStripMenuItem.Text = "Service Report"
-        '
-        'WarrantyReportToolStripMenuItem
-        '
-        Me.WarrantyReportToolStripMenuItem.Name = "WarrantyReportToolStripMenuItem"
-        Me.WarrantyReportToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.WarrantyReportToolStripMenuItem.Text = "Warranty Report"
         '
         'SupplierToolStripMenuItem
         '
@@ -239,12 +217,6 @@ Partial Class MDIMainForm
         Me.ManageSupplierToolStripMenuItem1.Name = "ManageSupplierToolStripMenuItem1"
         Me.ManageSupplierToolStripMenuItem1.Size = New System.Drawing.Size(180, 22)
         Me.ManageSupplierToolStripMenuItem1.Text = "Manage Supplier"
-        '
-        'ViewWarrantyClaimToolStripMenuItem
-        '
-        Me.ViewWarrantyClaimToolStripMenuItem.Name = "ViewWarrantyClaimToolStripMenuItem"
-        Me.ViewWarrantyClaimToolStripMenuItem.Size = New System.Drawing.Size(184, 22)
-        Me.ViewWarrantyClaimToolStripMenuItem.Text = "View Warranty Claim"
         '
         'MDIMainForm
         '
@@ -277,7 +249,6 @@ Partial Class MDIMainForm
     Friend WithEvents NewServiceRequestToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ViewServiceRequestToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ManageServiceToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents AssignTechnicianToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents WarrantyToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ViewWarrantyToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents FileWarrantyToolStripMenuItem As ToolStripMenuItem
@@ -286,9 +257,6 @@ Partial Class MDIMainForm
     Friend WithEvents ManageStaffToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ReportToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents SaleReportToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents InventoryReportToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents ServiceReportToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents WarrantyReportToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents InventoryToolStripMenuItem1 As ToolStripMenuItem
     Friend WithEvents StocTransactionToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents SupplierToolStripMenuItem As ToolStripMenuItem

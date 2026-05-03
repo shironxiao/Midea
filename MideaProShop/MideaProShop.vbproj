@@ -149,13 +149,6 @@
     <Compile Include="Childform.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="MainForm.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MainForm.Designer.vb">
-      <DependentUpon>MainForm.vb</DependentUpon>
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="MDIMainForm.Designer.vb">
       <DependentUpon>MDIMainForm.vb</DependentUpon>
     </Compile>
@@ -183,9 +176,6 @@
   <ItemGroup>
     <EmbeddedResource Include="Childform.resx">
       <DependentUpon>Childform.vb</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="MainForm.resx">
-      <DependentUpon>MainForm.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MDIMainForm.resx">
       <DependentUpon>MDIMainForm.vb</DependentUpon>

@@ -1,5 +1,7 @@
 Imports MySql.Data.MySqlClient
 Imports System.IO
+Imports System.Drawing.Printing
+Imports System.ComponentModel
 
 Public Class Childform
 
@@ -12,16 +14,40 @@ Public Class Childform
     Private dashActivityDateFilter As ComboBox
     Private v_cmbQuickFilter As ComboBox
     Private v_btnRefresh As Button
+    Private l_btnRefresh As Button
     Private _orderAddressColumn As String = ""
 
     ' ==============================
     ' CHILDFORM CORE
     ' ==============================
+    Public Sub New()
+        InitializeComponent()
+
+        If LicenseManager.UsageMode = LicenseUsageMode.Designtime Then
+            InitializeDesignTimeTabPreview()
+        End If
+    End Sub
+
+    Private Sub InitializeDesignTimeTabPreview()
+        Try
+            ST_EnsureTabs()
+            SUP_InitializeTabIfNeeded()
+            RPT_EnsureSalesReportTab()
+        Catch
+            ' Keep the WinForms designer usable even if a preview tab fails to build.
+        End Try
+    End Sub
+
     Private Sub Childform_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' Hide TabControl headers at runtime
         tcMain.Appearance = TabAppearance.FlatButtons
         tcMain.ItemSize = New Size(0, 1)
         tcMain.SizeMode = TabSizeMode.Fixed
+
+        o_colActionAdd.DefaultCellStyle.BackColor = Color.White
+        o_colActionAdd.DefaultCellStyle.ForeColor = Color.Black
+        o_colActionRemove.DefaultCellStyle.BackColor = Color.White
+        o_colActionRemove.DefaultCellStyle.ForeColor = Color.Black
         
         HideAllPanels()
         V_InitializeHeaderControls()
@@ -33,18 +59,27 @@ Public Class Childform
         V_LoadOrders()
         A_LoadSuppliers()
         M_LoadCategories()
+        L_LoadCategories()
         S_InitializeTable()
         SR_InitializeTables()
         ST_InitializeTables()
         S_LoadProducts()
         S_LoadHistory()
+        L_LoadAlerts("")
         SR_LoadServices()
         SR_LoadRequests()
         SR_PopulateDropdowns()
 
         ConfigureDashboardStyle()
         LoadDashboardStats()
+        AddHandler tcMain.SelectedIndexChanged, AddressOf tcMain_SelectedIndexChanged
 
+    End Sub
+
+    Private Sub tcMain_SelectedIndexChanged(sender As Object, e As EventArgs)
+        If tcMain.SelectedTab Is pnlDashboardMain Then
+            LoadDashboardStats()
+        End If
     End Sub
 
     Public Sub HideAllPanels()
@@ -53,8 +88,8 @@ Public Class Childform
 
     Private Sub WireDashboardCardClicks()
         AttachCardNavigation(pnlCard1, Sub()
-                                           tcMain.SelectedTab = pnlViewOrdersMain
-                                           V_LoadOrders()
+                                           ' Navigate to Sales Report when clicking "Total Sales"
+                                           RPT_ShowSalesReport()
                                        End Sub)
         AttachCardNavigation(pnlCard2, Sub()
                                            tcMain.SelectedTab = pnlViewOrdersMain
@@ -93,13 +128,68 @@ Public Class Childform
         Dim keys As String() = {"Active Warranties", "Low Stock Items", "Active Technicians", "Suppliers"}
         For i As Integer = 0 To keys.Length - 1
             Dim x = 10 + (i * 200)
+            Dim cardKey = keys(i) ' prevent closure issues in click handlers
             Dim card As New Panel() With {.Location = New Point(x, 8), .Size = New Size(185, 68), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
-            Dim lblTitle As New Label() With {.Text = keys(i), .Location = New Point(10, 8), .AutoSize = True, .ForeColor = Color.FromArgb(70, 70, 70)}
-            Dim lblValue As New Label() With {.Text = "0", .Location = New Point(10, 30), .AutoSize = True, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(30, 30, 30)}
+            Dim lblTitle As New Label() With {
+                .Text = cardKey,
+                .Location = New Point(10, 8),
+                .Size = New Size(165, 18),
+                .AutoSize = False,
+                .TextAlign = ContentAlignment.MiddleCenter,
+                .ForeColor = Color.FromArgb(70, 70, 70)
+            }
+            ' Alignment fix: center the numeric value inside the card.
+            Dim lblValue As New Label() With {
+                .Text = "0",
+                .Location = New Point(10, 30),
+                .Size = New Size(165, 28),
+                .AutoSize = False,
+                .TextAlign = ContentAlignment.MiddleCenter,
+                .Font = New Font("Segoe UI", 12, FontStyle.Bold),
+                .ForeColor = Color.FromArgb(30, 30, 30)
+            }
             card.Controls.Add(lblTitle)
             card.Controls.Add(lblValue)
             dashInsightsPanel.Controls.Add(card)
             dashInsightLabels(keys(i)) = lblValue
+
+            ' Make the 2nd-row dashboard cards clickable.
+            card.Cursor = Cursors.Hand
+            lblTitle.Cursor = Cursors.Hand
+            lblValue.Cursor = Cursors.Hand
+
+            Dim dashAction As Action = Sub()
+                                           ' default no-op (keeps handler safe if key mapping changes)
+                                       End Sub
+            Select Case cardKey
+                Case "Active Warranties"
+                    dashAction = Sub()
+                                      tcMain.SelectedTab = pnlViewWarrantyMain
+                                      If wr_cmbFilterStatus IsNot Nothing Then wr_cmbFilterStatus.SelectedIndex = 1 ' Active
+                                      WR_LoadWarranties()
+                                  End Sub
+                Case "Low Stock Items"
+                    dashAction = Sub()
+                                      tcMain.SelectedTab = pnlLowStockMain
+                                      L_LoadAlerts("")
+                                  End Sub
+                Case "Active Technicians"
+                    dashAction = Sub()
+                                      ST_ShowManageStaff()
+                                      If st_cmbFilter IsNot Nothing Then
+                                          st_cmbFilter.SelectedItem = "Technicians Only"
+                                          ST_LoadStaffGrid()
+                                      End If
+                                  End Sub
+                Case "Suppliers"
+                    dashAction = Sub()
+                                      SUP_ShowManageSupplier()
+                                  End Sub
+            End Select
+
+            AddHandler card.Click, Sub() dashAction()
+            AddHandler lblTitle.Click, Sub() dashAction()
+            AddHandler lblValue.Click, Sub() dashAction()
         Next
 
         Dim pnlRecentWrap As New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.White, .Padding = New Padding(20, 10, 20, 20)}
@@ -270,6 +360,13 @@ Public Class Childform
         Public Property Quantity As Integer
     End Class
 
+    Private Class OrderEditLine
+        Public Property ProductID As Integer
+        Public Property ProductName As String
+        Public Property Quantity As Integer
+        Public Property UnitPrice As Decimal
+    End Class
+
     Private Sub O_LoadCategories()
         o_pnlCategories.Controls.Clear()
         Dim btnAll As New Button()
@@ -313,7 +410,7 @@ Public Class Childform
         o_dgvProducts.Rows.Clear()
         Try
             OpenConnection()
-            Dim query As String = "SELECT Product_ID, Product_Name, Brand, Unit_Price, Stock_Quantity FROM PRODUCT WHERE Stock_Quantity > 0"
+            Dim query As String = "SELECT Product_ID, Product_Name, Brand, Product_Description, Unit_Price, Stock_Quantity FROM PRODUCT WHERE Stock_Quantity > 0"
             If Not String.IsNullOrEmpty(category) Then
                 query &= " AND Product_Category = @cat"
             End If
@@ -326,11 +423,12 @@ Public Class Childform
                     While reader.Read()
                         Dim id = reader.GetInt32("Product_ID")
                         Dim name = reader.GetString("Product_Name")
-                        Dim desc = If(reader.IsDBNull(reader.GetOrdinal("Brand")), "", reader.GetString("Brand"))
+                        Dim brand = If(reader.IsDBNull(reader.GetOrdinal("Brand")), "", reader.GetString("Brand"))
+                        Dim desc = If(reader.IsDBNull(reader.GetOrdinal("Product_Description")), "", reader.GetString("Product_Description"))
                         Dim price = reader.GetDecimal("Unit_Price")
                         Dim stock = reader.GetInt32("Stock_Quantity")
 
-                        o_dgvProducts.Rows.Add(id, name, desc, price, stock)
+                        o_dgvProducts.Rows.Add(id, name, brand, desc, price, stock)
                     End While
                 End Using
             End Using
@@ -340,9 +438,12 @@ Public Class Childform
     End Sub
 
     Private Sub o_dgvProducts_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles o_dgvProducts.CellContentClick
-        If e.RowIndex >= 0 AndAlso e.ColumnIndex = o_dgvProducts.Columns("o_colActionAdd").Index Then
-            Dim row = o_dgvProducts.Rows(e.RowIndex)
-            Dim prodId = Convert.ToInt32(row.Cells("o_colProductID").Value)
+        If e.RowIndex < 0 Then Return
+
+        Dim row = o_dgvProducts.Rows(e.RowIndex)
+        Dim prodId = Convert.ToInt32(row.Cells("o_colProductID").Value)
+
+        If e.ColumnIndex = o_dgvProducts.Columns("o_colActionAdd").Index Then
             Dim prodName = row.Cells("o_colProductName").Value.ToString()
             Dim price = Convert.ToDecimal(row.Cells("o_colPrice").Value)
             Dim stock = Convert.ToInt32(row.Cells("o_colStock").Value)
@@ -360,6 +461,8 @@ Public Class Childform
             End If
 
             O_RefreshCart()
+        ElseIf e.ColumnIndex = o_dgvProducts.Columns("o_colActionRemove").Index Then
+            O_DecreaseCartItemByProductId(prodId)
         End If
     End Sub
 
@@ -374,22 +477,24 @@ Public Class Childform
             Dim lblName As New Label With {.Text = item.ProductName, .Font = New Font("Segoe UI", 10, FontStyle.Bold), .Location = New Point(10, 10), .AutoSize = True}
             Dim lblPrice As New Label With {.Text = item.Quantity.ToString() & " x ₱" & item.Price.ToString("N2"), .Location = New Point(10, 35), .AutoSize = True}
 
-            Dim btnMinus As New Button With {.Text = "-", .Size = New Size(30, 30), .Location = New Point(220, 15), .Tag = item.ProductID, .BackColor = Color.LightCoral, .FlatStyle = FlatStyle.Flat}
-            Dim btnPlus As New Button With {.Text = "+", .Size = New Size(30, 30), .Location = New Point(260, 15), .Tag = item.ProductID, .BackColor = Color.LightGreen, .FlatStyle = FlatStyle.Flat}
-
-            AddHandler btnMinus.Click, AddressOf O_CartMinus_Click
-            AddHandler btnPlus.Click, AddressOf O_CartPlus_Click
-
             pnlItem.Controls.Add(lblName)
             pnlItem.Controls.Add(lblPrice)
-            pnlItem.Controls.Add(btnMinus)
-            pnlItem.Controls.Add(btnPlus)
 
             o_flpCartItems.Controls.Add(pnlItem)
         Next
 
         o_lblTotal.Text = "₱" & _totalAmount.ToString("N2")
         o_btnContinue.Enabled = _cart.Count > 0
+    End Sub
+
+    Private Sub O_DecreaseCartItemByProductId(productId As Integer)
+        Dim item = _cart.FirstOrDefault(Function(c) c.ProductID = productId)
+        If item Is Nothing Then Return
+        item.Quantity -= 1
+        If item.Quantity <= 0 Then
+            _cart.Remove(item)
+        End If
+        O_RefreshCart()
     End Sub
 
     Private Sub O_CartMinus_Click(sender As Object, e As EventArgs)
@@ -430,6 +535,7 @@ Public Class Childform
             o_flpCheckoutSummary.Controls.Add(lbl)
         Next
         O_LoadCustomers()
+        O_LoadStaff()
         o_pnlCheckoutForm.Visible = True
         o_pnlCheckoutForm.BringToFront()
     End Sub
@@ -450,6 +556,25 @@ Public Class Childform
             If o_cmbExistingCustomer.Items.Count > 0 Then o_cmbExistingCustomer.SelectedIndex = 0
         Catch ex As Exception
             MessageBox.Show("Error: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub O_LoadStaff()
+        o_cmbAssignStaff.Items.Clear()
+        Try
+            OpenConnection()
+            Using cmd As New MySqlCommand("SELECT Staff_ID, Full_Name FROM STAFF", conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        o_cmbAssignStaff.Items.Add(New With {.Text = reader("Full_Name").ToString(), .Value = reader("Staff_ID")})
+                    End While
+                End Using
+            End Using
+            o_cmbAssignStaff.DisplayMember = "Text"
+            o_cmbAssignStaff.ValueMember = "Value"
+            If o_cmbAssignStaff.Items.Count > 0 Then o_cmbAssignStaff.SelectedIndex = 0
+        Catch ex As Exception
+            MessageBox.Show("Error loading staff: " & ex.Message)
         End Try
     End Sub
 
@@ -493,8 +618,13 @@ Public Class Childform
                     ' 2. Create Purchase Record
                     Dim receiptNo As String = "RCPT" & DateTime.Now.ToString("yyyyMMddHHmmss")
                     Dim purchaseId As Integer = 0
-                    Using cmdPurch As New MySqlCommand("INSERT INTO PURCHASE (Customer_ID, Purchase_Date, Receipt_Number) VALUES (@cid, @pdate, @receipt)", conn, transaction)
+                    Dim staffId As Integer = 0
+                    If o_cmbAssignStaff.SelectedItem IsNot Nothing Then
+                        staffId = Convert.ToInt32(DirectCast(o_cmbAssignStaff.SelectedItem, Object).Value)
+                    End If
+                    Using cmdPurch As New MySqlCommand("INSERT INTO PURCHASE (Customer_ID, Staff_ID, Purchase_Date, Receipt_Number) VALUES (@cid, @sid, @pdate, @receipt)", conn, transaction)
                         cmdPurch.Parameters.AddWithValue("@cid", customerId)
+                        cmdPurch.Parameters.AddWithValue("@sid", staffId)
                         cmdPurch.Parameters.AddWithValue("@pdate", DateTime.Now)
                         cmdPurch.Parameters.AddWithValue("@receipt", receiptNo)
                         cmdPurch.ExecuteNonQuery()
@@ -503,39 +633,60 @@ Public Class Childform
 
                     ' 3. Create Purchase Items & Update Stock & Log Transaction
                     For Each item In _cart
+                        Dim itemId As Integer = 0
                         Using cmdItem As New MySqlCommand("INSERT INTO PURCHASE_ITEMS (Purchase_ID, Product_ID, Quantity, Item_Price) VALUES (@pid, @prodid, @qty, @price)", conn, transaction)
                             cmdItem.Parameters.AddWithValue("@pid", purchaseId)
                             cmdItem.Parameters.AddWithValue("@prodid", item.ProductID)
                             cmdItem.Parameters.AddWithValue("@qty", item.Quantity)
                             cmdItem.Parameters.AddWithValue("@price", item.Price)
                             cmdItem.ExecuteNonQuery()
+                            itemId = Convert.ToInt32(cmdItem.LastInsertedId)
                         End Using
 
-                        Using cmdStock As New MySqlCommand("UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity - @qty WHERE Product_ID = @prodid", conn, transaction)
+                        ' Create a warranty row per purchased item row.
+                        Using cmdWarranty As New MySqlCommand("INSERT INTO WARRANTY (Item_ID, Warranty_Start_Date, Warranty_End_Date, Warranty_Status) VALUES (@itemId, @wstart, @wend, 'Active')", conn, transaction)
+                            cmdWarranty.Parameters.AddWithValue("@itemId", itemId)
+                            cmdWarranty.Parameters.AddWithValue("@wstart", DateTime.Now.Date)
+                            cmdWarranty.Parameters.AddWithValue("@wend", DateTime.Now.Date.AddYears(1))
+                            cmdWarranty.ExecuteNonQuery()
+                        End Using
+
+                        Dim currentStock As Integer
+                        Using cmdCheckStock As New MySqlCommand("SELECT Stock_Quantity FROM PRODUCT WHERE Product_ID = @prodid FOR UPDATE", conn, transaction)
+                            cmdCheckStock.Parameters.AddWithValue("@prodid", item.ProductID)
+                            Dim stockObj = cmdCheckStock.ExecuteScalar()
+                            If stockObj Is Nothing OrElse stockObj Is DBNull.Value Then
+                                Throw New Exception("Product not found while updating stock. Product ID: " & item.ProductID.ToString())
+                            End If
+                            currentStock = Convert.ToInt32(stockObj)
+                        End Using
+
+                        If currentStock < item.Quantity Then
+                            Throw New Exception("Insufficient stock for product '" & item.ProductName & "'. Available: " & currentStock.ToString() & ", Requested: " & item.Quantity.ToString())
+                        End If
+
+                        Using cmdStock As New MySqlCommand("UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity - @qty WHERE Product_ID = @prodid AND Stock_Quantity >= @qty", conn, transaction)
                             cmdStock.Parameters.AddWithValue("@qty", item.Quantity)
                             cmdStock.Parameters.AddWithValue("@prodid", item.ProductID)
-                            cmdStock.ExecuteNonQuery()
+                            Dim affected = cmdStock.ExecuteNonQuery()
+                            If affected <> 1 Then
+                                Throw New Exception("Stock update failed for product ID " & item.ProductID.ToString() & ".")
+                            End If
                         End Using
 
                         Using cmdLog As New MySqlCommand("INSERT INTO STOCK_TRANSACTION (Product_ID, Transaction_Type, Quantity, Transaction_Date, Remarks) VALUES (@prodid, 'Sale', @qty, @tdate, @remarks)", conn, transaction)
                             cmdLog.Parameters.AddWithValue("@prodid", item.ProductID)
                             cmdLog.Parameters.AddWithValue("@qty", item.Quantity)
                             cmdLog.Parameters.AddWithValue("@tdate", DateTime.Now)
-                            cmdLog.Parameters.AddWithValue("@remarks", "Order " & receiptNo)
+                            cmdLog.Parameters.AddWithValue("@remarks", "Order " & receiptNo & " | Customer: " & If(o_optNewCustomer.Checked, o_txtCustName.Text.Trim(), DirectCast(o_cmbExistingCustomer.SelectedItem, Object).Text.ToString()) & " | Product: " & item.ProductName)
                             cmdLog.ExecuteNonQuery()
                         End Using
                     Next
 
-                    ' 4. Generate 1-Year Warranty
-                    Using cmdWarranty As New MySqlCommand("INSERT INTO WARRANTY (Purchase_ID, Warranty_Start_Date, Warranty_End_Date, Warranty_Status) VALUES (@pid, @wstart, @wend, 'Active')", conn, transaction)
-                        cmdWarranty.Parameters.AddWithValue("@pid", purchaseId)
-                        cmdWarranty.Parameters.AddWithValue("@wstart", DateTime.Now)
-                        cmdWarranty.Parameters.AddWithValue("@wend", DateTime.Now.AddYears(1))
-                        cmdWarranty.ExecuteNonQuery()
-                    End Using
-
                     transaction.Commit()
-                    MessageBox.Show("Order successfully placed!" & vbCrLf & "Receipt: " & receiptNo, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    If MessageBox.Show("Order successfully placed!" & vbCrLf & "Receipt: " & receiptNo & vbCrLf & vbCrLf & "Would you like to print the receipt now?", "Success", MessageBoxButtons.YesNo, MessageBoxIcon.Information) = DialogResult.Yes Then
+                        PrintReceipt(purchaseId)
+                    End If
 
                     _cart.Clear()
                     o_txtCustName.Clear()
@@ -548,6 +699,8 @@ Public Class Childform
                     O_CategoryFilter_Click(o_pnlCategories.Controls(0), EventArgs.Empty)
                     V_LoadOrders()
                     S_LoadHistory()
+                    L_LoadAlerts("")
+                    LoadDashboardStats()
                 Catch ex As Exception
                     transaction.Rollback()
                     Throw ex
@@ -568,7 +721,7 @@ Public Class Childform
         v_dtpStart.Visible = False
         v_lblTo.Visible = False
         v_dtpEnd.Visible = False
-        v_btnFilter.Text = "Apply"
+        v_btnFilter.Visible = False
 
         v_cmbQuickFilter = New ComboBox() With {
             .DropDownStyle = ComboBoxStyle.DropDownList,
@@ -577,6 +730,7 @@ Public Class Childform
         }
         v_cmbQuickFilter.Items.AddRange(New String() {"Today", "This Week", "This Month", "Last 30 Days", "This Year", "All"})
         v_cmbQuickFilter.SelectedIndex = 0
+        AddHandler v_cmbQuickFilter.SelectedIndexChanged, Sub() V_LoadOrders()
         v_pnlHeader.Controls.Add(v_cmbQuickFilter)
 
         v_btnRefresh = New Button() With {
@@ -584,7 +738,7 @@ Public Class Childform
             .BackColor = Color.White,
             .FlatStyle = FlatStyle.Flat,
             .ForeColor = Color.Black,
-            .Location = New Point(770, 20),
+            .Location = New Point(570, 20),
             .Size = New Size(75, 35)
         }
         AddHandler v_btnRefresh.Click, Sub() V_LoadOrders()
@@ -595,8 +749,15 @@ Public Class Childform
         v_dgvOrders.Rows.Clear()
         Try
             OpenConnection()
-            Dim query As String = "SELECT p.Purchase_ID, p.Receipt_Number, p.Purchase_Date, c.Full_Name, IFNULL((SELECT SUM(Quantity * Item_Price) FROM PURCHASE_ITEMS WHERE Purchase_ID = p.Purchase_ID), 0) AS Total_Amount " &
-                                  "FROM PURCHASE p JOIN CUSTOMER c ON p.Customer_ID = c.Customer_ID WHERE 1=1 "
+            Dim query As String = "SELECT p.Purchase_ID, p.Receipt_Number, p.Purchase_Date, c.Full_Name, " &
+                                  "IFNULL(s.Full_Name, 'None') AS Staff_Name, " &
+                                  "IFNULL((SELECT GROUP_CONCAT(CONCAT(pr.Product_Name, ' x', pi2.Quantity) ORDER BY pr.Product_Name SEPARATOR ', ') " &
+                                  "FROM PURCHASE_ITEMS pi2 " &
+                                  "JOIN PRODUCT pr ON pr.Product_ID = pi2.Product_ID " &
+                                  "WHERE pi2.Purchase_ID = p.Purchase_ID), '') AS Products, " &
+                                  "IFNULL((SELECT SUM(Quantity * Item_Price) FROM PURCHASE_ITEMS WHERE Purchase_ID = p.Purchase_ID), 0) AS Total_Amount " &
+                                  "FROM PURCHASE p JOIN CUSTOMER c ON p.Customer_ID = c.Customer_ID " &
+                                  "LEFT JOIN STAFF s ON p.Staff_ID = s.Staff_ID WHERE 1=1 "
 
             Dim startDate As DateTime = DateTime.MinValue
             Dim endDate As DateTime = DateTime.MaxValue
@@ -605,6 +766,14 @@ Public Class Childform
             If startDate <> DateTime.MinValue AndAlso endDate <> DateTime.MaxValue Then
                 query &= "AND p.Purchase_Date >= @start AND p.Purchase_Date <= @end "
             End If
+
+            If v_txtSearch IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(v_txtSearch.Text) Then
+                query &= "AND (c.Full_Name LIKE @search " &
+                         "OR p.Receipt_Number LIKE @search " &
+                         "OR IFNULL(s.Full_Name, '') LIKE @search " &
+                         "OR EXISTS (SELECT 1 FROM PURCHASE_ITEMS pi3 JOIN PRODUCT pr3 ON pi3.Product_ID = pr3.Product_ID WHERE pi3.Purchase_ID = p.Purchase_ID AND pr3.Product_Name LIKE @search)) "
+            End If
+
             query &= "ORDER BY p.Purchase_Date DESC"
 
             Using cmd As New MySqlCommand(query, conn)
@@ -612,20 +781,64 @@ Public Class Childform
                     cmd.Parameters.AddWithValue("@start", startDate.Date)
                     cmd.Parameters.AddWithValue("@end", endDate.Date.AddDays(1).AddTicks(-1))
                 End If
+                If v_txtSearch IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(v_txtSearch.Text) Then
+                    cmd.Parameters.AddWithValue("@search", "%" & v_txtSearch.Text.Trim() & "%")
+                End If
                 Using reader = cmd.ExecuteReader()
                     While reader.Read()
                         Dim id = reader.GetInt32(0)
                         Dim receipt = reader.GetString(1)
                         Dim dt = reader.GetDateTime(2)
                         Dim customer = reader.GetString(3)
-                        Dim total = reader.GetDecimal(4)
-                        v_dgvOrders.Rows.Add(id, receipt, dt.ToString("g"), customer, total)
+                        Dim staff = reader.GetString(4)
+                        Dim products = reader.GetString(5)
+                        Dim total = reader.GetDecimal(6)
+                        v_dgvOrders.Rows.Add(id, receipt, dt.ToString("g"), customer, staff, products, total)
                     End While
                 End Using
             End Using
         Catch ex As Exception
             MessageBox.Show("Error: " & ex.Message)
         End Try
+    End Sub
+
+    Private Sub v_txtSearch_TextChanged(sender As Object, e As EventArgs) Handles v_txtSearch.TextChanged
+        V_LoadOrders()
+        If v_txtSearch.Text.Trim() <> "" AndAlso v_dgvOrders.Rows.Count > 0 Then
+            V_PopulateDetailPanel(0)
+        Else
+            v_pnlDetailForm.Visible = False
+        End If
+    End Sub
+
+    Private _detailOrderPurchaseId As Integer = 0
+    Private _detailOrderRowIndex As Integer = -1
+
+    Private Sub V_PopulateDetailPanel(rowIndex As Integer)
+        If rowIndex < 0 OrElse rowIndex >= v_dgvOrders.Rows.Count Then
+            v_pnlDetailForm.Visible = False
+            Return
+        End If
+        _detailOrderRowIndex = rowIndex
+        _detailOrderPurchaseId = Convert.ToInt32(v_dgvOrders.Rows(rowIndex).Cells("v_colPurchaseID").Value)
+
+        v_lblDetailReceipt.Text = "Receipt: " & v_dgvOrders.Rows(rowIndex).Cells("v_colReceipt").Value.ToString()
+        v_lblDetailCustomer.Text = "Customer: " & v_dgvOrders.Rows(rowIndex).Cells("v_colCustomer").Value.ToString()
+        v_lblDetailStaff.Text = "Staff: " & v_dgvOrders.Rows(rowIndex).Cells("v_colStaff").Value.ToString()
+        v_lblDetailDate.Text = "Date: " & v_dgvOrders.Rows(rowIndex).Cells("v_colDate").Value.ToString()
+        v_lblDetailProducts.Text = "Items: " & v_dgvOrders.Rows(rowIndex).Cells("v_colProducts").Value.ToString()
+        v_lblDetailTotal.Text = "Total: " & Convert.ToDecimal(v_dgvOrders.Rows(rowIndex).Cells("v_colTotalAmount").Value).ToString("C2")
+        v_pnlDetailForm.Visible = True
+    End Sub
+
+    Private Sub v_btnDetailEdit_Click(sender As Object, e As EventArgs) Handles v_btnDetailEdit.Click
+        If _detailOrderPurchaseId = 0 Then Return
+        V_EditOrder(_detailOrderPurchaseId, _detailOrderRowIndex)
+        v_pnlDetailForm.Visible = False
+    End Sub
+
+    Private Sub v_btnDetailClose_Click(sender As Object, e As EventArgs) Handles v_btnDetailClose.Click
+        v_pnlDetailForm.Visible = False
     End Sub
 
     Private Sub v_btnFilter_Click(sender As Object, e As EventArgs) Handles v_btnFilter.Click
@@ -668,30 +881,29 @@ Public Class Childform
             V_EditOrder(purchaseId, e.RowIndex)
         ElseIf e.ColumnIndex = v_dgvOrders.Columns("v_colActionDelete").Index Then
             V_DeleteOrder(purchaseId)
+        ElseIf e.ColumnIndex = v_dgvOrders.Columns("v_colActionPrint").Index Then
+            PrintReceipt(purchaseId)
+        End If
+    End Sub
+
+    Private Sub v_dgvOrders_SelectionChanged(sender As Object, e As EventArgs) Handles v_dgvOrders.SelectionChanged
+        If v_pnlDetailForm.Visible AndAlso v_dgvOrders.SelectedRows.Count > 0 Then
+            V_PopulateDetailPanel(v_dgvOrders.SelectedRows(0).Index)
         End If
     End Sub
 
     Private Sub V_EditOrder(purchaseId As Integer, rowIndex As Integer)
         Dim currentReceipt As String = v_dgvOrders.Rows(rowIndex).Cells("v_colReceipt").Value.ToString()
         Dim currentCustomer As String = v_dgvOrders.Rows(rowIndex).Cells("v_colCustomer").Value.ToString()
-        Dim currentTotal As Decimal = Convert.ToDecimal(v_dgvOrders.Rows(rowIndex).Cells("v_colTotalAmount").Value)
-        Dim newCustomerName As String = currentCustomer
-        Dim newTotal As Decimal = currentTotal
-        Dim newCustomerId As Integer = 0
+        Dim editedLines As List(Of OrderEditLine) = Nothing
 
-        If Not V_ShowOrderEditForm(currentReceipt, currentCustomer, currentTotal, newCustomerName, newTotal, newCustomerId) Then Return
+        If Not V_ShowOrderEditForm(purchaseId, currentReceipt, currentCustomer, editedLines) Then Return
 
         Try
             OpenConnection()
             Using tx = conn.BeginTransaction()
                 Try
-                    Using cmd As New MySqlCommand("UPDATE CUSTOMER SET Full_Name = @n WHERE Customer_ID = @cid", conn, tx)
-                        cmd.Parameters.AddWithValue("@n", newCustomerName)
-                        cmd.Parameters.AddWithValue("@cid", newCustomerId)
-                        cmd.ExecuteNonQuery()
-                    End Using
-
-                    V_UpdateOrderTotalAmount(purchaseId, newTotal, tx)
+                    V_SaveEditedOrderItems(purchaseId, editedLines, tx)
                     tx.Commit()
                 Catch
                     tx.Rollback()
@@ -700,107 +912,297 @@ Public Class Childform
             End Using
             MessageBox.Show("Order updated successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
             V_LoadOrders()
+            L_LoadAlerts("")
+            LoadDashboardStats()
         Catch ex As Exception
             MessageBox.Show("Failed to update order: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Sub
 
-    Private Sub V_UpdateOrderTotalAmount(purchaseId As Integer, newTotal As Decimal, tx As MySqlTransaction)
-        Dim currentTotal As Decimal
-        Using cmdTotal As New MySqlCommand("SELECT IFNULL(SUM(Quantity * Item_Price),0) FROM PURCHASE_ITEMS WHERE Purchase_ID=@id", conn, tx)
-            cmdTotal.Parameters.AddWithValue("@id", purchaseId)
-            currentTotal = Convert.ToDecimal(cmdTotal.ExecuteScalar())
-        End Using
-        If currentTotal = newTotal Then Return
+    Private Function V_ShowOrderEditForm(purchaseId As Integer, currentReceipt As String, currentCustomer As String, ByRef editedLines As List(Of OrderEditLine)) As Boolean
+        Dim sourceProducts As DataTable = V_GetEditableProducts()
+        Dim currentLines As List(Of OrderEditLine) = V_GetOrderItemsForEdit(purchaseId)
+        Dim originalTotal As Decimal = currentLines.Sum(Function(x) x.UnitPrice * x.Quantity)
 
-        Dim firstItemId As Integer
-        Dim firstQty As Integer
-        Dim firstPrice As Decimal
-        Using cmdFirst As New MySqlCommand("SELECT Item_ID, Quantity, Item_Price FROM PURCHASE_ITEMS WHERE Purchase_ID=@id ORDER BY Item_ID LIMIT 1", conn, tx)
-            cmdFirst.Parameters.AddWithValue("@id", purchaseId)
-            Using reader = cmdFirst.ExecuteReader()
-                If Not reader.Read() Then Throw New Exception("Order has no purchase items.")
-                firstItemId = Convert.ToInt32(reader("Item_ID"))
-                firstQty = Convert.ToInt32(reader("Quantity"))
-                firstPrice = Convert.ToDecimal(reader("Item_Price"))
-            End Using
-        End Using
-
-        If firstQty <= 0 Then Throw New Exception("Invalid item quantity found.")
-        Dim adjustedPrice = firstPrice + ((newTotal - currentTotal) / firstQty)
-        If adjustedPrice < 0D Then Throw New Exception("Total amount is too low for this order.")
-
-        Using cmdUp As New MySqlCommand("UPDATE PURCHASE_ITEMS SET Item_Price=@p WHERE Item_ID=@id", conn, tx)
-            cmdUp.Parameters.AddWithValue("@p", Decimal.Round(adjustedPrice, 2))
-            cmdUp.Parameters.AddWithValue("@id", firstItemId)
-            cmdUp.ExecuteNonQuery()
-        End Using
-    End Sub
-
-    Private Function V_ShowOrderEditForm(currentReceipt As String, currentCustomer As String, currentTotal As Decimal, ByRef newCustomerName As String, ByRef newTotal As Decimal, ByRef newCustomerId As Integer) As Boolean
         Using frm As New Form()
             frm.Text = "Edit Order"
             frm.StartPosition = FormStartPosition.CenterParent
             frm.FormBorderStyle = FormBorderStyle.FixedDialog
             frm.MinimizeBox = False
             frm.MaximizeBox = False
-            frm.ClientSize = New Size(430, 260)
+            frm.ClientSize = New Size(860, 560)
 
-            Dim lblReceipt As New Label() With {.Text = "Receipt Number", .Location = New Point(20, 20), .AutoSize = True}
-            Dim txtReceipt As New TextBox() With {.Location = New Point(20, 42), .Size = New Size(180, 24), .Text = currentReceipt, .ReadOnly = True}
-            Dim lblCustomer As New Label() With {.Text = "Customer", .Location = New Point(20, 78), .AutoSize = True}
-            Dim cmbCustomer As New ComboBox() With {.Location = New Point(20, 100), .Size = New Size(360, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
-            Dim lblCustomerName As New Label() With {.Text = "Customer Name", .Location = New Point(20, 132), .AutoSize = True}
-            Dim txtCustomerName As New TextBox() With {.Location = New Point(20, 154), .Size = New Size(360, 24), .Text = currentCustomer}
-            Dim lblTotal As New Label() With {.Text = "Total Amount", .Location = New Point(20, 186), .AutoSize = True}
-            Dim numTotal As New NumericUpDown() With {.Location = New Point(20, 208), .Size = New Size(180, 24), .DecimalPlaces = 2, .Maximum = 100000000D, .Value = Math.Max(0D, currentTotal)}
+            Dim lblReceipt As New Label() With {.Text = "Receipt Number", .Location = New Point(20, 15), .AutoSize = True}
+            Dim txtReceipt As New TextBox() With {.Location = New Point(20, 36), .Size = New Size(180, 24), .Text = currentReceipt, .ReadOnly = True}
+            Dim lblCustomer As New Label() With {.Text = "Customer", .Location = New Point(220, 15), .AutoSize = True}
+            Dim txtCustomer As New TextBox() With {.Location = New Point(220, 36), .Size = New Size(300, 24), .Text = currentCustomer, .ReadOnly = True}
 
-            Dim dt As New DataTable()
-            Try
-                OpenConnection()
-                Using da As New MySqlDataAdapter("SELECT Customer_ID, Full_Name FROM CUSTOMER ORDER BY Full_Name", conn)
-                    da.Fill(dt)
-                End Using
-            Catch ex As Exception
-                MessageBox.Show("Failed to load customers: " & ex.Message)
-                Return False
-            End Try
+            Dim dgvItems As New DataGridView() With {
+                .Location = New Point(20, 75),
+                .Size = New Size(820, 320),
+                .AllowUserToAddRows = False,
+                .AllowUserToDeleteRows = False,
+                .ReadOnly = False,
+                .SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+            }
+            dgvItems.Columns.Add("colProductID", "Product ID")
+            dgvItems.Columns("colProductID").Visible = False
+            dgvItems.Columns.Add("colProductName", "Product")
+            dgvItems.Columns("colProductName").ReadOnly = True
+            dgvItems.Columns.Add("colUnitPrice", "Unit Price")
+            dgvItems.Columns("colUnitPrice").ReadOnly = True
+            dgvItems.Columns.Add("colQty", "Quantity")
+            dgvItems.Columns.Add(New DataGridViewButtonColumn() With {.Name = "colRemove", .HeaderText = "Action", .Text = "Remove", .UseColumnTextForButtonValue = True})
 
-            cmbCustomer.DataSource = dt
-            cmbCustomer.DisplayMember = "Full_Name"
-            cmbCustomer.ValueMember = "Customer_ID"
-
-            For i As Integer = 0 To cmbCustomer.Items.Count - 1
-                Dim drv = TryCast(cmbCustomer.Items(i), DataRowView)
-                If drv IsNot Nothing AndAlso String.Equals(drv("Full_Name").ToString(), currentCustomer, StringComparison.OrdinalIgnoreCase) Then
-                    cmbCustomer.SelectedIndex = i
-                    Exit For
-                End If
+            For Each line In currentLines
+                dgvItems.Rows.Add(line.ProductID, line.ProductName, line.UnitPrice.ToString("N2"), line.Quantity)
             Next
 
-            AddHandler cmbCustomer.SelectedIndexChanged, Sub()
-                                                             Dim drv = TryCast(cmbCustomer.SelectedItem, DataRowView)
-                                                             If drv IsNot Nothing Then txtCustomerName.Text = drv("Full_Name").ToString()
-                                                         End Sub
+            Dim lblAddProduct As New Label() With {.Text = "Add Product", .Location = New Point(20, 415), .AutoSize = True}
+            Dim cmbProduct As New ComboBox() With {.Location = New Point(20, 438), .Size = New Size(360, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
+            cmbProduct.DataSource = sourceProducts
+            cmbProduct.DisplayMember = "Product_Name"
+            cmbProduct.ValueMember = "Product_ID"
 
-            Dim btnSave As New Button() With {.Text = "Save", .Location = New Point(260, 204), .Size = New Size(75, 30), .DialogResult = DialogResult.OK}
-            Dim btnCancel As New Button() With {.Text = "Cancel", .Location = New Point(345, 204), .Size = New Size(75, 30), .DialogResult = DialogResult.Cancel}
-            frm.Controls.AddRange(New Control() {lblReceipt, txtReceipt, lblCustomer, cmbCustomer, lblCustomerName, txtCustomerName, lblTotal, numTotal, btnSave, btnCancel})
+            Dim lblQty As New Label() With {.Text = "Qty", .Location = New Point(395, 415), .AutoSize = True}
+            Dim numQty As New NumericUpDown() With {.Location = New Point(395, 438), .Size = New Size(80, 24), .Minimum = 1, .Maximum = 9999, .Value = 1}
+            Dim btnAddProduct As New Button() With {.Text = "Add", .Location = New Point(490, 434), .Size = New Size(90, 32)}
+            Dim lblTotal As New Label() With {.Text = "Total: 0.00", .Location = New Point(20, 480), .AutoSize = True, .Font = New Font("Segoe UI", 11, FontStyle.Bold)}
+
+            Dim refreshTotal As Action = Sub()
+                                             Dim total As Decimal = 0D
+                                             For Each r As DataGridViewRow In dgvItems.Rows
+                                                 If r.IsNewRow Then Continue For
+                                                 Dim price As Decimal = Convert.ToDecimal(r.Cells("colUnitPrice").Value)
+                                                 Dim qty As Integer = Convert.ToInt32(r.Cells("colQty").Value)
+                                                 total += price * qty
+                                             Next
+                                             lblTotal.Text = "Total: " & total.ToString("N2")
+                                         End Sub
+            refreshTotal()
+
+            AddHandler btnAddProduct.Click, Sub()
+                                                If cmbProduct.SelectedValue Is Nothing Then Return
+                                                Dim prodId As Integer = Convert.ToInt32(cmbProduct.SelectedValue)
+                                                Dim prodName As String = cmbProduct.Text
+                                                Dim unitPrice As Decimal = 0D
+                                                For Each dr As DataRow In sourceProducts.Rows
+                                                    If Convert.ToInt32(dr("Product_ID")) = prodId Then
+                                                        unitPrice = Convert.ToDecimal(dr("Unit_Price"))
+                                                        Exit For
+                                                    End If
+                                                Next
+
+                                                Dim existingRow As DataGridViewRow = Nothing
+                                                For Each r As DataGridViewRow In dgvItems.Rows
+                                                    If r.IsNewRow Then Continue For
+                                                    If Convert.ToInt32(r.Cells("colProductID").Value) = prodId Then
+                                                        existingRow = r
+                                                        Exit For
+                                                    End If
+                                                Next
+
+                                                If existingRow Is Nothing Then
+                                                    dgvItems.Rows.Add(prodId, prodName, unitPrice.ToString("N2"), Convert.ToInt32(numQty.Value))
+                                                Else
+                                                    existingRow.Cells("colQty").Value = Convert.ToInt32(existingRow.Cells("colQty").Value) + Convert.ToInt32(numQty.Value)
+                                                End If
+                                                refreshTotal()
+                                            End Sub
+
+            AddHandler dgvItems.CellContentClick, Sub(sender, e)
+                                                      If e.RowIndex < 0 Then Return
+                                                      If dgvItems.Columns(e.ColumnIndex).Name = "colRemove" Then
+                                                          dgvItems.Rows.RemoveAt(e.RowIndex)
+                                                          refreshTotal()
+                                                      End If
+                                                  End Sub
+
+            AddHandler dgvItems.CellEndEdit, Sub(sender, e)
+                                                 If e.RowIndex < 0 Then Return
+                                                 If dgvItems.Columns(e.ColumnIndex).Name = "colQty" Then
+                                                     Dim cellValue = dgvItems.Rows(e.RowIndex).Cells("colQty").Value
+                                                     Dim parsed As Integer
+                                                     If cellValue Is Nothing OrElse Not Integer.TryParse(cellValue.ToString(), parsed) OrElse parsed <= 0 Then
+                                                         dgvItems.Rows(e.RowIndex).Cells("colQty").Value = 1
+                                                     End If
+                                                     refreshTotal()
+                                                 End If
+                                             End Sub
+
+            Dim btnSave As New Button() With {.Text = "Save", .Location = New Point(680, 515), .Size = New Size(75, 30)}
+            Dim btnCancel As New Button() With {.Text = "Cancel", .Location = New Point(765, 515), .Size = New Size(75, 30), .DialogResult = DialogResult.Cancel}
+
+            AddHandler btnSave.Click, Sub()
+                                          If dgvItems.Rows.Count = 0 Then
+                                              MessageBox.Show("Order must have at least one product.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                                              Return
+                                          End If
+
+                                          Dim newTotalAmount As Decimal = 0D
+                                          Dim editedMap As New Dictionary(Of Integer, Integer)
+                                          For Each r As DataGridViewRow In dgvItems.Rows
+                                              If r.IsNewRow Then Continue For
+                                              Dim pid = Convert.ToInt32(r.Cells("colProductID").Value)
+                                              Dim qty = Convert.ToInt32(r.Cells("colQty").Value)
+                                              Dim unitPrice = Convert.ToDecimal(r.Cells("colUnitPrice").Value)
+                                              newTotalAmount += (unitPrice * qty)
+                                              editedMap(pid) = qty
+                                          Next
+
+                                          Dim originalMap As New Dictionary(Of Integer, Integer)
+                                          For Each line In currentLines
+                                              originalMap(line.ProductID) = line.Quantity
+                                          Next
+
+                                          Dim changedCount As Integer = 0
+                                          Dim allIds = originalMap.Keys.Union(editedMap.Keys)
+                                          For Each pid In allIds
+                                              Dim oldQty As Integer = If(originalMap.ContainsKey(pid), originalMap(pid), 0)
+                                              Dim newQty As Integer = If(editedMap.ContainsKey(pid), editedMap(pid), 0)
+                                              If oldQty <> newQty Then changedCount += 1
+                                          Next
+
+                                          Dim summary As String =
+                                              "Please confirm order update:" & Environment.NewLine & Environment.NewLine &
+                                              "Original Total: " & originalTotal.ToString("N2") & Environment.NewLine &
+                                              "New Total: " & newTotalAmount.ToString("N2") & Environment.NewLine &
+                                              "Products Changed: " & changedCount.ToString()
+
+                                          If MessageBox.Show(summary, "Confirm Order Update", MessageBoxButtons.YesNo, MessageBoxIcon.Question) <> DialogResult.Yes Then
+                                              Return
+                                          End If
+
+                                          frm.DialogResult = DialogResult.OK
+                                          frm.Close()
+                                      End Sub
+            frm.Controls.AddRange(New Control() {lblReceipt, txtReceipt, lblCustomer, txtCustomer, dgvItems, lblAddProduct, cmbProduct, lblQty, numQty, btnAddProduct, lblTotal, btnSave, btnCancel})
             frm.AcceptButton = btnSave
             frm.CancelButton = btnCancel
 
             If frm.ShowDialog(Me) <> DialogResult.OK Then Return False
-            If cmbCustomer.SelectedValue Is Nothing OrElse String.IsNullOrWhiteSpace(txtCustomerName.Text) Then
-                MessageBox.Show("Customer and customer name are required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            If dgvItems.Rows.Count = 0 Then
+                MessageBox.Show("Order must have at least one product.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                 Return False
             End If
 
-            newCustomerName = txtCustomerName.Text.Trim()
-            newTotal = numTotal.Value
-            newCustomerId = Convert.ToInt32(cmbCustomer.SelectedValue)
+            editedLines = New List(Of OrderEditLine)
+            For Each r As DataGridViewRow In dgvItems.Rows
+                If r.IsNewRow Then Continue For
+                editedLines.Add(New OrderEditLine With {
+                    .ProductID = Convert.ToInt32(r.Cells("colProductID").Value),
+                    .ProductName = r.Cells("colProductName").Value.ToString(),
+                    .UnitPrice = Convert.ToDecimal(r.Cells("colUnitPrice").Value),
+                    .Quantity = Convert.ToInt32(r.Cells("colQty").Value)
+                })
+            Next
             Return True
         End Using
     End Function
+
+    Private Function V_GetEditableProducts() As DataTable
+        Dim dt As New DataTable()
+        OpenConnection()
+        Using da As New MySqlDataAdapter("SELECT Product_ID, Product_Name, Unit_Price FROM PRODUCT ORDER BY Product_Name", conn)
+            da.Fill(dt)
+        End Using
+        Return dt
+    End Function
+
+    Private Function V_GetOrderItemsForEdit(purchaseId As Integer) As List(Of OrderEditLine)
+        Dim items As New List(Of OrderEditLine)
+        OpenConnection()
+        Dim q As String = "SELECT PI.Product_ID, P.Product_Name, PI.Item_Price, PI.Quantity " &
+                          "FROM PURCHASE_ITEMS PI " &
+                          "JOIN PRODUCT P ON PI.Product_ID = P.Product_ID " &
+                          "WHERE PI.Purchase_ID = @id ORDER BY PI.Item_ID"
+        Using cmd As New MySqlCommand(q, conn)
+            cmd.Parameters.AddWithValue("@id", purchaseId)
+            Using reader = cmd.ExecuteReader()
+                While reader.Read()
+                    items.Add(New OrderEditLine With {
+                        .ProductID = Convert.ToInt32(reader("Product_ID")),
+                        .ProductName = reader("Product_Name").ToString(),
+                        .UnitPrice = Convert.ToDecimal(reader("Item_Price")),
+                        .Quantity = Convert.ToInt32(reader("Quantity"))
+                    })
+                End While
+            End Using
+        End Using
+        Return items
+    End Function
+
+    Private Sub V_SaveEditedOrderItems(purchaseId As Integer, editedLines As List(Of OrderEditLine), tx As MySqlTransaction)
+        Dim oldLines As New List(Of OrderEditLine)
+        Using cmdOld As New MySqlCommand("SELECT PI.Product_ID, P.Product_Name, PI.Item_Price, PI.Quantity FROM PURCHASE_ITEMS PI JOIN PRODUCT P ON PI.Product_ID = P.Product_ID WHERE PI.Purchase_ID = @id", conn, tx)
+            cmdOld.Parameters.AddWithValue("@id", purchaseId)
+            Using reader = cmdOld.ExecuteReader()
+                While reader.Read()
+                    oldLines.Add(New OrderEditLine With {
+                        .ProductID = Convert.ToInt32(reader("Product_ID")),
+                        .ProductName = reader("Product_Name").ToString(),
+                        .UnitPrice = Convert.ToDecimal(reader("Item_Price")),
+                        .Quantity = Convert.ToInt32(reader("Quantity"))
+                    })
+                End While
+            End Using
+        End Using
+
+        For Each oldLine In oldLines
+            Using cmdRestore As New MySqlCommand("UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity + @qty WHERE Product_ID = @pid", conn, tx)
+                cmdRestore.Parameters.AddWithValue("@qty", oldLine.Quantity)
+                cmdRestore.Parameters.AddWithValue("@pid", oldLine.ProductID)
+                cmdRestore.ExecuteNonQuery()
+            End Using
+        Next
+
+        Using cmdDelClaim As New MySqlCommand("DELETE WC FROM WARRANTY_CLAIM WC JOIN WARRANTY W ON WC.Warranty_ID = W.Warranty_ID JOIN PURCHASE_ITEMS PI ON W.Item_ID = PI.Item_ID WHERE PI.Purchase_ID = @pid", conn, tx)
+            cmdDelClaim.Parameters.AddWithValue("@pid", purchaseId)
+            cmdDelClaim.ExecuteNonQuery()
+        End Using
+        Using cmdDelWarranty As New MySqlCommand("DELETE W FROM WARRANTY W JOIN PURCHASE_ITEMS PI ON W.Item_ID = PI.Item_ID WHERE PI.Purchase_ID = @pid", conn, tx)
+            cmdDelWarranty.Parameters.AddWithValue("@pid", purchaseId)
+            cmdDelWarranty.ExecuteNonQuery()
+        End Using
+        Using cmdDelItems As New MySqlCommand("DELETE FROM PURCHASE_ITEMS WHERE Purchase_ID = @pid", conn, tx)
+            cmdDelItems.Parameters.AddWithValue("@pid", purchaseId)
+            cmdDelItems.ExecuteNonQuery()
+        End Using
+
+        For Each line In editedLines
+            Using cmdCheck As New MySqlCommand("SELECT Stock_Quantity FROM PRODUCT WHERE Product_ID = @pid FOR UPDATE", conn, tx)
+                cmdCheck.Parameters.AddWithValue("@pid", line.ProductID)
+                Dim stockObj = cmdCheck.ExecuteScalar()
+                If stockObj Is Nothing OrElse stockObj Is DBNull.Value Then Throw New Exception("Product not found during order edit.")
+                Dim stock = Convert.ToInt32(stockObj)
+                If stock < line.Quantity Then
+                    Throw New Exception("Insufficient stock for '" & line.ProductName & "'. Available: " & stock.ToString() & ", Required: " & line.Quantity.ToString())
+                End If
+            End Using
+
+            Dim itemId As Integer
+            Using cmdIns As New MySqlCommand("INSERT INTO PURCHASE_ITEMS (Purchase_ID, Product_ID, Quantity, Item_Price) VALUES (@pid, @prod, @qty, @price)", conn, tx)
+                cmdIns.Parameters.AddWithValue("@pid", purchaseId)
+                cmdIns.Parameters.AddWithValue("@prod", line.ProductID)
+                cmdIns.Parameters.AddWithValue("@qty", line.Quantity)
+                cmdIns.Parameters.AddWithValue("@price", line.UnitPrice)
+                cmdIns.ExecuteNonQuery()
+                itemId = Convert.ToInt32(cmdIns.LastInsertedId)
+            End Using
+
+            Using cmdStock As New MySqlCommand("UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity - @qty WHERE Product_ID = @pid", conn, tx)
+                cmdStock.Parameters.AddWithValue("@qty", line.Quantity)
+                cmdStock.Parameters.AddWithValue("@pid", line.ProductID)
+                cmdStock.ExecuteNonQuery()
+            End Using
+
+            Using cmdWarranty As New MySqlCommand("INSERT INTO WARRANTY (Item_ID, Warranty_Start_Date, Warranty_End_Date, Warranty_Status) VALUES (@itemId, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 'Active')", conn, tx)
+                cmdWarranty.Parameters.AddWithValue("@itemId", itemId)
+                cmdWarranty.ExecuteNonQuery()
+            End Using
+        Next
+    End Sub
 
     Private Sub V_DeleteOrder(purchaseId As Integer)
         If MessageBox.Show("Delete this order? This removes related purchase items.", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) <> DialogResult.Yes Then Return
@@ -824,8 +1226,100 @@ Public Class Childform
             End Using
             MessageBox.Show("Order deleted successfully.", "Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
             V_LoadOrders()
+            L_LoadAlerts("")
+            LoadDashboardStats()
         Catch ex As Exception
             MessageBox.Show("Unable to delete order. It may be tied to warranty records." & Environment.NewLine & ex.Message, "Delete Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        End Try
+    End Sub
+
+    Private _currentPrintPurchaseId As Integer = 0
+
+    Private Sub PrintReceipt(purchaseId As Integer)
+        _currentPrintPurchaseId = purchaseId
+        Dim pd As New System.Drawing.Printing.PrintDocument()
+        AddHandler pd.PrintPage, AddressOf pd_PrintPage
+        
+        Dim ppd As New PrintPreviewDialog()
+        ppd.Document = pd
+        ppd.Width = 400
+        ppd.Height = 600
+        ppd.ShowDialog()
+    End Sub
+
+    Private Sub pd_PrintPage(sender As Object, e As System.Drawing.Printing.PrintPageEventArgs)
+        Try
+            OpenConnection()
+            Dim receiptNo As String = ""
+            Dim pDate As DateTime = DateTime.Now
+            Dim custName As String = ""
+            Dim staffName As String = ""
+            
+            Using cmdPurch As New MySqlCommand("SELECT p.Receipt_Number, p.Purchase_Date, c.Full_Name, IFNULL(s.Full_Name, 'None') FROM PURCHASE p JOIN CUSTOMER c ON p.Customer_ID = c.Customer_ID LEFT JOIN STAFF s ON p.Staff_ID = s.Staff_ID WHERE p.Purchase_ID = @pid", conn)
+                cmdPurch.Parameters.AddWithValue("@pid", _currentPrintPurchaseId)
+                Using reader = cmdPurch.ExecuteReader()
+                    If reader.Read() Then
+                        receiptNo = reader.GetString(0)
+                        pDate = reader.GetDateTime(1)
+                        custName = reader.GetString(2)
+                        staffName = reader.GetString(3)
+                    End If
+                End Using
+            End Using
+
+            Dim items As New List(Of String)
+            Dim totalAmount As Decimal = 0
+            Using cmdItems As New MySqlCommand("SELECT pr.Product_Name, pi.Quantity, pi.Item_Price FROM PURCHASE_ITEMS pi JOIN PRODUCT pr ON pi.Product_ID = pr.Product_ID WHERE pi.Purchase_ID = @pid", conn)
+                cmdItems.Parameters.AddWithValue("@pid", _currentPrintPurchaseId)
+                Using reader = cmdItems.ExecuteReader()
+                    While reader.Read()
+                        Dim name = reader.GetString(0)
+                        Dim qty = reader.GetInt32(1)
+                        Dim price = reader.GetDecimal(2)
+                        items.Add(qty.ToString() & "x " & name & " - ₱" & (qty * price).ToString("N2"))
+                        totalAmount += (qty * price)
+                    End While
+                End Using
+            End Using
+
+            Dim g As Graphics = e.Graphics
+            Dim fBold As New Font("Courier New", 12, FontStyle.Bold)
+            Dim fRegular As New Font("Courier New", 10, FontStyle.Regular)
+            Dim brush As New SolidBrush(Color.Black)
+            Dim startX As Integer = 10
+            Dim startY As Integer = 10
+            Dim offset As Integer = 0
+
+            g.DrawString("MIDEA PRO SHOP", fBold, brush, startX + 50, startY + offset)
+            offset += 30
+            g.DrawString("Official Receipt", fRegular, brush, startX + 50, startY + offset)
+            offset += 30
+            g.DrawString("--------------------------------", fRegular, brush, startX, startY + offset)
+            offset += 20
+            g.DrawString("Receipt No: " & receiptNo, fRegular, brush, startX, startY + offset)
+            offset += 20
+            g.DrawString("Date: " & pDate.ToString("yyyy-MM-dd HH:mm"), fRegular, brush, startX, startY + offset)
+            offset += 20
+            g.DrawString("Customer: " & custName, fRegular, brush, startX, startY + offset)
+            offset += 20
+            g.DrawString("Staff: " & staffName, fRegular, brush, startX, startY + offset)
+            offset += 20
+            g.DrawString("--------------------------------", fRegular, brush, startX, startY + offset)
+            offset += 20
+            
+            For Each itm In items
+                g.DrawString(itm, fRegular, brush, startX, startY + offset)
+                offset += 20
+            Next
+            
+            g.DrawString("--------------------------------", fRegular, brush, startX, startY + offset)
+            offset += 20
+            g.DrawString("TOTAL: ₱" & totalAmount.ToString("N2"), fBold, brush, startX, startY + offset)
+            offset += 40
+            g.DrawString("Thank you for your purchase!", fRegular, brush, startX + 20, startY + offset)
+
+        Catch ex As Exception
+            e.Graphics.DrawString("Error loading receipt details.", New Font("Arial", 12), Brushes.Red, 10, 10)
         End Try
     End Sub
 
@@ -862,6 +1356,20 @@ Public Class Childform
             Return
         End If
 
+        Dim brandValue As String = ""
+        If a_chkNewBrand.Checked Then
+            If String.IsNullOrWhiteSpace(a_txtNewBrand.Text) Then
+                MessageBox.Show("Please enter the new brand name.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                Return
+            End If
+            brandValue = a_txtNewBrand.Text.Trim()
+            If Not a_cmbBrand.Items.Contains(brandValue) Then
+                a_cmbBrand.Items.Add(brandValue)
+            End If
+        Else
+            brandValue = If(a_cmbBrand.SelectedItem IsNot Nothing, a_cmbBrand.SelectedItem.ToString(), "")
+        End If
+
         If a_optNewSupplier.Checked AndAlso String.IsNullOrWhiteSpace(a_txtSupName.Text) Then
             MessageBox.Show("Supplier Name is required for a new supplier.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
             Return
@@ -887,7 +1395,7 @@ Public Class Childform
 
                     Using cmdProd As New MySqlCommand("INSERT INTO PRODUCT (Product_Name, Brand, Product_Category, Unit_Price, Stock_Quantity, Reorder_Level, Supplier_ID) VALUES (@name, @brand, @cat, @price, @stock, @reorder, @supid)", conn, transaction)
                         cmdProd.Parameters.AddWithValue("@name", a_txtProdName.Text)
-                        cmdProd.Parameters.AddWithValue("@brand", a_txtProdBrand.Text)
+                        cmdProd.Parameters.AddWithValue("@brand", brandValue)
                         cmdProd.Parameters.AddWithValue("@cat", a_cmbCategory.SelectedItem.ToString())
                         cmdProd.Parameters.AddWithValue("@price", a_numPrice.Value)
                         cmdProd.Parameters.AddWithValue("@stock", a_numStock.Value)
@@ -900,7 +1408,10 @@ Public Class Childform
                     MessageBox.Show("Product successfully added!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
 
                     a_txtProdName.Clear()
-                    a_txtProdBrand.Clear()
+                    a_cmbBrand.SelectedIndex = -1
+                    a_chkNewBrand.Checked = False
+                    a_txtNewBrand.Clear()
+                    a_txtNewBrand.Visible = False
                     a_txtProdDesc.Clear()
                     a_numPrice.Value = 0
                     a_numStock.Value = 0
@@ -929,11 +1440,19 @@ Public Class Childform
 
     Private Sub a_btnCancel_Click(sender As Object, e As EventArgs) Handles a_btnCancel.Click
         a_txtProdName.Clear()
-        a_txtProdBrand.Clear()
+        a_cmbBrand.SelectedIndex = -1
+        a_chkNewBrand.Checked = False
+        a_txtNewBrand.Clear()
+        a_txtNewBrand.Visible = False
         a_txtProdDesc.Clear()
         a_numPrice.Value = 0
         a_numStock.Value = 0
         a_numReorder.Value = 0
+    End Sub
+
+    Private Sub a_chkNewBrand_CheckedChanged(sender As Object, e As EventArgs) Handles a_chkNewBrand.CheckedChanged
+        a_cmbBrand.Visible = Not a_chkNewBrand.Checked
+        a_txtNewBrand.Visible = a_chkNewBrand.Checked
     End Sub
 
     ' ==============================
@@ -986,7 +1505,7 @@ Public Class Childform
         m_dgvProducts.Rows.Clear()
         Try
             OpenConnection()
-            Dim query As String = "SELECT Product_ID, Product_Name, Brand, Product_Description, Unit_Price, Stock_Quantity FROM PRODUCT"
+            Dim query As String = "SELECT Product_ID, Product_Name, Brand, Product_Description, Unit_Price, Stock_Quantity, Reorder_Level FROM PRODUCT"
             If Not String.IsNullOrEmpty(category) Then
                 query &= " WHERE Product_Category = @cat"
             End If
@@ -1003,8 +1522,9 @@ Public Class Childform
                         Dim pdesc = If(reader.IsDBNull(reader.GetOrdinal("Product_Description")), "", reader("Product_Description").ToString())
                         Dim price = reader.GetDecimal("Unit_Price")
                         Dim stock = reader.GetInt32("Stock_Quantity")
+                        Dim reorder = reader.GetInt32("Reorder_Level")
 
-                        m_dgvProducts.Rows.Add(id, name, brand, pdesc, price, stock)
+                        m_dgvProducts.Rows.Add(id, name, brand, pdesc, price, stock, reorder)
                     End While
                 End Using
             End Using
@@ -1170,21 +1690,27 @@ Public Class Childform
             cmbSup.SelectedValue = supplierId
 
             Dim optNew As New RadioButton() With {.Text = "New Supplier", .Location = New Point(280, y + 22), .AutoSize = True}
-            Dim lblSupName As New Label() With {.Text = "Supplier Name", .Location = New Point(280, y + 44 - 16), .AutoSize = True}
-            Dim txtSupName As New TextBox() With {.Location = New Point(280, y + 44), .Size = New Size(240, 24)}
-            Dim lblSupContact As New Label() With {.Text = "Contact Number", .Location = New Point(280, y + 72 - 16), .AutoSize = True}
-            Dim txtSupContact As New TextBox() With {.Location = New Point(280, y + 72), .Size = New Size(240, 24)}
-            Dim lblSupAddress As New Label() With {.Text = "Warehouse Address", .Location = New Point(280, y + 100 - 16), .AutoSize = True}
-            Dim txtSupAddress As New TextBox() With {.Location = New Point(280, y + 100), .Size = New Size(240, 24)}
+            Dim newSupBaseY As Integer = y + 22
+
+            ' Place the whole New Supplier block below the radio button so labels are not overlapped.
+            Dim lblSupName As New Label() With {.Text = "Supplier Name", .Location = New Point(280, newSupBaseY + 24), .AutoSize = True}
+            Dim txtSupName As New TextBox() With {.Location = New Point(280, newSupBaseY + 40), .Size = New Size(240, 24)}
+            ' Spacing fix: make sure labels do not overlap the previous textboxes.
+            ' (The form uses fixed pixel offsets, so small misalignment becomes visible at runtime.)
+            Dim lblSupContact As New Label() With {.Text = "Contact Number", .Location = New Point(280, newSupBaseY + 64), .AutoSize = True}
+            Dim txtSupContact As New TextBox() With {.Location = New Point(280, newSupBaseY + 80), .Size = New Size(240, 24)}
+            Dim lblSupAddress As New Label() With {.Text = "Warehouse Address", .Location = New Point(280, newSupBaseY + 104), .AutoSize = True}
+            Dim txtSupAddress As New TextBox() With {.Location = New Point(280, newSupBaseY + 120), .Size = New Size(240, 24)}
 
             Dim toggleSupplierMode = Sub()
                                          cmbSup.Enabled = optExisting.Checked
-                                         lblSupName.Enabled = optNew.Checked
-                                         txtSupName.Enabled = optNew.Checked
-                                         lblSupContact.Enabled = optNew.Checked
-                                         txtSupContact.Enabled = optNew.Checked
-                                         lblSupAddress.Enabled = optNew.Checked
-                                         txtSupAddress.Enabled = optNew.Checked
+                                         ' Use Visible instead of only Enabled so labels render clearly.
+                                         lblSupName.Visible = optNew.Checked
+                                         txtSupName.Visible = optNew.Checked
+                                         lblSupContact.Visible = optNew.Checked
+                                         txtSupContact.Visible = optNew.Checked
+                                         lblSupAddress.Visible = optNew.Checked
+                                         txtSupAddress.Visible = optNew.Checked
                                      End Sub
             AddHandler optExisting.CheckedChanged, Sub() toggleSupplierMode()
             AddHandler optNew.CheckedChanged, Sub() toggleSupplierMode()
@@ -1320,13 +1846,14 @@ Public Class Childform
     ' LOW STOCK ALERTS LOGIC (L_)
     ' ==============================
     Private Sub L_LoadCategories()
+        L_EnsureRefreshButton()
         l_pnlCategories.Controls.Clear()
         Dim btnAll As New Button()
         btnAll.Text = "All Categories"
         btnAll.Tag = ""
         btnAll.Size = New Size(150, 40)
         btnAll.FlatStyle = FlatStyle.Flat
-        btnAll.BackColor = Color.FromArgb(30, 30, 30)
+        btnAll.BackColor = Color.FromArgb(0, 120, 215)
         btnAll.ForeColor = Color.White
         AddHandler btnAll.Click, AddressOf L_CategoryFilter_Click
         l_pnlCategories.Controls.Add(btnAll)
@@ -1345,6 +1872,26 @@ Public Class Childform
         Next
     End Sub
 
+    Private Sub L_EnsureRefreshButton()
+        If l_btnRefresh IsNot Nothing Then Return
+
+        l_btnRefresh = New Button() With {
+            .Text = "Refresh",
+            .BackColor = Color.White,
+            .FlatStyle = FlatStyle.Flat,
+            .ForeColor = Color.Black,
+            .Location = New Point(1248, 14),
+            .Size = New Size(90, 32)
+        }
+        AddHandler l_btnRefresh.Click, AddressOf L_btnRefresh_Click
+        l_pnlHeader.Controls.Add(l_btnRefresh)
+        l_btnRefresh.BringToFront()
+    End Sub
+
+    Private Sub L_btnRefresh_Click(sender As Object, e As EventArgs)
+        L_LoadAlerts(L_GetActiveLowStockCategory())
+    End Sub
+
     Private Sub L_CategoryFilter_Click(sender As Object, e As EventArgs)
         Dim btn = DirectCast(sender, Button)
         For Each ctrl As Control In l_pnlCategories.Controls
@@ -1353,7 +1900,7 @@ Public Class Childform
                 ctrl.ForeColor = Color.Black
             End If
         Next
-        btn.BackColor = Color.FromArgb(30, 30, 30)
+        btn.BackColor = Color.FromArgb(0, 120, 215)
         btn.ForeColor = Color.White
         L_LoadAlerts(btn.Tag.ToString())
     End Sub
@@ -1362,7 +1909,10 @@ Public Class Childform
         l_dgvAlerts.Rows.Clear()
         Try
             OpenConnection()
-            Dim query As String = "SELECT p.Product_ID, p.Product_Name, p.Brand, p.Stock_Quantity, p.Reorder_Level, s.Supplier_Name FROM PRODUCT p LEFT JOIN SUPPLIER s ON p.Supplier_ID = s.Supplier_ID WHERE p.Stock_Quantity <= p.Reorder_Level"
+            Dim query As String = "SELECT p.Product_ID, p.Product_Name, p.Brand, p.Stock_Quantity, IFNULL(p.Reorder_Level, 0) AS Reorder_Level, s.Supplier_Name " &
+                                  "FROM PRODUCT p " &
+                                  "LEFT JOIN SUPPLIER s ON p.Supplier_ID = s.Supplier_ID " &
+                                  "WHERE IFNULL(p.Stock_Quantity, 0) <= IFNULL(p.Reorder_Level, 0)"
             If Not String.IsNullOrEmpty(category) Then
                 query &= " AND p.Product_Category = @cat"
             End If
@@ -1393,27 +1943,90 @@ Public Class Childform
         If e.RowIndex >= 0 AndAlso e.ColumnIndex = l_dgvAlerts.Columns("l_colActionAddStock").Index Then
             Dim row = l_dgvAlerts.Rows(e.RowIndex)
             Dim prodId = Convert.ToInt32(row.Cells("l_colProductID").Value)
-
-            ' Redirect to Stock Transactions
-            HideAllPanels()
-            pnlStockTransactionMain.Visible = True
-
-            ' Pre-select product and action
-            If s_cmbProduct.Items.Count > 0 Then
-                For i As Integer = 0 To s_cmbProduct.Items.Count - 1
-                    If DirectCast(s_cmbProduct.Items(i), Object).Value = prodId Then
-                        s_cmbProduct.SelectedIndex = i
-                        Exit For
-                    End If
-                Next
-            End If
-
-            s_cmbType.SelectedItem = "Restock"
-            s_numQuantity.Value = 10
-            s_txtRemarks.Text = "Low stock replenishment"
-            s_numQuantity.Focus()
+            Dim prodName = row.Cells("l_colProductName").Value.ToString()
+            Dim currentStock = Convert.ToInt32(row.Cells("l_colStock").Value)
+            Dim reorderLevel = Convert.ToInt32(row.Cells("l_colReorder").Value)
+            L_ShowAddStockDialog(prodId, prodName, currentStock, reorderLevel)
         End If
     End Sub
+
+    Private Sub L_ShowAddStockDialog(prodId As Integer, prodName As String, currentStock As Integer, reorderLevel As Integer)
+        Using frm As New Form()
+            frm.Text = "Add Stock"
+            frm.StartPosition = FormStartPosition.CenterParent
+            frm.FormBorderStyle = FormBorderStyle.FixedDialog
+            frm.MinimizeBox = False
+            frm.MaximizeBox = False
+            frm.ClientSize = New Size(420, 230)
+
+            Dim lblProduct As New Label() With {.Text = "Product", .Location = New Point(20, 20), .AutoSize = True}
+            Dim txtProduct As New TextBox() With {.Location = New Point(20, 42), .Size = New Size(380, 24), .ReadOnly = True, .Text = prodName}
+            Dim lblStockInfo As New Label() With {.Text = "Current Stock: " & currentStock.ToString() & "   Reorder Level: " & reorderLevel.ToString(), .Location = New Point(20, 75), .AutoSize = True}
+            Dim lblQty As New Label() With {.Text = "Add Quantity", .Location = New Point(20, 105), .AutoSize = True}
+            Dim numQty As New NumericUpDown() With {.Location = New Point(20, 128), .Size = New Size(150, 24), .Minimum = 1, .Maximum = 999999, .Value = 1}
+            Dim txtRemarks As New TextBox() With {.Location = New Point(20, 162), .Size = New Size(380, 24), .Text = "Low stock replenishment"}
+            Dim btnSave As New Button() With {.Text = "Save", .Location = New Point(244, 192), .Size = New Size(75, 28), .DialogResult = DialogResult.OK}
+            Dim btnCancel As New Button() With {.Text = "Cancel", .Location = New Point(325, 192), .Size = New Size(75, 28), .DialogResult = DialogResult.Cancel}
+
+            frm.Controls.AddRange(New Control() {lblProduct, txtProduct, lblStockInfo, lblQty, numQty, txtRemarks, btnSave, btnCancel})
+            frm.AcceptButton = btnSave
+            frm.CancelButton = btnCancel
+
+            If frm.ShowDialog(Me) <> DialogResult.OK Then Return
+
+            Dim qty As Integer = Convert.ToInt32(numQty.Value)
+            If qty <= 0 Then Return
+
+            Try
+                OpenConnection()
+                Using tx = conn.BeginTransaction()
+                    Try
+                        Using cmdStock As New MySqlCommand("UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity + @qty WHERE Product_ID = @id", conn, tx)
+                            cmdStock.Parameters.AddWithValue("@qty", qty)
+                            cmdStock.Parameters.AddWithValue("@id", prodId)
+                            If cmdStock.ExecuteNonQuery() <> 1 Then
+                                Throw New Exception("Failed to update product stock.")
+                            End If
+                        End Using
+
+                        Using cmdLog As New MySqlCommand("INSERT INTO STOCK_TRANSACTION (Product_ID, Transaction_Type, Quantity, Transaction_Date, Remarks) VALUES (@prodid, 'Restock', @qty, @tdate, @remarks)", conn, tx)
+                            cmdLog.Parameters.AddWithValue("@prodid", prodId)
+                            cmdLog.Parameters.AddWithValue("@qty", qty)
+                            cmdLog.Parameters.AddWithValue("@tdate", DateTime.Now)
+                            cmdLog.Parameters.AddWithValue("@remarks", If(String.IsNullOrWhiteSpace(txtRemarks.Text), "Low stock replenishment", txtRemarks.Text.Trim()))
+                            cmdLog.ExecuteNonQuery()
+                        End Using
+
+                        tx.Commit()
+                    Catch
+                        tx.Rollback()
+                        Throw
+                    End Try
+                End Using
+
+                MessageBox.Show("Stock updated successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                S_LoadHistory()
+                M_LoadProducts("")
+                O_CategoryFilter_Click(o_pnlCategories.Controls(0), EventArgs.Empty)
+                L_LoadAlerts(L_GetActiveLowStockCategory())
+                LoadDashboardStats()
+            Catch ex As Exception
+                MessageBox.Show("Failed to add stock: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Using
+    End Sub
+
+    Private Function L_GetActiveLowStockCategory() As String
+        For Each ctrl As Control In l_pnlCategories.Controls
+            If TypeOf ctrl Is Button Then
+                Dim btn = DirectCast(ctrl, Button)
+                If btn.BackColor = Color.FromArgb(0, 120, 215) Then
+                    Return btn.Tag.ToString()
+                End If
+            End If
+        Next
+        Return ""
+    End Function
 
     ' ==============================
     ' STOCK TRANSACTIONS LOGIC (S_)
@@ -1459,8 +2072,30 @@ Public Class Childform
         s_dgvHistory.Rows.Clear()
         Try
             OpenConnection()
-            Dim q As String = "SELECT st.Transaction_ID, p.Product_Name, st.Transaction_Type, st.Quantity, st.Transaction_Date, st.Remarks FROM STOCK_TRANSACTION st JOIN PRODUCT p ON st.Product_ID = p.Product_ID ORDER BY st.Transaction_Date DESC"
+            Dim q As String = "SELECT st.Transaction_ID, p.Product_Name, st.Transaction_Type, st.Quantity, st.Transaction_Date, st.Remarks FROM STOCK_TRANSACTION st JOIN PRODUCT p ON st.Product_ID = p.Product_ID WHERE 1=1 "
+
+            Dim startDate As DateTime = DateTime.MinValue
+            Dim endDate As DateTime = DateTime.MaxValue
+            S_GetTransactionDateRange(startDate, endDate)
+
+            If startDate <> DateTime.MinValue AndAlso endDate <> DateTime.MaxValue Then
+                q &= "AND st.Transaction_Date >= @start AND st.Transaction_Date <= @end "
+            End If
+
+            If s_txtSearch IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(s_txtSearch.Text) Then
+                q &= "AND (p.Product_Name LIKE @search OR st.Remarks LIKE @search) "
+            End If
+
+            q &= "ORDER BY st.Transaction_Date DESC"
+
             Using cmd As New MySqlCommand(q, conn)
+                If startDate <> DateTime.MinValue AndAlso endDate <> DateTime.MaxValue Then
+                    cmd.Parameters.AddWithValue("@start", startDate.Date)
+                    cmd.Parameters.AddWithValue("@end", endDate.Date.AddDays(1).AddTicks(-1))
+                End If
+                If s_txtSearch IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(s_txtSearch.Text) Then
+                    cmd.Parameters.AddWithValue("@search", "%" & s_txtSearch.Text.Trim() & "%")
+                End If
                 Using reader = cmd.ExecuteReader()
                     While reader.Read()
                         s_dgvHistory.Rows.Add(reader("Transaction_ID"), reader("Product_Name"), reader("Transaction_Type"), reader("Quantity"), Convert.ToDateTime(reader("Transaction_Date")).ToString("g"), reader("Remarks").ToString())
@@ -1469,6 +2104,47 @@ Public Class Childform
             End Using
         Catch ex As Exception
         End Try
+    End Sub
+
+    Private Sub s_txtSearch_TextChanged(sender As Object, e As EventArgs) Handles s_txtSearch.TextChanged
+        S_LoadHistory()
+        If s_txtSearch.Text.Trim() <> "" AndAlso s_dgvHistory.Rows.Count > 0 Then
+            S_PopulateEditPanel(0)
+        Else
+            s_pnlEditForm.Visible = False
+        End If
+    End Sub
+
+    Private Sub s_cmbQuickFilter_SelectedIndexChanged(sender As Object, e As EventArgs) Handles s_cmbQuickFilter.SelectedIndexChanged
+        S_LoadHistory()
+    End Sub
+
+    Private Sub S_GetTransactionDateRange(ByRef startDate As DateTime, ByRef endDate As DateTime)
+        startDate = DateTime.MinValue
+        endDate = DateTime.MaxValue
+        If s_cmbQuickFilter Is Nothing OrElse s_cmbQuickFilter.SelectedItem Is Nothing Then Return
+
+        Dim nowDate = DateTime.Now.Date
+        Select Case s_cmbQuickFilter.SelectedItem.ToString()
+            Case "Today"
+                startDate = nowDate
+                endDate = nowDate
+            Case "This Week"
+                Dim mondayOffset As Integer = (CInt(nowDate.DayOfWeek) + 6) Mod 7
+                Dim weekStart = nowDate.AddDays(-mondayOffset)
+                startDate = weekStart
+                endDate = weekStart.AddDays(6)
+            Case "This Month"
+                startDate = New DateTime(nowDate.Year, nowDate.Month, 1)
+                endDate = startDate.AddMonths(1).AddDays(-1)
+            Case "Last 30 Days"
+                startDate = nowDate.AddDays(-29)
+                endDate = nowDate
+            Case "This Year"
+                startDate = New DateTime(nowDate.Year, 1, 1)
+                endDate = New DateTime(nowDate.Year, 12, 31)
+            Case Else ' All
+        End Select
     End Sub
 
     Private Sub s_btnSave_Click(sender As Object, e As EventArgs) Handles s_btnSave.Click
@@ -1541,6 +2217,7 @@ Public Class Childform
                     M_LoadProducts("")
                     L_LoadAlerts("")
                     O_CategoryFilter_Click(o_pnlCategories.Controls(0), EventArgs.Empty)
+                    LoadDashboardStats()
                 Catch ex As Exception
                     transaction.Rollback()
                     Throw ex
@@ -1548,6 +2225,204 @@ Public Class Childform
             End Using
         Catch ex As Exception
             MessageBox.Show("Transaction failed: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub s_dgvHistory_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles s_dgvHistory.CellContentClick
+        If e.RowIndex < 0 Then Return
+
+        Dim colName As String = s_dgvHistory.Columns(e.ColumnIndex).Name
+        Dim transId As Integer = Convert.ToInt32(s_dgvHistory.Rows(e.RowIndex).Cells("s_colTransID").Value)
+
+        If colName = "s_colActionDelete" Then
+            If MessageBox.Show("Are you sure you want to delete this transaction? This will automatically reverse the stock change for the product.", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) = DialogResult.Yes Then
+                Try
+                    OpenConnection()
+                    Dim prodId As Integer = 0
+                    Dim qty As Integer = 0
+                    Using cmdGet As New MySqlCommand("SELECT Product_ID, Quantity FROM STOCK_TRANSACTION WHERE Transaction_ID = @id", conn)
+                        cmdGet.Parameters.AddWithValue("@id", transId)
+                        Using reader = cmdGet.ExecuteReader()
+                            If reader.Read() Then
+                                prodId = Convert.ToInt32(reader("Product_ID"))
+                                qty = Convert.ToInt32(reader("Quantity"))
+                            End If
+                        End Using
+                    End Using
+
+                    If prodId > 0 Then
+                        Using transaction = conn.BeginTransaction()
+                            Try
+                                ' Reverse stock change. Quantity in STOCK_TRANSACTION stores signed value (+/-)
+                                Dim qUpdate As String = "UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity - @qty WHERE Product_ID = @id"
+                                Using cmdStock As New MySqlCommand(qUpdate, conn, transaction)
+                                    cmdStock.Parameters.AddWithValue("@qty", qty)
+                                    cmdStock.Parameters.AddWithValue("@id", prodId)
+                                    cmdStock.ExecuteNonQuery()
+                                End Using
+
+                                Using cmdDel As New MySqlCommand("DELETE FROM STOCK_TRANSACTION WHERE Transaction_ID = @id", conn, transaction)
+                                    cmdDel.Parameters.AddWithValue("@id", transId)
+                                    cmdDel.ExecuteNonQuery()
+                                End Using
+
+                                transaction.Commit()
+                                MessageBox.Show("Transaction deleted successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                                S_LoadHistory()
+                                M_LoadProducts("")
+                                L_LoadAlerts("")
+                            Catch ex As Exception
+                                transaction.Rollback()
+                                Throw ex
+                            End Try
+                        End Using
+                    End If
+                Catch ex As Exception
+                    MessageBox.Show("Delete failed: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
+            End If
+
+        ElseIf colName = "s_colActionEdit" Then
+            S_PopulateEditPanel(e.RowIndex)
+        End If
+    End Sub
+
+    Private _editStockTransId As Integer = 0
+    Private _editStockProdId As Integer = 0
+    Private _editOriginalSignedQty As Integer = 0
+    Private _editOriginalType As String = ""
+
+    Private Sub S_PopulateEditPanel(rowIndex As Integer)
+        If rowIndex < 0 OrElse rowIndex >= s_dgvHistory.Rows.Count Then
+            s_pnlEditForm.Visible = False
+            Return
+        End If
+
+        Dim transId As Integer = Convert.ToInt32(s_dgvHistory.Rows(rowIndex).Cells("s_colTransID").Value)
+        _editStockTransId = transId
+
+        Dim tDate As String = s_dgvHistory.Rows(rowIndex).Cells("s_colDate").Value.ToString()
+        s_lblEditDate.Text = $"Date: {tDate}"
+
+        Try
+            OpenConnection()
+            
+            s_cmbEditProduct.Items.Clear()
+            Using cmdProd As New MySqlCommand("SELECT Product_ID, Product_Name FROM PRODUCT ORDER BY Product_Name", conn)
+                Using reader = cmdProd.ExecuteReader()
+                    While reader.Read()
+                        s_cmbEditProduct.Items.Add(New With {.Text = reader("Product_Name").ToString(), .Value = reader("Product_ID")})
+                    End While
+                End Using
+            End Using
+            s_cmbEditProduct.DisplayMember = "Text"
+            s_cmbEditProduct.ValueMember = "Value"
+            Using cmdGet As New MySqlCommand("SELECT Product_ID, Transaction_Type, Quantity, Remarks FROM STOCK_TRANSACTION WHERE Transaction_ID = @id", conn)
+                cmdGet.Parameters.AddWithValue("@id", transId)
+                Using reader = cmdGet.ExecuteReader()
+                    If reader.Read() Then
+                        _editStockProdId = Convert.ToInt32(reader("Product_ID"))
+                        _editOriginalType = reader("Transaction_Type").ToString()
+                        _editOriginalSignedQty = Convert.ToInt32(reader("Quantity"))
+
+                        For i As Integer = 0 To s_cmbEditProduct.Items.Count - 1
+                            If DirectCast(s_cmbEditProduct.Items(i), Object).Value.ToString() = _editStockProdId.ToString() Then
+                                s_cmbEditProduct.SelectedIndex = i
+                                Exit For
+                            End If
+                        Next
+
+                        If s_cmbEditType.Items.Contains(_editOriginalType) Then
+                            s_cmbEditType.SelectedItem = _editOriginalType
+                        End If
+                        s_numEditQuantity.Value = Math.Abs(_editOriginalSignedQty)
+                        s_txtEditRemarks.Text = reader("Remarks").ToString()
+                    End If
+                End Using
+            End Using
+            s_pnlEditForm.Visible = True
+        Catch ex As Exception
+            MessageBox.Show("Error loading transaction details: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub s_btnEditClose_Click(sender As Object, e As EventArgs) Handles s_btnEditClose.Click
+        s_pnlEditForm.Visible = False
+    End Sub
+
+    Private Sub s_btnEditSave_Click(sender As Object, e As EventArgs) Handles s_btnEditSave.Click
+        If _editStockTransId = 0 OrElse _editStockProdId = 0 Then Return
+
+        Dim newQty As Integer = Convert.ToInt32(s_numEditQuantity.Value)
+        If newQty <= 0 Then
+            MessageBox.Show("Quantity must be greater than 0.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Dim newProdId As Integer = Convert.ToInt32(DirectCast(s_cmbEditProduct.SelectedItem, Object).Value)
+        Dim newType As String = If(s_cmbEditType.SelectedItem IsNot Nothing, s_cmbEditType.SelectedItem.ToString(), _editOriginalType)
+        Dim isNewAddition As Boolean = (newType = "Restock" Or newType = "Correction")
+        
+        If newType = "Correction" AndAlso _editOriginalType <> "Correction" Then
+            Dim res = MessageBox.Show("Is this correction adding stock? (Click Yes to Add, No to Deduct)", "Correction Direction", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question)
+            If res = DialogResult.Cancel Then Return
+            isNewAddition = (res = DialogResult.Yes)
+        ElseIf newType = "Correction" AndAlso _editOriginalType = "Correction" Then
+            isNewAddition = (_editOriginalSignedQty > 0)
+        End If
+
+        Dim newSignedQty As Integer = If(isNewAddition, newQty, -newQty)
+
+        Try
+            OpenConnection()
+            Using transaction = conn.BeginTransaction()
+                Try
+                    If newProdId = _editStockProdId Then
+                        Dim qUpdateStock As String = "UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity - @origQty + @newQty WHERE Product_ID = @id"
+                        Using cmdStock As New MySqlCommand(qUpdateStock, conn, transaction)
+                            cmdStock.Parameters.AddWithValue("@origQty", _editOriginalSignedQty)
+                            cmdStock.Parameters.AddWithValue("@newQty", newSignedQty)
+                            cmdStock.Parameters.AddWithValue("@id", _editStockProdId)
+                            cmdStock.ExecuteNonQuery()
+                        End Using
+                    Else
+                        Dim qRevert As String = "UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity - @origQty WHERE Product_ID = @oldId"
+                        Using cmdRevert As New MySqlCommand(qRevert, conn, transaction)
+                            cmdRevert.Parameters.AddWithValue("@origQty", _editOriginalSignedQty)
+                            cmdRevert.Parameters.AddWithValue("@oldId", _editStockProdId)
+                            cmdRevert.ExecuteNonQuery()
+                        End Using
+
+                        Dim qApply As String = "UPDATE PRODUCT SET Stock_Quantity = Stock_Quantity + @newQty WHERE Product_ID = @newId"
+                        Using cmdApply As New MySqlCommand(qApply, conn, transaction)
+                            cmdApply.Parameters.AddWithValue("@newQty", newSignedQty)
+                            cmdApply.Parameters.AddWithValue("@newId", newProdId)
+                            cmdApply.ExecuteNonQuery()
+                        End Using
+                    End If
+
+                    Using cmdUpdate As New MySqlCommand("UPDATE STOCK_TRANSACTION SET Product_ID = @prodId, Transaction_Type = @type, Quantity = @qty, Remarks = @remarks WHERE Transaction_ID = @id", conn, transaction)
+                        cmdUpdate.Parameters.AddWithValue("@prodId", newProdId)
+                        cmdUpdate.Parameters.AddWithValue("@type", newType)
+                        cmdUpdate.Parameters.AddWithValue("@qty", newSignedQty)
+                        cmdUpdate.Parameters.AddWithValue("@remarks", s_txtEditRemarks.Text.Trim())
+                        cmdUpdate.Parameters.AddWithValue("@id", _editStockTransId)
+                        cmdUpdate.ExecuteNonQuery()
+                    End Using
+
+                    transaction.Commit()
+                    MessageBox.Show("Transaction updated successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    s_pnlEditForm.Visible = False
+                    S_LoadHistory()
+                    M_LoadProducts("")
+                    L_LoadAlerts("")
+                Catch ex As Exception
+                    transaction.Rollback()
+                    Throw ex
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Update failed: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Sub
 
@@ -1738,7 +2613,10 @@ Public Class Childform
 
             Dim searchTxt = vr_txtSearch.Text.Trim()
             If Not String.IsNullOrWhiteSpace(searchTxt) AndAlso searchTxt <> "Search by Customer Name..." Then
-                q &= " AND c.Full_Name LIKE @search"
+                q &= " AND (c.Full_Name LIKE @search" &
+                     " OR s.Service_Type LIKE @search" &
+                     " OR st.Full_Name LIKE @search" &
+                     " OR IFNULL(tc.Full_Name, '') LIKE @search)"
             End If
 
             q &= " ORDER BY sr.Request_Date DESC"
@@ -1768,6 +2646,180 @@ Public Class Childform
 
     Private Sub vr_txtSearch_TextChanged(sender As Object, e As EventArgs) Handles vr_txtSearch.TextChanged
         SR_LoadRequests()
+        Dim txt = vr_txtSearch.Text.Trim()
+        If txt <> "" AndAlso txt <> "Search by Customer Name..." AndAlso vr_dgvRequests.Rows.Count > 0 Then
+            VR_PopulateDetailPanel(0)
+        Else
+            vr_pnlDetail.Visible = False
+        End If
+    End Sub
+
+    Private _vrDetailReqId As Integer = 0
+    Private _vrDetailRowIndex As Integer = -1
+
+    Private Sub VR_LoadEditCombos()
+        Try
+            OpenConnection()
+            vr_cmbDetailService.Items.Clear()
+            Using cmd As New MySqlCommand("SELECT Service_ID, Service_Type FROM SERVICE", conn)
+                Using r = cmd.ExecuteReader()
+                    While r.Read()
+                        vr_cmbDetailService.Items.Add(New With {.Text = r("Service_Type").ToString(), .Value = r("Service_ID")})
+                    End While
+                End Using
+            End Using
+            vr_cmbDetailService.DisplayMember = "Text"
+            vr_cmbDetailService.ValueMember = "Value"
+
+            vr_cmbDetailStaff.Items.Clear()
+            Using cmd As New MySqlCommand("SELECT Staff_ID, Full_Name FROM STAFF", conn)
+                Using r = cmd.ExecuteReader()
+                    While r.Read()
+                        vr_cmbDetailStaff.Items.Add(New With {.Text = r("Full_Name").ToString(), .Value = r("Staff_ID")})
+                    End While
+                End Using
+            End Using
+            vr_cmbDetailStaff.DisplayMember = "Text"
+            vr_cmbDetailStaff.ValueMember = "Value"
+
+            vr_cmbDetailTech.Items.Clear()
+            vr_cmbDetailTech.Items.Add(New With {.Text = "Unassigned", .Value = 0})
+            Using cmd As New MySqlCommand("SELECT T.Technician_ID, S.Full_Name FROM TECHNICIAN T JOIN STAFF S ON T.Staff_ID = S.Staff_ID", conn)
+                Using r = cmd.ExecuteReader()
+                    While r.Read()
+                        vr_cmbDetailTech.Items.Add(New With {.Text = r("Full_Name").ToString(), .Value = r("Technician_ID")})
+                    End While
+                End Using
+            End Using
+            vr_cmbDetailTech.DisplayMember = "Text"
+            vr_cmbDetailTech.ValueMember = "Value"
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub VR_PopulateDetailPanel(rowIndex As Integer)
+        If rowIndex < 0 OrElse rowIndex >= vr_dgvRequests.Rows.Count Then
+            vr_pnlDetail.Visible = False
+            Return
+        End If
+        _vrDetailRowIndex = rowIndex
+        _vrDetailReqId = Convert.ToInt32(vr_dgvRequests.Rows(rowIndex).Cells("vr_colReqID").Value)
+
+        ' Display-only info
+        vr_txtDetailCust.Text = vr_dgvRequests.Rows(rowIndex).Cells("vr_colCust").Value.ToString()
+        vr_lblDetailDate.Text = "Filed: " & vr_dgvRequests.Rows(rowIndex).Cells("vr_colDate").Value.ToString()
+
+        ' Load combos if not yet loaded
+        If vr_cmbDetailService.Items.Count = 0 Then VR_LoadEditCombos()
+
+        ' Select correct Service
+        Dim svcText = vr_dgvRequests.Rows(rowIndex).Cells("vr_colService").Value.ToString()
+        For i As Integer = 0 To vr_cmbDetailService.Items.Count - 1
+            If DirectCast(vr_cmbDetailService.Items(i), Object).Text = svcText Then
+                vr_cmbDetailService.SelectedIndex = i : Exit For
+            End If
+        Next
+
+        ' Select correct Staff
+        Dim staffText = vr_dgvRequests.Rows(rowIndex).Cells("vr_colStaff").Value.ToString()
+        For i As Integer = 0 To vr_cmbDetailStaff.Items.Count - 1
+            If DirectCast(vr_cmbDetailStaff.Items(i), Object).Text = staffText Then
+                vr_cmbDetailStaff.SelectedIndex = i : Exit For
+            End If
+        Next
+
+        ' Select correct Tech (0 = Unassigned)
+        Dim techText = vr_dgvRequests.Rows(rowIndex).Cells("vr_colTech").Value.ToString()
+        vr_cmbDetailTech.SelectedIndex = 0
+        For i As Integer = 1 To vr_cmbDetailTech.Items.Count - 1
+            If DirectCast(vr_cmbDetailTech.Items(i), Object).Text = techText Then
+                vr_cmbDetailTech.SelectedIndex = i : Exit For
+            End If
+        Next
+
+        ' Load address and schedule from DB
+        Try
+            OpenConnection()
+            Using cmd As New MySqlCommand("SELECT Service_Address, Scheduled_Date FROM SERVICE_REQUEST WHERE Request_ID = @id", conn)
+                cmd.Parameters.AddWithValue("@id", _vrDetailReqId)
+                Using r = cmd.ExecuteReader()
+                    If r.Read() Then
+                        vr_txtDetailAddress.Text = If(r.IsDBNull(0), "", r.GetString(0))
+                        If r.IsDBNull(1) Then
+                            vr_dtpDetailSched.Checked = False
+                        Else
+                            vr_dtpDetailSched.Checked = True
+                            vr_dtpDetailSched.Value = r.GetDateTime(1)
+                        End If
+                    End If
+                End Using
+            End Using
+        Catch ex As Exception
+        End Try
+
+        ' Status
+        Dim statusText = vr_dgvRequests.Rows(rowIndex).Cells("vr_colStatus").Value.ToString()
+        Dim statusIdx = vr_cmbDetailStatus.Items.IndexOf(statusText)
+        vr_cmbDetailStatus.SelectedIndex = If(statusIdx >= 0, statusIdx, 0)
+
+        vr_pnlDetail.Visible = True
+    End Sub
+
+    Private Sub vr_btnDetailUpdate_Click(sender As Object, e As EventArgs) Handles vr_btnDetailUpdate.Click
+        If _vrDetailReqId = 0 Then Return
+        If vr_cmbDetailService.SelectedIndex = -1 OrElse vr_cmbDetailStaff.SelectedIndex = -1 Then
+            MessageBox.Show("Please select a service and staff coordinator.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+        Try
+            OpenConnection()
+            Dim serviceId = Convert.ToInt32(DirectCast(vr_cmbDetailService.SelectedItem, Object).Value)
+            Dim staffId = Convert.ToInt32(DirectCast(vr_cmbDetailStaff.SelectedItem, Object).Value)
+            Dim techId As Object = DBNull.Value
+            If vr_cmbDetailTech.SelectedIndex > 0 Then
+                techId = Convert.ToInt32(DirectCast(vr_cmbDetailTech.SelectedItem, Object).Value)
+            End If
+            Dim schedDate As Object = DBNull.Value
+            If vr_dtpDetailSched.Checked Then schedDate = vr_dtpDetailSched.Value
+            Dim newStatus = vr_cmbDetailStatus.SelectedItem.ToString()
+            Dim completedDate As Object = DBNull.Value
+            If newStatus = "Completed" Then completedDate = DateTime.Now
+
+            Using cmd As New MySqlCommand(
+                "UPDATE SERVICE_REQUEST sr " &
+                "JOIN CUSTOMER c ON sr.Customer_ID = c.Customer_ID " &
+                "SET sr.Service_ID=@sid, sr.Staff_ID=@stid, sr.Technician_ID=@tid, " &
+                "sr.Service_Address=@addr, sr.Scheduled_Date=@sdate, sr.Request_Status=@stat, sr.Completed_Date=@cdate, " &
+                "c.Full_Name=@cname " &
+                "WHERE sr.Request_ID=@id", conn)
+                cmd.Parameters.AddWithValue("@sid", serviceId)
+                cmd.Parameters.AddWithValue("@stid", staffId)
+                cmd.Parameters.AddWithValue("@tid", techId)
+                cmd.Parameters.AddWithValue("@addr", vr_txtDetailAddress.Text)
+                cmd.Parameters.AddWithValue("@sdate", schedDate)
+                cmd.Parameters.AddWithValue("@stat", newStatus)
+                cmd.Parameters.AddWithValue("@cdate", completedDate)
+                cmd.Parameters.AddWithValue("@cname", vr_txtDetailCust.Text.Trim())
+                cmd.Parameters.AddWithValue("@id", _vrDetailReqId)
+                cmd.ExecuteNonQuery()
+            End Using
+
+            MessageBox.Show("Service request updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            SR_LoadRequests()
+            vr_pnlDetail.Visible = False
+        Catch ex As Exception
+            MessageBox.Show("Failed to update: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    Private Sub vr_btnDetailClose_Click(sender As Object, e As EventArgs) Handles vr_btnDetailClose.Click
+        vr_pnlDetail.Visible = False
+    End Sub
+
+    Private Sub vr_dgvRequests_SelectionChanged(sender As Object, e As EventArgs) Handles vr_dgvRequests.SelectionChanged
+        If vr_pnlDetail.Visible AndAlso vr_dgvRequests.SelectedRows.Count > 0 Then
+            VR_PopulateDetailPanel(vr_dgvRequests.SelectedRows(0).Index)
+        End If
     End Sub
 
     Private Sub vr_txtSearch_Enter(sender As Object, e As EventArgs) Handles vr_txtSearch.Enter
@@ -1788,40 +2840,10 @@ Public Class Childform
         Dim reqId = Convert.ToInt32(vr_dgvRequests.Rows(e.RowIndex).Cells("vr_colReqID").Value)
 
         If e.ColumnIndex = vr_dgvRequests.Columns("vr_colActionUpdate").Index Then
-            Dim currentStatus = vr_dgvRequests.Rows(e.RowIndex).Cells("vr_colStatus").Value.ToString()
-            SR_UpdateRequestStatus(reqId, currentStatus)
+            VR_PopulateDetailPanel(e.RowIndex)
         ElseIf e.ColumnIndex = vr_dgvRequests.Columns("vr_colActionDelete").Index Then
             SR_DeleteRequest(reqId)
         End If
-    End Sub
-
-    Private Sub SR_UpdateRequestStatus(reqId As Integer, currentStatus As String)
-        Dim newStatus As String = currentStatus
-        If Not SR_ShowStatusUpdateForm(newStatus) Then Return
-
-        Try
-            OpenConnection()
-            Dim updateQ As String = "UPDATE SERVICE_REQUEST SET Request_Status = @stat WHERE Request_ID = @id"
-            If newStatus = "Completed" Then
-                updateQ = "UPDATE SERVICE_REQUEST SET Request_Status = @stat, Completed_Date = @cdate WHERE Request_ID = @id"
-            Else
-                updateQ = "UPDATE SERVICE_REQUEST SET Request_Status = @stat, Completed_Date = NULL WHERE Request_ID = @id"
-            End If
-
-            Using cmd As New MySqlCommand(updateQ, conn)
-                cmd.Parameters.AddWithValue("@stat", newStatus)
-                cmd.Parameters.AddWithValue("@id", reqId)
-                If newStatus = "Completed" Then
-                    cmd.Parameters.AddWithValue("@cdate", DateTime.Now)
-                End If
-                cmd.ExecuteNonQuery()
-            End Using
-
-            MessageBox.Show("Status updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            SR_LoadRequests()
-        Catch ex As Exception
-            MessageBox.Show("Failed to update status: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End Try
     End Sub
 
     Private Sub SR_DeleteRequest(reqId As Integer)
@@ -1838,41 +2860,6 @@ Public Class Childform
             MessageBox.Show("Failed to delete service request: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Sub
-
-    Private Function SR_ShowStatusUpdateForm(ByRef selectedStatus As String) As Boolean
-        Dim statuses = New String() {"Pending", "Scheduled", "In Progress", "Completed", "Cancelled"}
-        Dim incomingStatus As String = selectedStatus
-
-        Using frm As New Form()
-            frm.Text = "Update Request Status"
-            frm.StartPosition = FormStartPosition.CenterParent
-            frm.FormBorderStyle = FormBorderStyle.FixedDialog
-            frm.MinimizeBox = False
-            frm.MaximizeBox = False
-            frm.ClientSize = New Size(330, 150)
-
-            Dim lblStatus As New Label() With {.Text = "Request Status", .Location = New Point(20, 20), .AutoSize = True}
-            Dim cmbStatus As New ComboBox() With {.Location = New Point(20, 44), .Size = New Size(220, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
-            cmbStatus.Items.AddRange(statuses)
-            Dim matched = statuses.FirstOrDefault(Function(s) s.Equals(incomingStatus, StringComparison.OrdinalIgnoreCase))
-            cmbStatus.SelectedItem = If(matched Is Nothing, "Pending", matched)
-
-            Dim btnSave As New Button() With {.Text = "Save", .Size = New Size(85, 30), .Location = New Point(145, 95), .DialogResult = DialogResult.OK}
-            Dim btnCancel As New Button() With {.Text = "Cancel", .Size = New Size(85, 30), .Location = New Point(235, 95), .DialogResult = DialogResult.Cancel}
-
-            frm.Controls.Add(lblStatus)
-            frm.Controls.Add(cmbStatus)
-            frm.Controls.Add(btnSave)
-            frm.Controls.Add(btnCancel)
-            frm.AcceptButton = btnSave
-            frm.CancelButton = btnCancel
-
-            If frm.ShowDialog(Me) <> DialogResult.OK Then Return False
-            If cmbStatus.SelectedItem Is Nothing Then Return False
-            selectedStatus = cmbStatus.SelectedItem.ToString()
-            Return True
-        End Using
-    End Function
 
     ' ==============================
     ' ADD SERVICE REQUEST LOGIC (SR_)
@@ -2708,6 +3695,16 @@ Public Class Childform
     Private st_dgv As DataGridView
     Private st_txtSearch As TextBox
     Private st_cmbFilter As ComboBox
+    Private st_pnlDetail As Panel
+    Private st_detFullName As TextBox
+    Private st_detContact As TextBox
+    Private st_detStaffStatus As ComboBox
+    Private st_detDateHired As DateTimePicker
+    Private st_detIsTech As CheckBox
+    Private st_detSpec As TextBox
+    Private st_detTechStatus As ComboBox
+    Private st_detCert As TextBox
+    Private _stDetailId As Integer = 0
 
     Private sup_tabPage As TabPage
     Private sup_txtName As TextBox
@@ -2760,33 +3757,35 @@ Public Class Childform
     Private Sub RPT_EnsureSalesReportTab()
         If rptSales_tabPage IsNot Nothing Then Return
 
-        rptSales_tabPage = New TabPage("SalesReport") With {.BackColor = Color.White}
-        tcMain.TabPages.Add(rptSales_tabPage)
+        rptSales_tabPage = tpReportMain
+        rptSales_tabPage.Text = "Sales Report"
+        rptSales_tabPage.BackColor = Color.White
+        rptSales_tabPage.Controls.Clear()
 
         Dim lblTitle As New Label() With {.Text = "Sales Report", .Font = New Font("Segoe UI", 16, FontStyle.Bold), .Location = New Point(20, 15), .AutoSize = True}
         rptSales_tabPage.Controls.Add(lblTitle)
 
-        Dim btnRefresh As New Button() With {.Text = "Refresh", .Location = New Point(20, 55), .Size = New Size(90, 30)}
+        Dim btnRefresh As New Button() With {.Text = "Refresh", .Location = New Point(20, 55), .Size = New Size(80, 30)}
         AddHandler btnRefresh.Click, Sub() RPT_LoadSalesReport()
         rptSales_tabPage.Controls.Add(btnRefresh)
 
-        Dim btnExport As New Button() With {.Text = "Export to Excel", .Location = New Point(120, 55), .Size = New Size(140, 30)}
+        Dim btnExport As New Button() With {.Text = "Preview & Export to Excel", .Location = New Point(110, 55), .Size = New Size(180, 30)}
         AddHandler btnExport.Click, AddressOf RPT_ExportSalesReport_Click
         rptSales_tabPage.Controls.Add(btnExport)
 
-        rptSales_cmbFilter = New ComboBox() With {.Location = New Point(275, 58), .Size = New Size(170, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
+        rptSales_cmbFilter = New ComboBox() With {.Location = New Point(300, 58), .Size = New Size(130, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
         rptSales_cmbFilter.Items.AddRange(New String() {"Today", "This Week", "This Month", "Last 30 Days", "This Year", "All"})
         rptSales_cmbFilter.SelectedIndex = 5
         AddHandler rptSales_cmbFilter.SelectedIndexChanged, Sub() RPT_LoadSalesReport()
         rptSales_tabPage.Controls.Add(rptSales_cmbFilter)
 
-        Dim pnlCardAmount As New Panel() With {.Location = New Point(470, 50), .Size = New Size(180, 60), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
+        Dim pnlCardAmount As New Panel() With {.Location = New Point(490, 50), .Size = New Size(170, 60), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
         pnlCardAmount.Controls.Add(New Label() With {.Text = "Total Amount", .Location = New Point(10, 8), .AutoSize = True, .ForeColor = Color.FromArgb(70, 70, 70)})
         rptSales_lblTotalAmount = New Label() With {.Text = "0.00", .Location = New Point(10, 30), .AutoSize = True, .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215)}
         pnlCardAmount.Controls.Add(rptSales_lblTotalAmount)
         rptSales_tabPage.Controls.Add(pnlCardAmount)
 
-        Dim pnlCardItems As New Panel() With {.Location = New Point(660, 50), .Size = New Size(180, 60), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
+        Dim pnlCardItems As New Panel() With {.Location = New Point(670, 50), .Size = New Size(170, 60), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
         pnlCardItems.Controls.Add(New Label() With {.Text = "Total Items", .Location = New Point(10, 8), .AutoSize = True, .ForeColor = Color.FromArgb(70, 70, 70)})
         rptSales_lblTotalItems = New Label() With {.Text = "0", .Location = New Point(10, 30), .AutoSize = True, .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215)}
         pnlCardItems.Controls.Add(rptSales_lblTotalItems)
@@ -2895,13 +3894,37 @@ Public Class Childform
             Return
         End If
 
+        ' Show Preview First
+        _rptPrintRowIndex = 0
+        Dim pd As New System.Drawing.Printing.PrintDocument()
+        pd.DefaultPageSettings.Landscape = True ' Better for tables
+        AddHandler pd.PrintPage, AddressOf rpt_pd_PrintPage
+
+        Using ppd As New PrintPreviewDialog()
+            ppd.Document = pd
+            ppd.Width = 800
+            ppd.Height = 600
+            ppd.Text = "Preview before Exporting to Excel"
+            ppd.ShowDialog()
+        End Using
+
+        ' Prompt for export
+        Dim result = MessageBox.Show("Do you want to proceed with exporting this report to Excel?", "Export to Excel", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+        If result <> DialogResult.Yes Then Return
+
         Using sfd As New SaveFileDialog()
             sfd.Filter = "Excel Compatible CSV (*.csv)|*.csv"
             sfd.FileName = "sales_report_" & DateTime.Now.ToString("yyyyMMdd_HHmmss") & ".csv"
             If sfd.ShowDialog() <> DialogResult.OK Then Return
 
             Try
-                Using sw As New StreamWriter(sfd.FileName, False)
+                Using sw As New StreamWriter(sfd.FileName, False, System.Text.Encoding.UTF8)
+                    ' Write layout/header
+                    sw.WriteLine("Sales Report")
+                    sw.WriteLine("Total Items:," & rptSales_lblTotalItems.Text)
+                    sw.WriteLine("Total Amount:," & rptSales_lblTotalAmount.Text)
+                    sw.WriteLine()
+
                     Dim headers As New List(Of String)
                     For Each col As DataGridViewColumn In rptSales_dgv.Columns
                         headers.Add("""" & col.HeaderText.Replace("""", """""") & """")
@@ -2925,6 +3948,76 @@ Public Class Childform
         End Using
     End Sub
 
+    Private _rptPrintRowIndex As Integer = 0
+
+    Private Sub rpt_pd_PrintPage(sender As Object, e As System.Drawing.Printing.PrintPageEventArgs)
+        Dim g As Graphics = e.Graphics
+        Dim fTitle As New Font("Segoe UI", 16, FontStyle.Bold)
+        Dim fHeader As New Font("Segoe UI", 10, FontStyle.Bold)
+        Dim fRegular As New Font("Segoe UI", 10, FontStyle.Regular)
+        Dim brush As New SolidBrush(Color.Black)
+
+        Dim startX As Integer = 50
+        Dim startY As Integer = 50
+        Dim offset As Integer = 0
+
+        ' Only print header on first page
+        If _rptPrintRowIndex = 0 Then
+            g.DrawString("MIDEA PRO SHOP - SALES REPORT", fTitle, brush, startX, startY + offset)
+            offset += 40
+
+            g.DrawString("Total Items: " & rptSales_lblTotalItems.Text, fRegular, brush, startX, startY + offset)
+            offset += 25
+            g.DrawString("Total Amount: ₱" & rptSales_lblTotalAmount.Text, fRegular, brush, startX, startY + offset)
+            offset += 40
+        End If
+
+        ' Draw Headers
+        Dim colWidths() As Integer = {100, 150, 120, 220, 100, 150}
+        Dim headers() As String = {"Purchase ID", "Receipt No", "Date", "Customer", "Items", "Amount"}
+        
+        Dim curX As Integer = startX
+        For i As Integer = 0 To headers.Length - 1
+            g.DrawString(headers(i), fHeader, brush, curX, startY + offset)
+            curX += colWidths(i)
+        Next
+        offset += 25
+        g.DrawLine(Pens.Black, startX, startY + offset, startX + colWidths.Sum(), startY + offset)
+        offset += 10
+
+        ' Draw Rows
+        While _rptPrintRowIndex < rptSales_dgv.Rows.Count
+            Dim row = rptSales_dgv.Rows(_rptPrintRowIndex)
+            If Not row.IsNewRow Then
+                curX = startX
+                For i As Integer = 0 To rptSales_dgv.Columns.Count - 1
+                    Dim val = If(row.Cells(i).Value, "").ToString()
+                    ' Truncate long strings (e.g. Customer Name)
+                    If g.MeasureString(val, fRegular).Width > colWidths(i) Then
+                        While g.MeasureString(val & "...", fRegular).Width > colWidths(i) AndAlso val.Length > 0
+                            val = val.Substring(0, val.Length - 1)
+                        End While
+                        val &= "..."
+                    End If
+                    g.DrawString(val, fRegular, brush, curX, startY + offset)
+                    curX += colWidths(i)
+                Next
+                offset += 25
+            End If
+            
+            _rptPrintRowIndex += 1
+            
+            ' Pagination check
+            If startY + offset > e.MarginBounds.Bottom - 50 AndAlso _rptPrintRowIndex < rptSales_dgv.Rows.Count Then
+                e.HasMorePages = True
+                Return
+            End If
+        End While
+
+        e.HasMorePages = False
+        _rptPrintRowIndex = 0 ' Reset for next print
+    End Sub
+
     Public Sub SUP_ShowManageSupplier()
         SUP_InitializeTabIfNeeded()
         tcMain.SelectedTab = sup_tabPage
@@ -2934,8 +4027,10 @@ Public Class Childform
     Private Sub SUP_InitializeTabIfNeeded()
         If sup_tabPage IsNot Nothing Then Return
 
-        sup_tabPage = New TabPage("ManageSupplier") With {.BackColor = Color.White}
-        tcMain.TabPages.Add(sup_tabPage)
+        sup_tabPage = tpSupplierMain
+        sup_tabPage.Text = "Manage Supplier"
+        sup_tabPage.BackColor = Color.White
+        sup_tabPage.Controls.Clear()
 
         Dim lblTitle As New Label() With {.Text = "Manage Supplier", .Font = New Font("Segoe UI", 16, FontStyle.Bold), .Location = New Point(20, 15), .AutoSize = True}
         sup_tabPage.Controls.Add(lblTitle)
@@ -3138,14 +4233,23 @@ Public Class Childform
     Private Sub ST_EnsureTabs()
         If stAdd_tabPage IsNot Nothing AndAlso stManage_tabPage IsNot Nothing Then Return
 
+        stAdd_tabPage = tpStaffMain
+        stManage_tabPage = tpViewWarrantyClaimMain
+
+        stAdd_tabPage.Text = "Add Staff"
+        stManage_tabPage.Text = "Manage Staff"
+
+        stAdd_tabPage.BackColor = Color.White
+        stManage_tabPage.BackColor = Color.White
+
+        stAdd_tabPage.Controls.Clear()
+        stManage_tabPage.Controls.Clear()
+
         ST_BuildAddTab()
         ST_BuildManageTab()
     End Sub
 
     Private Sub ST_BuildAddTab()
-        stAdd_tabPage = New TabPage("AddStaff") With {.BackColor = Color.White}
-        tcMain.TabPages.Add(stAdd_tabPage)
-
         Dim lblTitle As New Label() With {.Text = "Add New Staff / Technician", .Font = New Font("Segoe UI", 16, FontStyle.Bold), .Location = New Point(20, 15), .AutoSize = True}
         stAdd_tabPage.Controls.Add(lblTitle)
 
@@ -3204,9 +4308,6 @@ Public Class Childform
     End Sub
 
     Private Sub ST_BuildManageTab()
-        stManage_tabPage = New TabPage("ManageStaff") With {.BackColor = Color.White}
-        tcMain.TabPages.Add(stManage_tabPage)
-
         Dim lblTitle As New Label() With {.Text = "Manage Staff & Technician", .Font = New Font("Segoe UI", 16, FontStyle.Bold), .Location = New Point(20, 15), .AutoSize = True}
         stManage_tabPage.Controls.Add(lblTitle)
 
@@ -3232,7 +4333,7 @@ Public Class Childform
 
         st_dgv = New DataGridView() With {
             .Location = New Point(20, 90),
-            .Size = New Size(820, 440),
+            .Size = New Size(500, 440),
             .AllowUserToAddRows = False,
             .AllowUserToDeleteRows = False,
             .ReadOnly = True,
@@ -3241,17 +4342,70 @@ Public Class Childform
         }
         st_dgv.Columns.Add("st_colId", "Staff ID")
         st_dgv.Columns.Add("st_colName", "Full Name")
-        st_dgv.Columns.Add("st_colContact", "Contact Number")
-        st_dgv.Columns.Add("st_colStatus", "Staff Status")
+        st_dgv.Columns.Add("st_colContact", "Contact")
+        st_dgv.Columns.Add("st_colStatus", "Status")
         st_dgv.Columns.Add("st_colDate", "Date Hired")
-        st_dgv.Columns.Add("st_colIsTech", "Is Technician")
-        st_dgv.Columns.Add("st_colSpec", "Specialization")
-        st_dgv.Columns.Add("st_colTechStatus", "Technician Status")
-        st_dgv.Columns.Add("st_colCert", "Certification")
-        st_dgv.Columns.Add(New DataGridViewButtonColumn() With {.Name = "st_colUpdate", .HeaderText = "Update", .Text = "Update", .UseColumnTextForButtonValue = True})
+        st_dgv.Columns.Add("st_colIsTech", "Is Tech")
+        st_dgv.Columns.Add("st_colSpec", "Spec")
+        st_dgv.Columns.Add("st_colTechStatus", "T. Status")
+        st_dgv.Columns.Add("st_colCert", "Cert")
         st_dgv.Columns.Add(New DataGridViewButtonColumn() With {.Name = "st_colDelete", .HeaderText = "Delete", .Text = "Delete", .UseColumnTextForButtonValue = True})
         AddHandler st_dgv.CellContentClick, AddressOf ST_dgv_CellContentClick
+        AddHandler st_dgv.SelectionChanged, Sub() ST_PopulateDetailPanel()
         stManage_tabPage.Controls.Add(st_dgv)
+
+        ' Detail Panel
+        st_pnlDetail = New Panel() With {.Location = New Point(530, 90), .Size = New Size(310, 440), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle, .Visible = False}
+        stManage_tabPage.Controls.Add(st_pnlDetail)
+
+        Dim y As Integer = 10
+        st_pnlDetail.Controls.Add(New Label() With {.Text = "Full Name", .Location = New Point(10, y), .AutoSize = True})
+        st_detFullName = New TextBox() With {.Location = New Point(10, y + 20), .Size = New Size(280, 24)}
+        st_pnlDetail.Controls.Add(st_detFullName)
+
+        y += 50
+        st_pnlDetail.Controls.Add(New Label() With {.Text = "Contact Number", .Location = New Point(10, y), .AutoSize = True})
+        st_detContact = New TextBox() With {.Location = New Point(10, y + 20), .Size = New Size(130, 24)}
+        st_pnlDetail.Controls.Add(st_detContact)
+
+        st_pnlDetail.Controls.Add(New Label() With {.Text = "Staff Status", .Location = New Point(160, y), .AutoSize = True})
+        st_detStaffStatus = New ComboBox() With {.Location = New Point(160, y + 20), .Size = New Size(130, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
+        st_detStaffStatus.Items.AddRange(New String() {"Active", "Inactive"})
+        st_pnlDetail.Controls.Add(st_detStaffStatus)
+
+        y += 50
+        st_pnlDetail.Controls.Add(New Label() With {.Text = "Date Hired", .Location = New Point(10, y), .AutoSize = True})
+        st_detDateHired = New DateTimePicker() With {.Location = New Point(10, y + 20), .Size = New Size(130, 24), .Format = DateTimePickerFormat.Short}
+        st_pnlDetail.Controls.Add(st_detDateHired)
+
+        st_detIsTech = New CheckBox() With {.Text = "Is Technician", .Location = New Point(160, y + 22), .AutoSize = True}
+        AddHandler st_detIsTech.CheckedChanged, Sub()
+            Dim isTech = st_detIsTech.Checked
+            st_detSpec.Enabled = isTech
+            st_detTechStatus.Enabled = isTech
+            st_detCert.Enabled = isTech
+        End Sub
+        st_pnlDetail.Controls.Add(st_detIsTech)
+
+        y += 50
+        st_pnlDetail.Controls.Add(New Label() With {.Text = "Specialization", .Location = New Point(10, y), .AutoSize = True})
+        st_detSpec = New TextBox() With {.Location = New Point(10, y + 20), .Size = New Size(130, 24)}
+        st_pnlDetail.Controls.Add(st_detSpec)
+
+        st_pnlDetail.Controls.Add(New Label() With {.Text = "Tech Status", .Location = New Point(160, y), .AutoSize = True})
+        st_detTechStatus = New ComboBox() With {.Location = New Point(160, y + 20), .Size = New Size(130, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
+        st_detTechStatus.Items.AddRange(New String() {"Active", "Inactive"})
+        st_pnlDetail.Controls.Add(st_detTechStatus)
+
+        y += 50
+        st_pnlDetail.Controls.Add(New Label() With {.Text = "Certification", .Location = New Point(10, y), .AutoSize = True})
+        st_detCert = New TextBox() With {.Location = New Point(10, y + 20), .Size = New Size(280, 24)}
+        st_pnlDetail.Controls.Add(st_detCert)
+
+        y += 60
+        Dim btnUpdate As New Button() With {.Text = "Save Changes", .Location = New Point(10, y), .Size = New Size(280, 36), .BackColor = Color.FromArgb(0, 120, 215), .ForeColor = Color.White}
+        AddHandler btnUpdate.Click, AddressOf ST_UpdateStaff_Click
+        st_pnlDetail.Controls.Add(btnUpdate)
     End Sub
 
     Private Sub ST_ToggleTechFields()
@@ -3385,47 +4539,49 @@ Public Class Childform
         Dim staffId As Integer = Convert.ToInt32(st_dgv.Rows(e.RowIndex).Cells("st_colId").Value)
         Dim colName As String = st_dgv.Columns(e.ColumnIndex).Name
 
-        If colName = "st_colUpdate" Then
-            ST_UpdateStaff(staffId)
-        ElseIf colName = "st_colDelete" Then
+        If colName = "st_colDelete" Then
             ST_DeleteStaff(staffId)
         End If
     End Sub
 
-    Private Sub ST_UpdateStaff(staffId As Integer)
-        Dim fullName As String = ""
-        Dim contact As String = ""
-        Dim staffStatus As String = "Active"
-        Dim dateHired As DateTime = DateTime.Now.Date
-        Dim isTech As Boolean = False
-        Dim spec As String = ""
-        Dim techStatus As String = "Active"
-        Dim cert As String = ""
-
-        Try
-            OpenConnection()
-            Dim q As String = "SELECT S.Full_Name, S.Contact_Number, S.Staff_Status, S.Date_Hired, T.Technician_ID, T.Specialization, T.Technician_Status, T.Certification " &
-                              "FROM STAFF S LEFT JOIN TECHNICIAN T ON S.Staff_ID = T.Staff_ID WHERE S.Staff_ID = @id"
-            Using cmd As New MySqlCommand(q, conn)
-                cmd.Parameters.AddWithValue("@id", staffId)
-                Using reader = cmd.ExecuteReader()
-                    If Not reader.Read() Then Return
-                    fullName = reader("Full_Name").ToString()
-                    contact = reader("Contact_Number").ToString()
-                    staffStatus = reader("Staff_Status").ToString()
-                    dateHired = Convert.ToDateTime(reader("Date_Hired"))
-                    isTech = Not (reader("Technician_ID") Is DBNull.Value)
-                    spec = If(reader("Specialization") Is DBNull.Value, "", reader("Specialization").ToString())
-                    techStatus = If(reader("Technician_Status") Is DBNull.Value, "Active", reader("Technician_Status").ToString())
-                    cert = If(reader("Certification") Is DBNull.Value, "", reader("Certification").ToString())
-                End Using
-            End Using
-        Catch ex As Exception
-            MessageBox.Show("Failed to read staff: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+    Private Sub ST_PopulateDetailPanel()
+        If st_dgv.SelectedRows.Count = 0 Then
+            st_pnlDetail.Visible = False
             Return
-        End Try
+        End If
 
-        If Not ST_ShowUpdateForm(fullName, contact, staffStatus, dateHired, isTech, spec, techStatus, cert) Then Return
+        Dim row = st_dgv.SelectedRows(0)
+        _stDetailId = Convert.ToInt32(row.Cells("st_colId").Value)
+        st_detFullName.Text = row.Cells("st_colName").Value.ToString()
+        st_detContact.Text = row.Cells("st_colContact").Value.ToString()
+        
+        Dim sStat = row.Cells("st_colStatus").Value.ToString()
+        st_detStaffStatus.SelectedItem = If(st_detStaffStatus.Items.Contains(sStat), sStat, "Active")
+        
+        Dim dHired As DateTime
+        If DateTime.TryParse(row.Cells("st_colDate").Value.ToString(), dHired) Then
+            st_detDateHired.Value = dHired
+        End If
+
+        Dim isTech = (row.Cells("st_colIsTech").Value.ToString() = "Yes")
+        st_detIsTech.Checked = isTech
+        
+        st_detSpec.Text = row.Cells("st_colSpec").Value.ToString()
+        
+        Dim tStat = row.Cells("st_colTechStatus").Value.ToString()
+        st_detTechStatus.SelectedItem = If(st_detTechStatus.Items.Contains(tStat), tStat, "Active")
+        
+        st_detCert.Text = row.Cells("st_colCert").Value.ToString()
+        
+        st_pnlDetail.Visible = True
+    End Sub
+
+    Private Sub ST_UpdateStaff_Click(sender As Object, e As EventArgs)
+        If _stDetailId <= 0 Then Return
+        If String.IsNullOrWhiteSpace(st_detFullName.Text) Then
+            MessageBox.Show("Full name is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
 
         Try
             OpenConnection()
@@ -3433,44 +4589,44 @@ Public Class Childform
                 Try
                     Dim qStaff As String = "UPDATE STAFF SET Full_Name=@n, Contact_Number=@c, Staff_Status=@s, Date_Hired=@d WHERE Staff_ID=@id"
                     Using cmd As New MySqlCommand(qStaff, conn, tx)
-                        cmd.Parameters.AddWithValue("@n", fullName)
-                        cmd.Parameters.AddWithValue("@c", contact)
-                        cmd.Parameters.AddWithValue("@s", staffStatus)
-                        cmd.Parameters.AddWithValue("@d", dateHired.Date)
-                        cmd.Parameters.AddWithValue("@id", staffId)
+                        cmd.Parameters.AddWithValue("@n", st_detFullName.Text.Trim())
+                        cmd.Parameters.AddWithValue("@c", st_detContact.Text.Trim())
+                        cmd.Parameters.AddWithValue("@s", st_detStaffStatus.SelectedItem.ToString())
+                        cmd.Parameters.AddWithValue("@d", st_detDateHired.Value.Date)
+                        cmd.Parameters.AddWithValue("@id", _stDetailId)
                         cmd.ExecuteNonQuery()
                     End Using
 
-                    If isTech Then
+                    If st_detIsTech.Checked Then
                         Dim qExists = "SELECT COUNT(*) FROM TECHNICIAN WHERE Staff_ID=@id"
                         Dim exists As Integer
                         Using cmd As New MySqlCommand(qExists, conn, tx)
-                            cmd.Parameters.AddWithValue("@id", staffId)
+                            cmd.Parameters.AddWithValue("@id", _stDetailId)
                             exists = Convert.ToInt32(cmd.ExecuteScalar())
                         End Using
 
                         If exists > 0 Then
                             Dim qUp = "UPDATE TECHNICIAN SET Specialization=@sp, Technician_Status=@ts, Certification=@cf WHERE Staff_ID=@id"
                             Using cmd As New MySqlCommand(qUp, conn, tx)
-                                cmd.Parameters.AddWithValue("@sp", spec)
-                                cmd.Parameters.AddWithValue("@ts", techStatus)
-                                cmd.Parameters.AddWithValue("@cf", cert)
-                                cmd.Parameters.AddWithValue("@id", staffId)
+                                cmd.Parameters.AddWithValue("@sp", st_detSpec.Text.Trim())
+                                cmd.Parameters.AddWithValue("@ts", st_detTechStatus.SelectedItem.ToString())
+                                cmd.Parameters.AddWithValue("@cf", st_detCert.Text.Trim())
+                                cmd.Parameters.AddWithValue("@id", _stDetailId)
                                 cmd.ExecuteNonQuery()
                             End Using
                         Else
                             Dim qIn = "INSERT INTO TECHNICIAN (Staff_ID, Specialization, Technician_Status, Certification) VALUES (@id, @sp, @ts, @cf)"
                             Using cmd As New MySqlCommand(qIn, conn, tx)
-                                cmd.Parameters.AddWithValue("@id", staffId)
-                                cmd.Parameters.AddWithValue("@sp", spec)
-                                cmd.Parameters.AddWithValue("@ts", techStatus)
-                                cmd.Parameters.AddWithValue("@cf", cert)
+                                cmd.Parameters.AddWithValue("@id", _stDetailId)
+                                cmd.Parameters.AddWithValue("@sp", st_detSpec.Text.Trim())
+                                cmd.Parameters.AddWithValue("@ts", st_detTechStatus.SelectedItem.ToString())
+                                cmd.Parameters.AddWithValue("@cf", st_detCert.Text.Trim())
                                 cmd.ExecuteNonQuery()
                             End Using
                         End If
                     Else
                         Using cmd As New MySqlCommand("DELETE FROM TECHNICIAN WHERE Staff_ID=@id", conn, tx)
-                            cmd.Parameters.AddWithValue("@id", staffId)
+                            cmd.Parameters.AddWithValue("@id", _stDetailId)
                             cmd.ExecuteNonQuery()
                         End Using
                     End If
@@ -3515,87 +4671,5 @@ Public Class Childform
         End Try
     End Sub
 
-    Private Function ST_ShowUpdateForm(ByRef fullName As String,
-                                       ByRef contact As String,
-                                       ByRef staffStatus As String,
-                                       ByRef dateHired As DateTime,
-                                       ByRef isTech As Boolean,
-                                       ByRef specialization As String,
-                                       ByRef technicianStatus As String,
-                                       ByRef certification As String) As Boolean
-        Using frm As New Form()
-            frm.Text = "Update Staff"
-            frm.StartPosition = FormStartPosition.CenterParent
-            frm.FormBorderStyle = FormBorderStyle.FixedDialog
-            frm.MinimizeBox = False
-            frm.MaximizeBox = False
-            frm.ClientSize = New Size(470, 390)
-
-            Dim lblName As New Label() With {.Text = "Full Name", .Location = New Point(20, 20), .AutoSize = True}
-            Dim txtName As New TextBox() With {.Location = New Point(20, 40), .Size = New Size(270, 24), .Text = fullName}
-            Dim lblContact As New Label() With {.Text = "Contact Number", .Location = New Point(305, 20), .AutoSize = True}
-            Dim txtContactLocal As New TextBox() With {.Location = New Point(305, 40), .Size = New Size(140, 24), .Text = contact}
-
-            Dim lblStatus As New Label() With {.Text = "Staff Status", .Location = New Point(20, 75), .AutoSize = True}
-            Dim cmbStatus As New ComboBox() With {.Location = New Point(20, 95), .Size = New Size(140, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
-            cmbStatus.Items.AddRange(New String() {"Active", "Inactive"})
-            cmbStatus.SelectedItem = If(String.Equals(staffStatus, "Inactive", StringComparison.OrdinalIgnoreCase), "Inactive", "Active")
-
-            Dim lblDate As New Label() With {.Text = "Date Hired", .Location = New Point(175, 75), .AutoSize = True}
-            Dim dtpDate As New DateTimePicker() With {.Location = New Point(175, 95), .Size = New Size(140, 24), .Format = DateTimePickerFormat.Custom, .CustomFormat = "yyyy-MM-dd", .Value = dateHired}
-
-            Dim chkTech As New CheckBox() With {.Text = "Technician", .Location = New Point(330, 97), .AutoSize = True, .Checked = isTech}
-
-            Dim lblSpec As New Label() With {.Text = "Specialization", .Location = New Point(20, 135), .AutoSize = True}
-            Dim txtSpec As New TextBox() With {.Location = New Point(20, 155), .Size = New Size(270, 24), .Text = specialization}
-            Dim lblTechStatus As New Label() With {.Text = "Technician Status", .Location = New Point(305, 135), .AutoSize = True}
-            Dim cmbTechStatus As New ComboBox() With {.Location = New Point(305, 155), .Size = New Size(140, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
-            cmbTechStatus.Items.AddRange(New String() {"Active", "Inactive"})
-            cmbTechStatus.SelectedItem = If(String.Equals(technicianStatus, "Inactive", StringComparison.OrdinalIgnoreCase), "Inactive", "Active")
-
-            Dim lblCert As New Label() With {.Text = "Certification", .Location = New Point(20, 195), .AutoSize = True}
-            Dim txtCert As New TextBox() With {.Location = New Point(20, 215), .Size = New Size(425, 24), .Text = certification}
-
-            Dim refreshTechFields = Sub()
-                                        txtSpec.Enabled = chkTech.Checked
-                                        cmbTechStatus.Enabled = chkTech.Checked
-                                        txtCert.Enabled = chkTech.Checked
-                                    End Sub
-            AddHandler chkTech.CheckedChanged, Sub() refreshTechFields()
-            refreshTechFields()
-
-            Dim btnSave As New Button() With {.Text = "Save", .Location = New Point(260, 330), .Size = New Size(85, 32), .DialogResult = DialogResult.OK}
-            Dim btnCancel As New Button() With {.Text = "Cancel", .Location = New Point(360, 330), .Size = New Size(85, 32), .DialogResult = DialogResult.Cancel}
-
-            frm.Controls.AddRange(New Control() {lblName, txtName, lblContact, txtContactLocal, lblStatus, cmbStatus, lblDate, dtpDate, chkTech, lblSpec, txtSpec, lblTechStatus, cmbTechStatus, lblCert, txtCert, btnSave, btnCancel})
-            frm.AcceptButton = btnSave
-            frm.CancelButton = btnCancel
-
-            If frm.ShowDialog(Me) <> DialogResult.OK Then Return False
-
-            If String.IsNullOrWhiteSpace(txtName.Text) Then
-                MessageBox.Show("Full name is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                Return False
-            End If
-            If String.IsNullOrWhiteSpace(txtContactLocal.Text) Then
-                MessageBox.Show("Contact number is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                Return False
-            End If
-            If chkTech.Checked AndAlso String.IsNullOrWhiteSpace(txtSpec.Text) Then
-                MessageBox.Show("Specialization is required for technician.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                Return False
-            End If
-
-            fullName = txtName.Text.Trim()
-            contact = txtContactLocal.Text.Trim()
-            staffStatus = cmbStatus.SelectedItem.ToString()
-            dateHired = dtpDate.Value.Date
-            isTech = chkTech.Checked
-            specialization = txtSpec.Text.Trim()
-            technicianStatus = cmbTechStatus.SelectedItem.ToString()
-            certification = txtCert.Text.Trim()
-            Return True
-        End Using
-    End Function
-
 End Class
+

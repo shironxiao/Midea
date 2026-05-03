@@ -15,12 +15,12 @@ Partial Class Childform
     Private components As System.ComponentModel.IContainer
 
     Private Sub InitializeComponent()
-        Dim DataGridViewCellStyle7 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
-        Dim DataGridViewCellStyle8 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
-        Dim DataGridViewCellStyle9 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
-        Dim DataGridViewCellStyle10 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
-        Dim DataGridViewCellStyle11 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
-        Dim DataGridViewCellStyle12 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
+        Dim DataGridViewCellStyle13 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
+        Dim DataGridViewCellStyle14 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
+        Dim DataGridViewCellStyle15 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
+        Dim DataGridViewCellStyle16 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
+        Dim DataGridViewCellStyle17 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
+        Dim DataGridViewCellStyle18 As System.Windows.Forms.DataGridViewCellStyle = New System.Windows.Forms.DataGridViewCellStyle()
         Me.tcMain = New System.Windows.Forms.TabControl()
         Me.pnlDashboardMain = New System.Windows.Forms.TabPage()
         Me.flpCards = New System.Windows.Forms.FlowLayoutPanel()
@@ -46,6 +46,8 @@ Partial Class Childform
         Me.o_lblCustomerSelectTitle = New System.Windows.Forms.Label()
         Me.o_optExistingCustomer = New System.Windows.Forms.RadioButton()
         Me.o_cmbExistingCustomer = New System.Windows.Forms.ComboBox()
+        Me.o_lblAssignStaff = New System.Windows.Forms.Label()
+        Me.o_cmbAssignStaff = New System.Windows.Forms.ComboBox()
         Me.o_optNewCustomer = New System.Windows.Forms.RadioButton()
         Me.o_pnlNewCustomer = New System.Windows.Forms.Panel()
         Me.o_lblCustName = New System.Windows.Forms.Label()
@@ -59,10 +61,12 @@ Partial Class Childform
         Me.o_dgvProducts = New System.Windows.Forms.DataGridView()
         Me.o_colProductID = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.o_colProductName = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.o_colBrand = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.o_colDesc = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.o_colPrice = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.o_colStock = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.o_colActionAdd = New System.Windows.Forms.DataGridViewButtonColumn()
+        Me.o_colActionRemove = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.o_pnlCategories = New System.Windows.Forms.FlowLayoutPanel()
         Me.o_pnlCart = New System.Windows.Forms.Panel()
         Me.o_flpCartItems = New System.Windows.Forms.FlowLayoutPanel()
@@ -77,9 +81,12 @@ Partial Class Childform
         Me.v_colReceipt = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.v_colDate = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.v_colCustomer = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.v_colStaff = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.v_colProducts = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.v_colTotalAmount = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.v_colActionEdit = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.v_colActionDelete = New System.Windows.Forms.DataGridViewButtonColumn()
+        Me.v_colActionPrint = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.v_pnlHeader = New System.Windows.Forms.Panel()
         Me.v_lblTitle = New System.Windows.Forms.Label()
         Me.v_lblDateRange = New System.Windows.Forms.Label()
@@ -87,13 +94,27 @@ Partial Class Childform
         Me.v_lblTo = New System.Windows.Forms.Label()
         Me.v_dtpEnd = New System.Windows.Forms.DateTimePicker()
         Me.v_btnFilter = New System.Windows.Forms.Button()
+        Me.v_lblSearch = New System.Windows.Forms.Label()
+        Me.v_txtSearch = New System.Windows.Forms.TextBox()
+        Me.v_pnlDetailForm = New System.Windows.Forms.Panel()
+        Me.v_lblDetailTitle = New System.Windows.Forms.Label()
+        Me.v_lblDetailReceipt = New System.Windows.Forms.Label()
+        Me.v_lblDetailCustomer = New System.Windows.Forms.Label()
+        Me.v_lblDetailStaff = New System.Windows.Forms.Label()
+        Me.v_lblDetailDate = New System.Windows.Forms.Label()
+        Me.v_lblDetailProducts = New System.Windows.Forms.Label()
+        Me.v_lblDetailTotal = New System.Windows.Forms.Label()
+        Me.v_btnDetailEdit = New System.Windows.Forms.Button()
+        Me.v_btnDetailClose = New System.Windows.Forms.Button()
         Me.pnlAddProductMain = New System.Windows.Forms.TabPage()
         Me.a_lblTitle = New System.Windows.Forms.Label()
         Me.a_pnlForm = New System.Windows.Forms.Panel()
         Me.a_lblProdName = New System.Windows.Forms.Label()
         Me.a_txtProdName = New System.Windows.Forms.TextBox()
         Me.a_lblProdBrand = New System.Windows.Forms.Label()
-        Me.a_txtProdBrand = New System.Windows.Forms.TextBox()
+        Me.a_cmbBrand = New System.Windows.Forms.ComboBox()
+        Me.a_chkNewBrand = New System.Windows.Forms.CheckBox()
+        Me.a_txtNewBrand = New System.Windows.Forms.TextBox()
         Me.a_lblCategory = New System.Windows.Forms.Label()
         Me.a_cmbCategory = New System.Windows.Forms.ComboBox()
         Me.a_lblProdDesc = New System.Windows.Forms.Label()
@@ -141,6 +162,7 @@ Partial Class Childform
         Me.m_colDesc = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.m_colPrice = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.m_colStock = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.m_colReorder = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.m_colActionEdit = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.m_colActionDelete = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.m_pnlCategories = New System.Windows.Forms.FlowLayoutPanel()
@@ -164,6 +186,8 @@ Partial Class Childform
         Me.s_colQty = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.s_colDate = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.s_colRemarks = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.s_colActionEdit = New System.Windows.Forms.DataGridViewButtonColumn()
+        Me.s_colActionDelete = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.s_pnlForm = New System.Windows.Forms.Panel()
         Me.s_lblProduct = New System.Windows.Forms.Label()
         Me.s_cmbProduct = New System.Windows.Forms.ComboBox()
@@ -175,6 +199,24 @@ Partial Class Childform
         Me.s_txtRemarks = New System.Windows.Forms.TextBox()
         Me.s_btnSave = New System.Windows.Forms.Button()
         Me.s_lblTitle = New System.Windows.Forms.Label()
+        Me.s_pnlEditForm = New System.Windows.Forms.Panel()
+        Me.s_lblEditTransTitle = New System.Windows.Forms.Label()
+        Me.s_lblEditProduct = New System.Windows.Forms.Label()
+        Me.s_cmbEditProduct = New System.Windows.Forms.ComboBox()
+        Me.s_lblEditDate = New System.Windows.Forms.Label()
+        Me.s_lblEditType = New System.Windows.Forms.Label()
+        Me.s_cmbEditType = New System.Windows.Forms.ComboBox()
+        Me.s_lblEditQty = New System.Windows.Forms.Label()
+        Me.s_numEditQuantity = New System.Windows.Forms.NumericUpDown()
+        Me.s_lblEditRemarks = New System.Windows.Forms.Label()
+        Me.s_txtEditRemarks = New System.Windows.Forms.TextBox()
+        Me.s_btnEditSave = New System.Windows.Forms.Button()
+        Me.s_btnEditClose = New System.Windows.Forms.Button()
+        Me.s_pnlHeader = New System.Windows.Forms.Panel()
+        Me.s_lblFilter = New System.Windows.Forms.Label()
+        Me.s_cmbQuickFilter = New System.Windows.Forms.ComboBox()
+        Me.s_lblSearch = New System.Windows.Forms.Label()
+        Me.s_txtSearch = New System.Windows.Forms.TextBox()
         Me.pnlManageServiceMain = New System.Windows.Forms.TabPage()
         Me.sv_dgvServices = New System.Windows.Forms.DataGridView()
         Me.sv_colID = New System.Windows.Forms.DataGridViewTextBoxColumn()
@@ -235,9 +277,29 @@ Partial Class Childform
         Me.vr_colActionUpdate = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.vr_colActionDelete = New System.Windows.Forms.DataGridViewButtonColumn()
         Me.vr_pnlFilter = New System.Windows.Forms.Panel()
+        Me.vr_lblSearch = New System.Windows.Forms.Label()
         Me.vr_txtSearch = New System.Windows.Forms.TextBox()
         Me.vr_cmbFilterStatus = New System.Windows.Forms.ComboBox()
         Me.vr_lblTitle = New System.Windows.Forms.Label()
+        Me.vr_pnlDetail = New System.Windows.Forms.Panel()
+        Me.vr_lblDetailTitle = New System.Windows.Forms.Label()
+        Me.vr_lblDetailCustHdr = New System.Windows.Forms.Label()
+        Me.vr_txtDetailCust = New System.Windows.Forms.TextBox()
+        Me.vr_lblDetailDate = New System.Windows.Forms.Label()
+        Me.vr_lblDetailServiceHdr = New System.Windows.Forms.Label()
+        Me.vr_cmbDetailService = New System.Windows.Forms.ComboBox()
+        Me.vr_lblDetailStaffHdr = New System.Windows.Forms.Label()
+        Me.vr_cmbDetailStaff = New System.Windows.Forms.ComboBox()
+        Me.vr_lblDetailTechHdr = New System.Windows.Forms.Label()
+        Me.vr_cmbDetailTech = New System.Windows.Forms.ComboBox()
+        Me.vr_lblDetailAddrHdr = New System.Windows.Forms.Label()
+        Me.vr_txtDetailAddress = New System.Windows.Forms.TextBox()
+        Me.vr_lblDetailSchedHdr = New System.Windows.Forms.Label()
+        Me.vr_dtpDetailSched = New System.Windows.Forms.DateTimePicker()
+        Me.vr_lblDetailStatusHdr = New System.Windows.Forms.Label()
+        Me.vr_cmbDetailStatus = New System.Windows.Forms.ComboBox()
+        Me.vr_btnDetailUpdate = New System.Windows.Forms.Button()
+        Me.vr_btnDetailClose = New System.Windows.Forms.Button()
         Me.pnlViewWarrantyMain = New System.Windows.Forms.TabPage()
         Me.wr_dgvWarranties = New System.Windows.Forms.DataGridView()
         Me.wr_colID = New System.Windows.Forms.DataGridViewTextBoxColumn()
@@ -268,6 +330,23 @@ Partial Class Childform
         Me.fc_txtIssue = New System.Windows.Forms.TextBox()
         Me.fc_btnSubmit = New System.Windows.Forms.Button()
         Me.fc_lblTitle = New System.Windows.Forms.Label()
+        Me.tpStaffMain = New System.Windows.Forms.TabPage()
+        Me.tpSupplierMain = New System.Windows.Forms.TabPage()
+        Me.tpReportMain = New System.Windows.Forms.TabPage()
+        Me.tpViewWarrantyClaimMain = New System.Windows.Forms.TabPage()
+        Me.pre_st_lblTitle = New System.Windows.Forms.Label()
+        Me.pre_st_pnlForm = New System.Windows.Forms.Panel()
+        Me.pre_st_lblHint = New System.Windows.Forms.Label()
+        Me.pre_ms_lblTitle = New System.Windows.Forms.Label()
+        Me.pre_ms_txtSearch = New System.Windows.Forms.TextBox()
+        Me.pre_ms_grid = New System.Windows.Forms.DataGridView()
+        Me.pre_sup_lblTitle = New System.Windows.Forms.Label()
+        Me.pre_sup_pnlForm = New System.Windows.Forms.Panel()
+        Me.pre_sup_grid = New System.Windows.Forms.DataGridView()
+        Me.pre_rpt_lblTitle = New System.Windows.Forms.Label()
+        Me.pre_rpt_cmbFilter = New System.Windows.Forms.ComboBox()
+        Me.pre_rpt_lblAmount = New System.Windows.Forms.Label()
+        Me.pre_rpt_grid = New System.Windows.Forms.DataGridView()
         Me.tcMain.SuspendLayout()
         Me.pnlDashboardMain.SuspendLayout()
         Me.flpCards.SuspendLayout()
@@ -333,11 +412,15 @@ Partial Class Childform
         Me.tcMain.Controls.Add(Me.pnlViewServiceRequestsMain)
         Me.tcMain.Controls.Add(Me.pnlViewWarrantyMain)
         Me.tcMain.Controls.Add(Me.pnlFileClaimMain)
+        Me.tcMain.Controls.Add(Me.tpStaffMain)
+        Me.tcMain.Controls.Add(Me.tpSupplierMain)
+        Me.tcMain.Controls.Add(Me.tpReportMain)
+        Me.tcMain.Controls.Add(Me.tpViewWarrantyClaimMain)
         Me.tcMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.tcMain.Location = New System.Drawing.Point(0, 0)
         Me.tcMain.Name = "tcMain"
         Me.tcMain.SelectedIndex = 0
-        Me.tcMain.Size = New System.Drawing.Size(864, 601)
+        Me.tcMain.Size = New System.Drawing.Size(1361, 607)
         Me.tcMain.TabIndex = 0
         '
         'pnlDashboardMain
@@ -347,7 +430,7 @@ Partial Class Childform
         Me.pnlDashboardMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlDashboardMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlDashboardMain.Name = "pnlDashboardMain"
-        Me.pnlDashboardMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlDashboardMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlDashboardMain.TabIndex = 0
         Me.pnlDashboardMain.Text = "Dashboard"
         '
@@ -361,7 +444,7 @@ Partial Class Childform
         Me.flpCards.Location = New System.Drawing.Point(0, 70)
         Me.flpCards.Name = "flpCards"
         Me.flpCards.Padding = New System.Windows.Forms.Padding(25, 10, 25, 10)
-        Me.flpCards.Size = New System.Drawing.Size(856, 160)
+        Me.flpCards.Size = New System.Drawing.Size(1353, 160)
         Me.flpCards.TabIndex = 0
         '
         'pnlCard1
@@ -382,10 +465,10 @@ Partial Class Childform
         Me.lblCard1Value.ForeColor = System.Drawing.Color.White
         Me.lblCard1Value.Location = New System.Drawing.Point(0, 45)
         Me.lblCard1Value.Name = "lblCard1Value"
-        Me.lblCard1Value.Padding = New System.Windows.Forms.Padding(15, 0, 0, 0)
         Me.lblCard1Value.Size = New System.Drawing.Size(185, 85)
         Me.lblCard1Value.TabIndex = 0
         Me.lblCard1Value.Text = "0"
+        Me.lblCard1Value.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
         '
         'lblCard1Title
         '
@@ -474,7 +557,7 @@ Partial Class Childform
         Me.pnlCard4.BackColor = System.Drawing.Color.FromArgb(CType(CType(220, Byte), Integer), CType(CType(53, Byte), Integer), CType(CType(69, Byte), Integer))
         Me.pnlCard4.Controls.Add(Me.lblCard4Value)
         Me.pnlCard4.Controls.Add(Me.lblCard4Title)
-        Me.pnlCard4.Location = New System.Drawing.Point(28, 149)
+        Me.pnlCard4.Location = New System.Drawing.Point(637, 13)
         Me.pnlCard4.Margin = New System.Windows.Forms.Padding(3, 3, 15, 3)
         Me.pnlCard4.Name = "pnlCard4"
         Me.pnlCard4.Size = New System.Drawing.Size(185, 130)
@@ -512,7 +595,7 @@ Partial Class Childform
         Me.lblDashTitle.Location = New System.Drawing.Point(0, 0)
         Me.lblDashTitle.Name = "lblDashTitle"
         Me.lblDashTitle.Padding = New System.Windows.Forms.Padding(30, 20, 0, 10)
-        Me.lblDashTitle.Size = New System.Drawing.Size(856, 70)
+        Me.lblDashTitle.Size = New System.Drawing.Size(1353, 70)
         Me.lblDashTitle.TabIndex = 1
         Me.lblDashTitle.Text = "Dashboard"
         '
@@ -525,7 +608,7 @@ Partial Class Childform
         Me.pnlOrderMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlOrderMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlOrderMain.Name = "pnlOrderMain"
-        Me.pnlOrderMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlOrderMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlOrderMain.TabIndex = 1
         Me.pnlOrderMain.Text = "Order"
         Me.pnlOrderMain.Visible = False
@@ -540,6 +623,8 @@ Partial Class Childform
         Me.o_pnlCheckoutForm.Controls.Add(Me.o_lblCustomerSelectTitle)
         Me.o_pnlCheckoutForm.Controls.Add(Me.o_optExistingCustomer)
         Me.o_pnlCheckoutForm.Controls.Add(Me.o_cmbExistingCustomer)
+        Me.o_pnlCheckoutForm.Controls.Add(Me.o_lblAssignStaff)
+        Me.o_pnlCheckoutForm.Controls.Add(Me.o_cmbAssignStaff)
         Me.o_pnlCheckoutForm.Controls.Add(Me.o_optNewCustomer)
         Me.o_pnlCheckoutForm.Controls.Add(Me.o_pnlNewCustomer)
         Me.o_pnlCheckoutForm.Controls.Add(Me.o_btnConfirmOrder)
@@ -547,7 +632,7 @@ Partial Class Childform
         Me.o_pnlCheckoutForm.Dock = System.Windows.Forms.DockStyle.Fill
         Me.o_pnlCheckoutForm.Location = New System.Drawing.Point(0, 60)
         Me.o_pnlCheckoutForm.Name = "o_pnlCheckoutForm"
-        Me.o_pnlCheckoutForm.Size = New System.Drawing.Size(506, 515)
+        Me.o_pnlCheckoutForm.Size = New System.Drawing.Size(1003, 521)
         Me.o_pnlCheckoutForm.TabIndex = 0
         Me.o_pnlCheckoutForm.Visible = False
         '
@@ -619,6 +704,24 @@ Partial Class Childform
         Me.o_cmbExistingCustomer.Name = "o_cmbExistingCustomer"
         Me.o_cmbExistingCustomer.Size = New System.Drawing.Size(250, 21)
         Me.o_cmbExistingCustomer.TabIndex = 6
+        '
+        'o_lblAssignStaff
+        '
+        Me.o_lblAssignStaff.AutoSize = True
+        Me.o_lblAssignStaff.Font = New System.Drawing.Font("Segoe UI", 14.0!, System.Drawing.FontStyle.Bold)
+        Me.o_lblAssignStaff.Location = New System.Drawing.Point(700, 70)
+        Me.o_lblAssignStaff.Name = "o_lblAssignStaff"
+        Me.o_lblAssignStaff.Size = New System.Drawing.Size(162, 25)
+        Me.o_lblAssignStaff.TabIndex = 11
+        Me.o_lblAssignStaff.Text = "Assign Staff"
+        '
+        'o_cmbAssignStaff
+        '
+        Me.o_cmbAssignStaff.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.o_cmbAssignStaff.Location = New System.Drawing.Point(700, 100)
+        Me.o_cmbAssignStaff.Name = "o_cmbAssignStaff"
+        Me.o_cmbAssignStaff.Size = New System.Drawing.Size(250, 21)
+        Me.o_cmbAssignStaff.TabIndex = 12
         '
         'o_optNewCustomer
         '
@@ -723,14 +826,14 @@ Partial Class Childform
         Me.o_dgvProducts.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
         Me.o_dgvProducts.BackgroundColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(248, Byte), Integer))
         Me.o_dgvProducts.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me.o_dgvProducts.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.o_colProductID, Me.o_colProductName, Me.o_colDesc, Me.o_colPrice, Me.o_colStock, Me.o_colActionAdd})
+        Me.o_dgvProducts.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.o_colProductID, Me.o_colProductName, Me.o_colBrand, Me.o_colDesc, Me.o_colPrice, Me.o_colStock, Me.o_colActionAdd, Me.o_colActionRemove})
         Me.o_dgvProducts.Dock = System.Windows.Forms.DockStyle.Fill
         Me.o_dgvProducts.Location = New System.Drawing.Point(0, 60)
         Me.o_dgvProducts.Name = "o_dgvProducts"
         Me.o_dgvProducts.RowHeadersVisible = False
         Me.o_dgvProducts.RowTemplate.Height = 50
         Me.o_dgvProducts.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.o_dgvProducts.Size = New System.Drawing.Size(506, 515)
+        Me.o_dgvProducts.Size = New System.Drawing.Size(1003, 521)
         Me.o_dgvProducts.TabIndex = 1
         '
         'o_colProductID
@@ -743,6 +846,11 @@ Partial Class Childform
         Me.o_colProductName.HeaderText = "Product"
         Me.o_colProductName.Name = "o_colProductName"
         '
+        'o_colBrand
+        '
+        Me.o_colBrand.HeaderText = "Brand"
+        Me.o_colBrand.Name = "o_colBrand"
+        '
         'o_colDesc
         '
         Me.o_colDesc.HeaderText = "Description"
@@ -750,8 +858,8 @@ Partial Class Childform
         '
         'o_colPrice
         '
-        DataGridViewCellStyle7.Format = "C2"
-        Me.o_colPrice.DefaultCellStyle = DataGridViewCellStyle7
+        DataGridViewCellStyle13.Format = "C2"
+        Me.o_colPrice.DefaultCellStyle = DataGridViewCellStyle13
         Me.o_colPrice.HeaderText = "Price"
         Me.o_colPrice.Name = "o_colPrice"
         '
@@ -762,15 +870,23 @@ Partial Class Childform
         '
         'o_colActionAdd
         '
-        DataGridViewCellStyle8.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter
-        DataGridViewCellStyle8.BackColor = System.Drawing.Color.FromArgb(CType(CType(0, Byte), Integer), CType(CType(120, Byte), Integer), CType(CType(215, Byte), Integer))
-        DataGridViewCellStyle8.ForeColor = System.Drawing.Color.White
-        Me.o_colActionAdd.DefaultCellStyle = DataGridViewCellStyle8
+        DataGridViewCellStyle14.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter
+        DataGridViewCellStyle14.BackColor = System.Drawing.Color.White
+        DataGridViewCellStyle14.ForeColor = System.Drawing.Color.Black
+        Me.o_colActionAdd.DefaultCellStyle = DataGridViewCellStyle14
         Me.o_colActionAdd.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.o_colActionAdd.HeaderText = "Action"
+        Me.o_colActionAdd.HeaderText = "Add"
         Me.o_colActionAdd.Name = "o_colActionAdd"
         Me.o_colActionAdd.Text = "Add to Cart"
         Me.o_colActionAdd.UseColumnTextForButtonValue = True
+        '
+        'o_colActionRemove
+        '
+        Me.o_colActionRemove.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.o_colActionRemove.HeaderText = "Remove"
+        Me.o_colActionRemove.Name = "o_colActionRemove"
+        Me.o_colActionRemove.Text = "Remove from Cart"
+        Me.o_colActionRemove.UseColumnTextForButtonValue = True
         '
         'o_pnlCategories
         '
@@ -778,7 +894,7 @@ Partial Class Childform
         Me.o_pnlCategories.Location = New System.Drawing.Point(0, 0)
         Me.o_pnlCategories.Name = "o_pnlCategories"
         Me.o_pnlCategories.Padding = New System.Windows.Forms.Padding(10)
-        Me.o_pnlCategories.Size = New System.Drawing.Size(506, 60)
+        Me.o_pnlCategories.Size = New System.Drawing.Size(1003, 60)
         Me.o_pnlCategories.TabIndex = 2
         '
         'o_pnlCart
@@ -789,9 +905,9 @@ Partial Class Childform
         Me.o_pnlCart.Controls.Add(Me.o_lblCartTitle)
         Me.o_pnlCart.Controls.Add(Me.o_pnlTotal)
         Me.o_pnlCart.Dock = System.Windows.Forms.DockStyle.Right
-        Me.o_pnlCart.Location = New System.Drawing.Point(506, 0)
+        Me.o_pnlCart.Location = New System.Drawing.Point(1003, 0)
         Me.o_pnlCart.Name = "o_pnlCart"
-        Me.o_pnlCart.Size = New System.Drawing.Size(350, 575)
+        Me.o_pnlCart.Size = New System.Drawing.Size(350, 581)
         Me.o_pnlCart.TabIndex = 3
         '
         'o_flpCartItems
@@ -800,7 +916,7 @@ Partial Class Childform
         Me.o_flpCartItems.Dock = System.Windows.Forms.DockStyle.Fill
         Me.o_flpCartItems.Location = New System.Drawing.Point(0, 40)
         Me.o_flpCartItems.Name = "o_flpCartItems"
-        Me.o_flpCartItems.Size = New System.Drawing.Size(348, 433)
+        Me.o_flpCartItems.Size = New System.Drawing.Size(348, 439)
         Me.o_flpCartItems.TabIndex = 0
         '
         'o_lblCartTitle
@@ -820,7 +936,7 @@ Partial Class Childform
         Me.o_pnlTotal.Controls.Add(Me.o_lblTotal)
         Me.o_pnlTotal.Controls.Add(Me.o_btnContinue)
         Me.o_pnlTotal.Dock = System.Windows.Forms.DockStyle.Bottom
-        Me.o_pnlTotal.Location = New System.Drawing.Point(0, 473)
+        Me.o_pnlTotal.Location = New System.Drawing.Point(0, 479)
         Me.o_pnlTotal.Name = "o_pnlTotal"
         Me.o_pnlTotal.Size = New System.Drawing.Size(348, 100)
         Me.o_pnlTotal.TabIndex = 2
@@ -863,11 +979,12 @@ Partial Class Childform
         'pnlViewOrdersMain
         '
         Me.pnlViewOrdersMain.Controls.Add(Me.v_dgvOrders)
+        Me.pnlViewOrdersMain.Controls.Add(Me.v_pnlDetailForm)
         Me.pnlViewOrdersMain.Controls.Add(Me.v_pnlHeader)
         Me.pnlViewOrdersMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlViewOrdersMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlViewOrdersMain.Name = "pnlViewOrdersMain"
-        Me.pnlViewOrdersMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlViewOrdersMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlViewOrdersMain.TabIndex = 2
         Me.pnlViewOrdersMain.Text = "ViewOrders"
         Me.pnlViewOrdersMain.Visible = False
@@ -879,14 +996,14 @@ Partial Class Childform
         Me.v_dgvOrders.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
         Me.v_dgvOrders.BackgroundColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(248, Byte), Integer))
         Me.v_dgvOrders.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me.v_dgvOrders.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.v_colPurchaseID, Me.v_colReceipt, Me.v_colDate, Me.v_colCustomer, Me.v_colTotalAmount, Me.v_colActionEdit, Me.v_colActionDelete})
+        Me.v_dgvOrders.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.v_colPurchaseID, Me.v_colReceipt, Me.v_colDate, Me.v_colCustomer, Me.v_colStaff, Me.v_colProducts, Me.v_colTotalAmount, Me.v_colActionEdit, Me.v_colActionDelete, Me.v_colActionPrint})
         Me.v_dgvOrders.Dock = System.Windows.Forms.DockStyle.Fill
         Me.v_dgvOrders.Location = New System.Drawing.Point(0, 80)
         Me.v_dgvOrders.Name = "v_dgvOrders"
         Me.v_dgvOrders.RowHeadersVisible = False
         Me.v_dgvOrders.RowTemplate.Height = 40
         Me.v_dgvOrders.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.v_dgvOrders.Size = New System.Drawing.Size(856, 495)
+        Me.v_dgvOrders.Size = New System.Drawing.Size(1353, 501)
         Me.v_dgvOrders.TabIndex = 0
         '
         'v_colPurchaseID
@@ -909,10 +1026,20 @@ Partial Class Childform
         Me.v_colCustomer.HeaderText = "Customer"
         Me.v_colCustomer.Name = "v_colCustomer"
         '
+        'v_colStaff
+        '
+        Me.v_colStaff.HeaderText = "Assign Staff"
+        Me.v_colStaff.Name = "v_colStaff"
+        '
+        'v_colProducts
+        '
+        Me.v_colProducts.HeaderText = "Products"
+        Me.v_colProducts.Name = "v_colProducts"
+        '
         'v_colTotalAmount
         '
-        DataGridViewCellStyle9.Format = "C2"
-        Me.v_colTotalAmount.DefaultCellStyle = DataGridViewCellStyle9
+        DataGridViewCellStyle15.Format = "C2"
+        Me.v_colTotalAmount.DefaultCellStyle = DataGridViewCellStyle15
         Me.v_colTotalAmount.HeaderText = "Total Amount"
         Me.v_colTotalAmount.Name = "v_colTotalAmount"
         '
@@ -932,6 +1059,14 @@ Partial Class Childform
         Me.v_colActionDelete.Text = "Delete"
         Me.v_colActionDelete.UseColumnTextForButtonValue = True
         '
+        'v_colActionPrint
+        '
+        Me.v_colActionPrint.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.v_colActionPrint.HeaderText = "Action"
+        Me.v_colActionPrint.Name = "v_colActionPrint"
+        Me.v_colActionPrint.Text = "Print Receipt"
+        Me.v_colActionPrint.UseColumnTextForButtonValue = True
+        '
         'v_pnlHeader
         '
         Me.v_pnlHeader.BackColor = System.Drawing.Color.White
@@ -941,10 +1076,12 @@ Partial Class Childform
         Me.v_pnlHeader.Controls.Add(Me.v_lblTo)
         Me.v_pnlHeader.Controls.Add(Me.v_dtpEnd)
         Me.v_pnlHeader.Controls.Add(Me.v_btnFilter)
+        Me.v_pnlHeader.Controls.Add(Me.v_lblSearch)
+        Me.v_pnlHeader.Controls.Add(Me.v_txtSearch)
         Me.v_pnlHeader.Dock = System.Windows.Forms.DockStyle.Top
         Me.v_pnlHeader.Location = New System.Drawing.Point(0, 0)
         Me.v_pnlHeader.Name = "v_pnlHeader"
-        Me.v_pnlHeader.Size = New System.Drawing.Size(856, 80)
+        Me.v_pnlHeader.Size = New System.Drawing.Size(1353, 80)
         Me.v_pnlHeader.TabIndex = 1
         '
         'v_lblTitle
@@ -1003,6 +1140,118 @@ Partial Class Childform
         Me.v_btnFilter.Text = "Filter"
         Me.v_btnFilter.UseVisualStyleBackColor = False
         '
+        'v_lblSearch
+        '
+        Me.v_lblSearch.AutoSize = True
+        Me.v_lblSearch.Location = New System.Drawing.Point(660, 30)
+        Me.v_lblSearch.Name = "v_lblSearch"
+        Me.v_lblSearch.Size = New System.Drawing.Size(44, 13)
+        Me.v_lblSearch.TabIndex = 6
+        Me.v_lblSearch.Text = "Search:"
+        '
+        'v_txtSearch
+        '
+        Me.v_txtSearch.Location = New System.Drawing.Point(710, 27)
+        Me.v_txtSearch.Name = "v_txtSearch"
+        Me.v_txtSearch.Size = New System.Drawing.Size(300, 20)
+        Me.v_txtSearch.TabIndex = 7
+        '
+        'v_pnlDetailForm
+        '
+        Me.v_pnlDetailForm.BackColor = System.Drawing.Color.White
+        Me.v_pnlDetailForm.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.v_pnlDetailForm.Controls.Add(Me.v_lblDetailTitle)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_lblDetailReceipt)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_lblDetailCustomer)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_lblDetailStaff)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_lblDetailDate)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_lblDetailProducts)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_lblDetailTotal)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_btnDetailEdit)
+        Me.v_pnlDetailForm.Controls.Add(Me.v_btnDetailClose)
+        Me.v_pnlDetailForm.Dock = System.Windows.Forms.DockStyle.Right
+        Me.v_pnlDetailForm.Name = "v_pnlDetailForm"
+        Me.v_pnlDetailForm.Padding = New System.Windows.Forms.Padding(20)
+        Me.v_pnlDetailForm.Size = New System.Drawing.Size(330, 581)
+        Me.v_pnlDetailForm.TabIndex = 5
+        Me.v_pnlDetailForm.Visible = False
+        '
+        'v_lblDetailTitle
+        '
+        Me.v_lblDetailTitle.AutoSize = True
+        Me.v_lblDetailTitle.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.v_lblDetailTitle.Location = New System.Drawing.Point(20, 20)
+        Me.v_lblDetailTitle.Name = "v_lblDetailTitle"
+        Me.v_lblDetailTitle.TabIndex = 0
+        Me.v_lblDetailTitle.Text = "Order Details"
+        '
+        'v_lblDetailReceipt
+        '
+        Me.v_lblDetailReceipt.Location = New System.Drawing.Point(20, 55)
+        Me.v_lblDetailReceipt.Name = "v_lblDetailReceipt"
+        Me.v_lblDetailReceipt.Size = New System.Drawing.Size(290, 20)
+        Me.v_lblDetailReceipt.TabIndex = 1
+        '
+        'v_lblDetailCustomer
+        '
+        Me.v_lblDetailCustomer.Location = New System.Drawing.Point(20, 80)
+        Me.v_lblDetailCustomer.Name = "v_lblDetailCustomer"
+        Me.v_lblDetailCustomer.Size = New System.Drawing.Size(290, 20)
+        Me.v_lblDetailCustomer.TabIndex = 2
+        '
+        'v_lblDetailStaff
+        '
+        Me.v_lblDetailStaff.Location = New System.Drawing.Point(20, 105)
+        Me.v_lblDetailStaff.Name = "v_lblDetailStaff"
+        Me.v_lblDetailStaff.Size = New System.Drawing.Size(290, 20)
+        Me.v_lblDetailStaff.TabIndex = 3
+        '
+        'v_lblDetailDate
+        '
+        Me.v_lblDetailDate.Location = New System.Drawing.Point(20, 130)
+        Me.v_lblDetailDate.Name = "v_lblDetailDate"
+        Me.v_lblDetailDate.Size = New System.Drawing.Size(290, 20)
+        Me.v_lblDetailDate.TabIndex = 4
+        '
+        'v_lblDetailProducts
+        '
+        Me.v_lblDetailProducts.Location = New System.Drawing.Point(20, 160)
+        Me.v_lblDetailProducts.Name = "v_lblDetailProducts"
+        Me.v_lblDetailProducts.Size = New System.Drawing.Size(290, 80)
+        Me.v_lblDetailProducts.TabIndex = 5
+        '
+        'v_lblDetailTotal
+        '
+        Me.v_lblDetailTotal.AutoSize = True
+        Me.v_lblDetailTotal.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Bold)
+        Me.v_lblDetailTotal.Location = New System.Drawing.Point(20, 250)
+        Me.v_lblDetailTotal.Name = "v_lblDetailTotal"
+        Me.v_lblDetailTotal.TabIndex = 6
+        '
+        'v_btnDetailEdit
+        '
+        Me.v_btnDetailEdit.BackColor = System.Drawing.Color.FromArgb(CType(CType(0, Byte), Integer), CType(CType(120, Byte), Integer), CType(CType(215, Byte), Integer))
+        Me.v_btnDetailEdit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.v_btnDetailEdit.ForeColor = System.Drawing.Color.White
+        Me.v_btnDetailEdit.Location = New System.Drawing.Point(20, 290)
+        Me.v_btnDetailEdit.Name = "v_btnDetailEdit"
+        Me.v_btnDetailEdit.Size = New System.Drawing.Size(290, 35)
+        Me.v_btnDetailEdit.TabIndex = 7
+        Me.v_btnDetailEdit.Text = "Edit This Order"
+        Me.v_btnDetailEdit.UseVisualStyleBackColor = False
+        '
+        'v_btnDetailClose
+        '
+        Me.v_btnDetailClose.BackColor = System.Drawing.Color.Gray
+        Me.v_btnDetailClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.v_btnDetailClose.ForeColor = System.Drawing.Color.White
+        Me.v_btnDetailClose.Location = New System.Drawing.Point(20, 335)
+        Me.v_btnDetailClose.Name = "v_btnDetailClose"
+        Me.v_btnDetailClose.Size = New System.Drawing.Size(290, 35)
+        Me.v_btnDetailClose.TabIndex = 8
+        Me.v_btnDetailClose.Text = "Close"
+        Me.v_btnDetailClose.UseVisualStyleBackColor = False
+        '
         'pnlAddProductMain
         '
         Me.pnlAddProductMain.Controls.Add(Me.a_lblTitle)
@@ -1010,7 +1259,7 @@ Partial Class Childform
         Me.pnlAddProductMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlAddProductMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlAddProductMain.Name = "pnlAddProductMain"
-        Me.pnlAddProductMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlAddProductMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlAddProductMain.TabIndex = 3
         Me.pnlAddProductMain.Text = "AddProduct"
         Me.pnlAddProductMain.Visible = False
@@ -1035,7 +1284,9 @@ Partial Class Childform
         Me.a_pnlForm.Controls.Add(Me.a_lblProdName)
         Me.a_pnlForm.Controls.Add(Me.a_txtProdName)
         Me.a_pnlForm.Controls.Add(Me.a_lblProdBrand)
-        Me.a_pnlForm.Controls.Add(Me.a_txtProdBrand)
+        Me.a_pnlForm.Controls.Add(Me.a_cmbBrand)
+        Me.a_pnlForm.Controls.Add(Me.a_chkNewBrand)
+        Me.a_pnlForm.Controls.Add(Me.a_txtNewBrand)
         Me.a_pnlForm.Controls.Add(Me.a_lblCategory)
         Me.a_pnlForm.Controls.Add(Me.a_cmbCategory)
         Me.a_pnlForm.Controls.Add(Me.a_lblProdDesc)
@@ -1055,7 +1306,7 @@ Partial Class Childform
         Me.a_pnlForm.Controls.Add(Me.a_btnCancel)
         Me.a_pnlForm.Location = New System.Drawing.Point(30, 70)
         Me.a_pnlForm.Name = "a_pnlForm"
-        Me.a_pnlForm.Size = New System.Drawing.Size(1406, 925)
+        Me.a_pnlForm.Size = New System.Drawing.Size(1903, 931)
         Me.a_pnlForm.TabIndex = 1
         '
         'a_lblProdName
@@ -1083,30 +1334,49 @@ Partial Class Childform
         Me.a_lblProdBrand.TabIndex = 2
         Me.a_lblProdBrand.Text = "Brand"
         '
-        'a_txtProdBrand
+        'a_cmbBrand
         '
-        Me.a_txtProdBrand.Location = New System.Drawing.Point(30, 110)
-        Me.a_txtProdBrand.Name = "a_txtProdBrand"
-        Me.a_txtProdBrand.Size = New System.Drawing.Size(250, 20)
-        Me.a_txtProdBrand.TabIndex = 3
+        Me.a_cmbBrand.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.a_cmbBrand.Items.AddRange(New Object() {"Midea", "Kolin", "TCL", "Panasonic"})
+        Me.a_cmbBrand.Location = New System.Drawing.Point(30, 110)
+        Me.a_cmbBrand.Name = "a_cmbBrand"
+        Me.a_cmbBrand.Size = New System.Drawing.Size(180, 21)
+        Me.a_cmbBrand.TabIndex = 3
+        '
+        'a_chkNewBrand
+        '
+        Me.a_chkNewBrand.AutoSize = True
+        Me.a_chkNewBrand.Location = New System.Drawing.Point(220, 112)
+        Me.a_chkNewBrand.Name = "a_chkNewBrand"
+        Me.a_chkNewBrand.Size = New System.Drawing.Size(60, 17)
+        Me.a_chkNewBrand.TabIndex = 4
+        Me.a_chkNewBrand.Text = "+ New"
+        '
+        'a_txtNewBrand
+        '
+        Me.a_txtNewBrand.Location = New System.Drawing.Point(30, 137)
+        Me.a_txtNewBrand.Name = "a_txtNewBrand"
+        Me.a_txtNewBrand.Size = New System.Drawing.Size(250, 20)
+        Me.a_txtNewBrand.TabIndex = 5
+        Me.a_txtNewBrand.Visible = False
         '
         'a_lblCategory
         '
         Me.a_lblCategory.AutoSize = True
-        Me.a_lblCategory.Location = New System.Drawing.Point(30, 150)
+        Me.a_lblCategory.Location = New System.Drawing.Point(30, 165)
         Me.a_lblCategory.Name = "a_lblCategory"
         Me.a_lblCategory.Size = New System.Drawing.Size(49, 13)
-        Me.a_lblCategory.TabIndex = 4
+        Me.a_lblCategory.TabIndex = 6
         Me.a_lblCategory.Text = "Category"
         '
         'a_cmbCategory
         '
         Me.a_cmbCategory.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.a_cmbCategory.Items.AddRange(New Object() {"Air Conditioners", "Washing Machines", "Televisions", "Refrigerators"})
-        Me.a_cmbCategory.Location = New System.Drawing.Point(30, 170)
+        Me.a_cmbCategory.Location = New System.Drawing.Point(30, 185)
         Me.a_cmbCategory.Name = "a_cmbCategory"
         Me.a_cmbCategory.Size = New System.Drawing.Size(250, 21)
-        Me.a_cmbCategory.TabIndex = 5
+        Me.a_cmbCategory.TabIndex = 7
         '
         'a_lblProdDesc
         '
@@ -1309,7 +1579,7 @@ Partial Class Childform
         Me.pnlManageProductsMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlManageProductsMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlManageProductsMain.Name = "pnlManageProductsMain"
-        Me.pnlManageProductsMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlManageProductsMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlManageProductsMain.TabIndex = 4
         Me.pnlManageProductsMain.Text = "ManageProducts"
         Me.pnlManageProductsMain.Visible = False
@@ -1335,7 +1605,7 @@ Partial Class Childform
         Me.m_pnlEditProduct.Dock = System.Windows.Forms.DockStyle.Fill
         Me.m_pnlEditProduct.Location = New System.Drawing.Point(0, 60)
         Me.m_pnlEditProduct.Name = "m_pnlEditProduct"
-        Me.m_pnlEditProduct.Size = New System.Drawing.Size(856, 515)
+        Me.m_pnlEditProduct.Size = New System.Drawing.Size(1353, 521)
         Me.m_pnlEditProduct.TabIndex = 0
         Me.m_pnlEditProduct.Visible = False
         '
@@ -1483,14 +1753,14 @@ Partial Class Childform
         Me.m_dgvProducts.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
         Me.m_dgvProducts.BackgroundColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(248, Byte), Integer))
         Me.m_dgvProducts.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me.m_dgvProducts.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.m_colProductID, Me.m_colProductName, Me.m_colBrand, Me.m_colDesc, Me.m_colPrice, Me.m_colStock, Me.m_colActionEdit, Me.m_colActionDelete})
+        Me.m_dgvProducts.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.m_colProductID, Me.m_colProductName, Me.m_colBrand, Me.m_colDesc, Me.m_colPrice, Me.m_colStock, Me.m_colReorder, Me.m_colActionEdit, Me.m_colActionDelete})
         Me.m_dgvProducts.Dock = System.Windows.Forms.DockStyle.Fill
         Me.m_dgvProducts.Location = New System.Drawing.Point(0, 60)
         Me.m_dgvProducts.Name = "m_dgvProducts"
         Me.m_dgvProducts.RowHeadersVisible = False
         Me.m_dgvProducts.RowTemplate.Height = 40
         Me.m_dgvProducts.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.m_dgvProducts.Size = New System.Drawing.Size(856, 515)
+        Me.m_dgvProducts.Size = New System.Drawing.Size(1353, 521)
         Me.m_dgvProducts.TabIndex = 1
         '
         'm_colProductID
@@ -1515,8 +1785,8 @@ Partial Class Childform
         '
         'm_colPrice
         '
-        DataGridViewCellStyle10.Format = "C2"
-        Me.m_colPrice.DefaultCellStyle = DataGridViewCellStyle10
+        DataGridViewCellStyle16.Format = "C2"
+        Me.m_colPrice.DefaultCellStyle = DataGridViewCellStyle16
         Me.m_colPrice.HeaderText = "Price"
         Me.m_colPrice.Name = "m_colPrice"
         '
@@ -1525,12 +1795,17 @@ Partial Class Childform
         Me.m_colStock.HeaderText = "Stock"
         Me.m_colStock.Name = "m_colStock"
         '
+        'm_colReorder
+        '
+        Me.m_colReorder.HeaderText = "Reorder Level"
+        Me.m_colReorder.Name = "m_colReorder"
+        '
         'm_colActionEdit
         '
-        DataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter
-        DataGridViewCellStyle11.BackColor = System.Drawing.Color.White
-        DataGridViewCellStyle11.ForeColor = System.Drawing.Color.Black
-        Me.m_colActionEdit.DefaultCellStyle = DataGridViewCellStyle11
+        DataGridViewCellStyle17.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter
+        DataGridViewCellStyle17.BackColor = System.Drawing.Color.White
+        DataGridViewCellStyle17.ForeColor = System.Drawing.Color.Black
+        Me.m_colActionEdit.DefaultCellStyle = DataGridViewCellStyle17
         Me.m_colActionEdit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.m_colActionEdit.HeaderText = "Action"
         Me.m_colActionEdit.Name = "m_colActionEdit"
@@ -1539,10 +1814,10 @@ Partial Class Childform
         '
         'm_colActionDelete
         '
-        DataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter
-        DataGridViewCellStyle12.BackColor = System.Drawing.Color.White
-        DataGridViewCellStyle12.ForeColor = System.Drawing.Color.Black
-        Me.m_colActionDelete.DefaultCellStyle = DataGridViewCellStyle12
+        DataGridViewCellStyle18.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter
+        DataGridViewCellStyle18.BackColor = System.Drawing.Color.White
+        DataGridViewCellStyle18.ForeColor = System.Drawing.Color.Black
+        Me.m_colActionDelete.DefaultCellStyle = DataGridViewCellStyle18
         Me.m_colActionDelete.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.m_colActionDelete.HeaderText = "Action"
         Me.m_colActionDelete.Name = "m_colActionDelete"
@@ -1555,7 +1830,7 @@ Partial Class Childform
         Me.m_pnlCategories.Location = New System.Drawing.Point(0, 0)
         Me.m_pnlCategories.Name = "m_pnlCategories"
         Me.m_pnlCategories.Padding = New System.Windows.Forms.Padding(10)
-        Me.m_pnlCategories.Size = New System.Drawing.Size(856, 60)
+        Me.m_pnlCategories.Size = New System.Drawing.Size(1353, 60)
         Me.m_pnlCategories.TabIndex = 2
         '
         'pnlLowStockMain
@@ -1566,7 +1841,7 @@ Partial Class Childform
         Me.pnlLowStockMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlLowStockMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlLowStockMain.Name = "pnlLowStockMain"
-        Me.pnlLowStockMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlLowStockMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlLowStockMain.TabIndex = 5
         Me.pnlLowStockMain.Text = "LowStock"
         Me.pnlLowStockMain.Visible = False
@@ -1585,7 +1860,7 @@ Partial Class Childform
         Me.l_dgvAlerts.RowHeadersVisible = False
         Me.l_dgvAlerts.RowTemplate.Height = 40
         Me.l_dgvAlerts.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.l_dgvAlerts.Size = New System.Drawing.Size(856, 455)
+        Me.l_dgvAlerts.Size = New System.Drawing.Size(1353, 461)
         Me.l_dgvAlerts.TabIndex = 0
         '
         'l_colProductID
@@ -1632,7 +1907,7 @@ Partial Class Childform
         Me.l_pnlCategories.Location = New System.Drawing.Point(0, 60)
         Me.l_pnlCategories.Name = "l_pnlCategories"
         Me.l_pnlCategories.Padding = New System.Windows.Forms.Padding(10)
-        Me.l_pnlCategories.Size = New System.Drawing.Size(856, 60)
+        Me.l_pnlCategories.Size = New System.Drawing.Size(1353, 60)
         Me.l_pnlCategories.TabIndex = 1
         '
         'l_pnlHeader
@@ -1642,7 +1917,7 @@ Partial Class Childform
         Me.l_pnlHeader.Dock = System.Windows.Forms.DockStyle.Top
         Me.l_pnlHeader.Location = New System.Drawing.Point(0, 0)
         Me.l_pnlHeader.Name = "l_pnlHeader"
-        Me.l_pnlHeader.Size = New System.Drawing.Size(856, 60)
+        Me.l_pnlHeader.Size = New System.Drawing.Size(1353, 60)
         Me.l_pnlHeader.TabIndex = 2
         '
         'l_lblTitle
@@ -1652,19 +1927,21 @@ Partial Class Childform
         Me.l_lblTitle.ForeColor = System.Drawing.Color.Black
         Me.l_lblTitle.Location = New System.Drawing.Point(20, 15)
         Me.l_lblTitle.Name = "l_lblTitle"
-        Me.l_lblTitle.Size = New System.Drawing.Size(222, 30)
+        Me.l_lblTitle.Size = New System.Drawing.Size(185, 30)
         Me.l_lblTitle.TabIndex = 0
         Me.l_lblTitle.Text = "Low Stock Alerts"
         '
         'pnlStockTransactionMain
         '
         Me.pnlStockTransactionMain.Controls.Add(Me.s_dgvHistory)
+        Me.pnlStockTransactionMain.Controls.Add(Me.s_pnlEditForm)
+        Me.pnlStockTransactionMain.Controls.Add(Me.s_pnlHeader)
         Me.pnlStockTransactionMain.Controls.Add(Me.s_pnlForm)
         Me.pnlStockTransactionMain.Controls.Add(Me.s_lblTitle)
         Me.pnlStockTransactionMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlStockTransactionMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlStockTransactionMain.Name = "pnlStockTransactionMain"
-        Me.pnlStockTransactionMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlStockTransactionMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlStockTransactionMain.TabIndex = 6
         Me.pnlStockTransactionMain.Text = "StockTransaction"
         Me.pnlStockTransactionMain.Visible = False
@@ -1676,14 +1953,14 @@ Partial Class Childform
         Me.s_dgvHistory.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
         Me.s_dgvHistory.BackgroundColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(248, Byte), Integer))
         Me.s_dgvHistory.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me.s_dgvHistory.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.s_colTransID, Me.s_colProduct, Me.s_colType, Me.s_colQty, Me.s_colDate, Me.s_colRemarks})
+        Me.s_dgvHistory.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.s_colTransID, Me.s_colProduct, Me.s_colType, Me.s_colQty, Me.s_colDate, Me.s_colRemarks, Me.s_colActionEdit, Me.s_colActionDelete})
         Me.s_dgvHistory.Dock = System.Windows.Forms.DockStyle.Fill
         Me.s_dgvHistory.Location = New System.Drawing.Point(350, 0)
         Me.s_dgvHistory.Name = "s_dgvHistory"
         Me.s_dgvHistory.RowHeadersVisible = False
         Me.s_dgvHistory.RowTemplate.Height = 40
         Me.s_dgvHistory.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.s_dgvHistory.Size = New System.Drawing.Size(506, 575)
+        Me.s_dgvHistory.Size = New System.Drawing.Size(1003, 581)
         Me.s_dgvHistory.TabIndex = 0
         '
         's_colTransID
@@ -1716,6 +1993,22 @@ Partial Class Childform
         Me.s_colRemarks.HeaderText = "Remarks"
         Me.s_colRemarks.Name = "s_colRemarks"
         '
+        's_colActionEdit
+        '
+        Me.s_colActionEdit.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.s_colActionEdit.HeaderText = "Action"
+        Me.s_colActionEdit.Name = "s_colActionEdit"
+        Me.s_colActionEdit.Text = "Edit"
+        Me.s_colActionEdit.UseColumnTextForButtonValue = True
+        '
+        's_colActionDelete
+        '
+        Me.s_colActionDelete.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.s_colActionDelete.HeaderText = "Action"
+        Me.s_colActionDelete.Name = "s_colActionDelete"
+        Me.s_colActionDelete.Text = "Delete"
+        Me.s_colActionDelete.UseColumnTextForButtonValue = True
+        '
         's_pnlForm
         '
         Me.s_pnlForm.BackColor = System.Drawing.Color.White
@@ -1733,7 +2026,7 @@ Partial Class Childform
         Me.s_pnlForm.Location = New System.Drawing.Point(0, 0)
         Me.s_pnlForm.Name = "s_pnlForm"
         Me.s_pnlForm.Padding = New System.Windows.Forms.Padding(20)
-        Me.s_pnlForm.Size = New System.Drawing.Size(350, 575)
+        Me.s_pnlForm.Size = New System.Drawing.Size(350, 581)
         Me.s_pnlForm.TabIndex = 1
         '
         's_lblProduct
@@ -1818,6 +2111,140 @@ Partial Class Childform
         Me.s_btnSave.Text = "Submit Transaction"
         Me.s_btnSave.UseVisualStyleBackColor = False
         '
+        's_pnlEditForm
+        '
+        Me.s_pnlEditForm.BackColor = System.Drawing.Color.White
+        Me.s_pnlEditForm.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.s_pnlEditForm.Controls.Add(Me.s_lblEditTransTitle)
+        Me.s_pnlEditForm.Controls.Add(Me.s_lblEditProduct)
+        Me.s_pnlEditForm.Controls.Add(Me.s_cmbEditProduct)
+        Me.s_pnlEditForm.Controls.Add(Me.s_lblEditDate)
+        Me.s_pnlEditForm.Controls.Add(Me.s_lblEditType)
+        Me.s_pnlEditForm.Controls.Add(Me.s_cmbEditType)
+        Me.s_pnlEditForm.Controls.Add(Me.s_lblEditQty)
+        Me.s_pnlEditForm.Controls.Add(Me.s_numEditQuantity)
+        Me.s_pnlEditForm.Controls.Add(Me.s_lblEditRemarks)
+        Me.s_pnlEditForm.Controls.Add(Me.s_txtEditRemarks)
+        Me.s_pnlEditForm.Controls.Add(Me.s_btnEditSave)
+        Me.s_pnlEditForm.Controls.Add(Me.s_btnEditClose)
+        Me.s_pnlEditForm.Dock = System.Windows.Forms.DockStyle.Right
+        Me.s_pnlEditForm.Location = New System.Drawing.Point(1053, 50)
+        Me.s_pnlEditForm.Name = "s_pnlEditForm"
+        Me.s_pnlEditForm.Padding = New System.Windows.Forms.Padding(20)
+        Me.s_pnlEditForm.Size = New System.Drawing.Size(300, 531)
+        Me.s_pnlEditForm.TabIndex = 4
+        Me.s_pnlEditForm.Visible = False
+        '
+        's_lblEditTransTitle
+        '
+        Me.s_lblEditTransTitle.AutoSize = True
+        Me.s_lblEditTransTitle.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.s_lblEditTransTitle.Location = New System.Drawing.Point(20, 20)
+        Me.s_lblEditTransTitle.Name = "s_lblEditTransTitle"
+        Me.s_lblEditTransTitle.Size = New System.Drawing.Size(130, 21)
+        Me.s_lblEditTransTitle.TabIndex = 0
+        Me.s_lblEditTransTitle.Text = "Edit Transaction"
+        '
+        's_lblEditProduct
+        '
+        Me.s_lblEditProduct.AutoSize = True
+        Me.s_lblEditProduct.Location = New System.Drawing.Point(20, 50)
+        Me.s_lblEditProduct.Name = "s_lblEditProduct"
+        Me.s_lblEditProduct.Size = New System.Drawing.Size(44, 13)
+        Me.s_lblEditProduct.TabIndex = 1
+        Me.s_lblEditProduct.Text = "Product"
+        '
+        's_cmbEditProduct
+        '
+        Me.s_cmbEditProduct.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.s_cmbEditProduct.Location = New System.Drawing.Point(20, 70)
+        Me.s_cmbEditProduct.Name = "s_cmbEditProduct"
+        Me.s_cmbEditProduct.Size = New System.Drawing.Size(260, 21)
+        Me.s_cmbEditProduct.TabIndex = 2
+        '
+        's_lblEditDate
+        '
+        Me.s_lblEditDate.Location = New System.Drawing.Point(20, 100)
+        Me.s_lblEditDate.Name = "s_lblEditDate"
+        Me.s_lblEditDate.Size = New System.Drawing.Size(260, 20)
+        Me.s_lblEditDate.TabIndex = 3
+        Me.s_lblEditDate.Text = "Date:"
+        '
+        's_lblEditType
+        '
+        Me.s_lblEditType.AutoSize = True
+        Me.s_lblEditType.Location = New System.Drawing.Point(20, 125)
+        Me.s_lblEditType.Name = "s_lblEditType"
+        Me.s_lblEditType.Size = New System.Drawing.Size(90, 13)
+        Me.s_lblEditType.TabIndex = 4
+        Me.s_lblEditType.Text = "Transaction Type"
+        '
+        's_cmbEditType
+        '
+        Me.s_cmbEditType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.s_cmbEditType.Items.AddRange(New Object() {"Restock", "Sale", "Damage", "Correction"})
+        Me.s_cmbEditType.Location = New System.Drawing.Point(20, 145)
+        Me.s_cmbEditType.Name = "s_cmbEditType"
+        Me.s_cmbEditType.Size = New System.Drawing.Size(120, 21)
+        Me.s_cmbEditType.TabIndex = 5
+        '
+        's_lblEditQty
+        '
+        Me.s_lblEditQty.AutoSize = True
+        Me.s_lblEditQty.Location = New System.Drawing.Point(160, 125)
+        Me.s_lblEditQty.Name = "s_lblEditQty"
+        Me.s_lblEditQty.Size = New System.Drawing.Size(46, 13)
+        Me.s_lblEditQty.TabIndex = 6
+        '
+        's_numEditQuantity
+        '
+        Me.s_numEditQuantity.Location = New System.Drawing.Point(160, 145)
+        Me.s_numEditQuantity.Maximum = New Decimal(New Integer() {9999, 0, 0, 0})
+        Me.s_numEditQuantity.Name = "s_numEditQuantity"
+        Me.s_numEditQuantity.Size = New System.Drawing.Size(120, 20)
+        Me.s_numEditQuantity.TabIndex = 7
+        '
+        's_lblEditRemarks
+        '
+        Me.s_lblEditRemarks.AutoSize = True
+        Me.s_lblEditRemarks.Location = New System.Drawing.Point(20, 175)
+        Me.s_lblEditRemarks.Name = "s_lblEditRemarks"
+        Me.s_lblEditRemarks.Size = New System.Drawing.Size(49, 13)
+        Me.s_lblEditRemarks.TabIndex = 8
+        Me.s_lblEditRemarks.Text = "Remarks"
+        '
+        's_txtEditRemarks
+        '
+        Me.s_txtEditRemarks.Location = New System.Drawing.Point(20, 195)
+        Me.s_txtEditRemarks.Multiline = True
+        Me.s_txtEditRemarks.Name = "s_txtEditRemarks"
+        Me.s_txtEditRemarks.Size = New System.Drawing.Size(260, 75)
+        Me.s_txtEditRemarks.TabIndex = 9
+        '
+        's_btnEditSave
+        '
+        Me.s_btnEditSave.BackColor = System.Drawing.Color.FromArgb(CType(CType(0, Byte), Integer), CType(CType(120, Byte), Integer), CType(CType(215, Byte), Integer))
+        Me.s_btnEditSave.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.s_btnEditSave.ForeColor = System.Drawing.Color.White
+        Me.s_btnEditSave.Location = New System.Drawing.Point(20, 280)
+        Me.s_btnEditSave.Name = "s_btnEditSave"
+        Me.s_btnEditSave.Size = New System.Drawing.Size(260, 35)
+        Me.s_btnEditSave.TabIndex = 3
+        Me.s_btnEditSave.Text = "Save Remarks"
+        Me.s_btnEditSave.UseVisualStyleBackColor = False
+        '
+        's_btnEditClose
+        '
+        Me.s_btnEditClose.BackColor = System.Drawing.Color.Gray
+        Me.s_btnEditClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.s_btnEditClose.ForeColor = System.Drawing.Color.White
+        Me.s_btnEditClose.Location = New System.Drawing.Point(20, 325)
+        Me.s_btnEditClose.Name = "s_btnEditClose"
+        Me.s_btnEditClose.Size = New System.Drawing.Size(260, 35)
+        Me.s_btnEditClose.TabIndex = 4
+        Me.s_btnEditClose.Text = "Close"
+        Me.s_btnEditClose.UseVisualStyleBackColor = False
+        '
         's_lblTitle
         '
         Me.s_lblTitle.AutoSize = True
@@ -1828,6 +2255,53 @@ Partial Class Childform
         Me.s_lblTitle.TabIndex = 2
         Me.s_lblTitle.Text = "Stock Transactions"
         '
+        's_pnlHeader
+        '
+        Me.s_pnlHeader.BackColor = System.Drawing.Color.White
+        Me.s_pnlHeader.Controls.Add(Me.s_lblFilter)
+        Me.s_pnlHeader.Controls.Add(Me.s_cmbQuickFilter)
+        Me.s_pnlHeader.Controls.Add(Me.s_lblSearch)
+        Me.s_pnlHeader.Controls.Add(Me.s_txtSearch)
+        Me.s_pnlHeader.Dock = System.Windows.Forms.DockStyle.Top
+        Me.s_pnlHeader.Location = New System.Drawing.Point(350, 0)
+        Me.s_pnlHeader.Name = "s_pnlHeader"
+        Me.s_pnlHeader.Size = New System.Drawing.Size(1003, 50)
+        Me.s_pnlHeader.TabIndex = 3
+        '
+        's_lblFilter
+        '
+        Me.s_lblFilter.AutoSize = True
+        Me.s_lblFilter.Location = New System.Drawing.Point(20, 18)
+        Me.s_lblFilter.Name = "s_lblFilter"
+        Me.s_lblFilter.Size = New System.Drawing.Size(63, 13)
+        Me.s_lblFilter.TabIndex = 0
+        Me.s_lblFilter.Text = "Quick Filter:"
+        '
+        's_cmbQuickFilter
+        '
+        Me.s_cmbQuickFilter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.s_cmbQuickFilter.Items.AddRange(New Object() {"All", "Today", "This Week", "This Month", "Last 30 Days", "This Year"})
+        Me.s_cmbQuickFilter.Location = New System.Drawing.Point(90, 15)
+        Me.s_cmbQuickFilter.Name = "s_cmbQuickFilter"
+        Me.s_cmbQuickFilter.Size = New System.Drawing.Size(121, 21)
+        Me.s_cmbQuickFilter.TabIndex = 1
+        '
+        's_lblSearch
+        '
+        Me.s_lblSearch.AutoSize = True
+        Me.s_lblSearch.Location = New System.Drawing.Point(230, 18)
+        Me.s_lblSearch.Name = "s_lblSearch"
+        Me.s_lblSearch.Size = New System.Drawing.Size(44, 13)
+        Me.s_lblSearch.TabIndex = 2
+        Me.s_lblSearch.Text = "Search:"
+        '
+        's_txtSearch
+        '
+        Me.s_txtSearch.Location = New System.Drawing.Point(280, 15)
+        Me.s_txtSearch.Name = "s_txtSearch"
+        Me.s_txtSearch.Size = New System.Drawing.Size(200, 20)
+        Me.s_txtSearch.TabIndex = 2
+        '
         'pnlManageServiceMain
         '
         Me.pnlManageServiceMain.Controls.Add(Me.sv_dgvServices)
@@ -1836,7 +2310,7 @@ Partial Class Childform
         Me.pnlManageServiceMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlManageServiceMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlManageServiceMain.Name = "pnlManageServiceMain"
-        Me.pnlManageServiceMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlManageServiceMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlManageServiceMain.TabIndex = 7
         Me.pnlManageServiceMain.Text = "ManageService"
         Me.pnlManageServiceMain.Visible = False
@@ -1850,7 +2324,7 @@ Partial Class Childform
         Me.sv_dgvServices.Location = New System.Drawing.Point(350, 0)
         Me.sv_dgvServices.Name = "sv_dgvServices"
         Me.sv_dgvServices.RowHeadersVisible = False
-        Me.sv_dgvServices.Size = New System.Drawing.Size(506, 575)
+        Me.sv_dgvServices.Size = New System.Drawing.Size(1003, 581)
         Me.sv_dgvServices.TabIndex = 0
         '
         'sv_colID
@@ -1902,7 +2376,7 @@ Partial Class Childform
         Me.sv_pnlForm.Location = New System.Drawing.Point(0, 0)
         Me.sv_pnlForm.Name = "sv_pnlForm"
         Me.sv_pnlForm.Padding = New System.Windows.Forms.Padding(20)
-        Me.sv_pnlForm.Size = New System.Drawing.Size(350, 575)
+        Me.sv_pnlForm.Size = New System.Drawing.Size(350, 581)
         Me.sv_pnlForm.TabIndex = 1
         '
         'sv_lblType
@@ -1993,7 +2467,7 @@ Partial Class Childform
         Me.pnlAddServiceRequestMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlAddServiceRequestMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlAddServiceRequestMain.Name = "pnlAddServiceRequestMain"
-        Me.pnlAddServiceRequestMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlAddServiceRequestMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlAddServiceRequestMain.TabIndex = 8
         Me.pnlAddServiceRequestMain.Text = "AddServiceRequest"
         Me.pnlAddServiceRequestMain.Visible = False
@@ -2075,7 +2549,6 @@ Partial Class Childform
         '
         'sr_cmbExistingCust
         '
-        Me.sr_cmbExistingCust.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDown
         Me.sr_cmbExistingCust.Location = New System.Drawing.Point(20, 100)
         Me.sr_cmbExistingCust.Name = "sr_cmbExistingCust"
         Me.sr_cmbExistingCust.Size = New System.Drawing.Size(400, 21)
@@ -2286,12 +2759,13 @@ Partial Class Childform
         'pnlViewServiceRequestsMain
         '
         Me.pnlViewServiceRequestsMain.Controls.Add(Me.vr_dgvRequests)
+        Me.pnlViewServiceRequestsMain.Controls.Add(Me.vr_pnlDetail)
         Me.pnlViewServiceRequestsMain.Controls.Add(Me.vr_pnlFilter)
         Me.pnlViewServiceRequestsMain.Controls.Add(Me.vr_lblTitle)
         Me.pnlViewServiceRequestsMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlViewServiceRequestsMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlViewServiceRequestsMain.Name = "pnlViewServiceRequestsMain"
-        Me.pnlViewServiceRequestsMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlViewServiceRequestsMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlViewServiceRequestsMain.TabIndex = 9
         Me.pnlViewServiceRequestsMain.Text = "ViewServiceRequests"
         Me.pnlViewServiceRequestsMain.Visible = False
@@ -2305,7 +2779,7 @@ Partial Class Childform
         Me.vr_dgvRequests.Location = New System.Drawing.Point(0, 50)
         Me.vr_dgvRequests.Name = "vr_dgvRequests"
         Me.vr_dgvRequests.RowHeadersVisible = False
-        Me.vr_dgvRequests.Size = New System.Drawing.Size(856, 525)
+        Me.vr_dgvRequests.Size = New System.Drawing.Size(1353, 531)
         Me.vr_dgvRequests.TabIndex = 0
         '
         'vr_colReqID
@@ -2366,20 +2840,29 @@ Partial Class Childform
         '
         'vr_pnlFilter
         '
+        Me.vr_pnlFilter.Controls.Add(Me.vr_lblSearch)
         Me.vr_pnlFilter.Controls.Add(Me.vr_txtSearch)
         Me.vr_pnlFilter.Controls.Add(Me.vr_cmbFilterStatus)
         Me.vr_pnlFilter.Dock = System.Windows.Forms.DockStyle.Top
         Me.vr_pnlFilter.Location = New System.Drawing.Point(0, 0)
         Me.vr_pnlFilter.Name = "vr_pnlFilter"
         Me.vr_pnlFilter.Padding = New System.Windows.Forms.Padding(10)
-        Me.vr_pnlFilter.Size = New System.Drawing.Size(856, 50)
+        Me.vr_pnlFilter.Size = New System.Drawing.Size(1353, 50)
         Me.vr_pnlFilter.TabIndex = 1
         '
         'vr_txtSearch
         '
-        Me.vr_txtSearch.Location = New System.Drawing.Point(20, 15)
+        Me.vr_lblSearch.AutoSize = True
+        Me.vr_lblSearch.Location = New System.Drawing.Point(20, 18)
+        Me.vr_lblSearch.Name = "vr_lblSearch"
+        Me.vr_lblSearch.TabIndex = 2
+        Me.vr_lblSearch.Text = "Search:"
+        '
+        'vr_txtSearch
+        '
+        Me.vr_txtSearch.Location = New System.Drawing.Point(70, 15)
         Me.vr_txtSearch.Name = "vr_txtSearch"
-        Me.vr_txtSearch.Size = New System.Drawing.Size(300, 20)
+        Me.vr_txtSearch.Size = New System.Drawing.Size(250, 20)
         Me.vr_txtSearch.TabIndex = 0
         Me.vr_txtSearch.Text = "Search by Customer Name..."
         '
@@ -2391,6 +2874,188 @@ Partial Class Childform
         Me.vr_cmbFilterStatus.Name = "vr_cmbFilterStatus"
         Me.vr_cmbFilterStatus.Size = New System.Drawing.Size(200, 21)
         Me.vr_cmbFilterStatus.TabIndex = 1
+        '
+        'vr_pnlDetail
+        '
+        Me.vr_pnlDetail.BackColor = System.Drawing.Color.White
+        Me.vr_pnlDetail.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailTitle)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailCustHdr)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_txtDetailCust)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailDate)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailServiceHdr)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_cmbDetailService)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailStaffHdr)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_cmbDetailStaff)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailTechHdr)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_cmbDetailTech)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailAddrHdr)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_txtDetailAddress)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailSchedHdr)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_dtpDetailSched)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_lblDetailStatusHdr)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_cmbDetailStatus)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_btnDetailUpdate)
+        Me.vr_pnlDetail.Controls.Add(Me.vr_btnDetailClose)
+        Me.vr_pnlDetail.Dock = System.Windows.Forms.DockStyle.Right
+        Me.vr_pnlDetail.Name = "vr_pnlDetail"
+        Me.vr_pnlDetail.Padding = New System.Windows.Forms.Padding(20)
+        Me.vr_pnlDetail.Size = New System.Drawing.Size(350, 581)
+        Me.vr_pnlDetail.TabIndex = 10
+        Me.vr_pnlDetail.Visible = False
+        '
+        'vr_lblDetailTitle
+        '
+        Me.vr_lblDetailTitle.AutoSize = True
+        Me.vr_lblDetailTitle.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.vr_lblDetailTitle.Location = New System.Drawing.Point(20, 20)
+        Me.vr_lblDetailTitle.Name = "vr_lblDetailTitle"
+        Me.vr_lblDetailTitle.TabIndex = 0
+        Me.vr_lblDetailTitle.Text = "Request Details"
+        '
+        'vr_lblDetailCustHdr
+        '
+        Me.vr_lblDetailCustHdr.AutoSize = True
+        Me.vr_lblDetailCustHdr.Location = New System.Drawing.Point(20, 55)
+        Me.vr_lblDetailCustHdr.Name = "vr_lblDetailCustHdr"
+        Me.vr_lblDetailCustHdr.TabIndex = 1
+        Me.vr_lblDetailCustHdr.Text = "Customer Name:"
+        '
+        'vr_txtDetailCust
+        '
+        Me.vr_txtDetailCust.Location = New System.Drawing.Point(20, 72)
+        Me.vr_txtDetailCust.Name = "vr_txtDetailCust"
+        Me.vr_txtDetailCust.Size = New System.Drawing.Size(310, 20)
+        Me.vr_txtDetailCust.TabIndex = 2
+        '
+        'vr_lblDetailDate
+        '
+        Me.vr_lblDetailDate.Location = New System.Drawing.Point(20, 98)
+        Me.vr_lblDetailDate.Name = "vr_lblDetailDate"
+        Me.vr_lblDetailDate.Size = New System.Drawing.Size(310, 20)
+        Me.vr_lblDetailDate.TabIndex = 3
+        '
+        'vr_lblDetailServiceHdr
+        '
+        Me.vr_lblDetailServiceHdr.AutoSize = True
+        Me.vr_lblDetailServiceHdr.Location = New System.Drawing.Point(20, 125)
+        Me.vr_lblDetailServiceHdr.Name = "vr_lblDetailServiceHdr"
+        Me.vr_lblDetailServiceHdr.TabIndex = 4
+        Me.vr_lblDetailServiceHdr.Text = "Service:"
+        '
+        'vr_cmbDetailService
+        '
+        Me.vr_cmbDetailService.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.vr_cmbDetailService.Location = New System.Drawing.Point(20, 142)
+        Me.vr_cmbDetailService.Name = "vr_cmbDetailService"
+        Me.vr_cmbDetailService.Size = New System.Drawing.Size(310, 21)
+        Me.vr_cmbDetailService.TabIndex = 5
+        '
+        'vr_lblDetailStaffHdr
+        '
+        Me.vr_lblDetailStaffHdr.AutoSize = True
+        Me.vr_lblDetailStaffHdr.Location = New System.Drawing.Point(20, 172)
+        Me.vr_lblDetailStaffHdr.Name = "vr_lblDetailStaffHdr"
+        Me.vr_lblDetailStaffHdr.TabIndex = 6
+        Me.vr_lblDetailStaffHdr.Text = "Staff Coordinator:"
+        '
+        'vr_cmbDetailStaff
+        '
+        Me.vr_cmbDetailStaff.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.vr_cmbDetailStaff.Location = New System.Drawing.Point(20, 189)
+        Me.vr_cmbDetailStaff.Name = "vr_cmbDetailStaff"
+        Me.vr_cmbDetailStaff.Size = New System.Drawing.Size(310, 21)
+        Me.vr_cmbDetailStaff.TabIndex = 7
+        '
+        'vr_lblDetailTechHdr
+        '
+        Me.vr_lblDetailTechHdr.AutoSize = True
+        Me.vr_lblDetailTechHdr.Location = New System.Drawing.Point(20, 219)
+        Me.vr_lblDetailTechHdr.Name = "vr_lblDetailTechHdr"
+        Me.vr_lblDetailTechHdr.TabIndex = 8
+        Me.vr_lblDetailTechHdr.Text = "Technician:"
+        '
+        'vr_cmbDetailTech
+        '
+        Me.vr_cmbDetailTech.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.vr_cmbDetailTech.Location = New System.Drawing.Point(20, 236)
+        Me.vr_cmbDetailTech.Name = "vr_cmbDetailTech"
+        Me.vr_cmbDetailTech.Size = New System.Drawing.Size(310, 21)
+        Me.vr_cmbDetailTech.TabIndex = 9
+        '
+        'vr_lblDetailAddrHdr
+        '
+        Me.vr_lblDetailAddrHdr.AutoSize = True
+        Me.vr_lblDetailAddrHdr.Location = New System.Drawing.Point(20, 266)
+        Me.vr_lblDetailAddrHdr.Name = "vr_lblDetailAddrHdr"
+        Me.vr_lblDetailAddrHdr.TabIndex = 10
+        Me.vr_lblDetailAddrHdr.Text = "Service Address:"
+        '
+        'vr_txtDetailAddress
+        '
+        Me.vr_txtDetailAddress.Location = New System.Drawing.Point(20, 283)
+        Me.vr_txtDetailAddress.Multiline = True
+        Me.vr_txtDetailAddress.Name = "vr_txtDetailAddress"
+        Me.vr_txtDetailAddress.Size = New System.Drawing.Size(310, 45)
+        Me.vr_txtDetailAddress.TabIndex = 11
+        '
+        'vr_lblDetailSchedHdr
+        '
+        Me.vr_lblDetailSchedHdr.AutoSize = True
+        Me.vr_lblDetailSchedHdr.Location = New System.Drawing.Point(20, 337)
+        Me.vr_lblDetailSchedHdr.Name = "vr_lblDetailSchedHdr"
+        Me.vr_lblDetailSchedHdr.TabIndex = 12
+        Me.vr_lblDetailSchedHdr.Text = "Scheduled Date:"
+        '
+        'vr_dtpDetailSched
+        '
+        Me.vr_dtpDetailSched.Format = System.Windows.Forms.DateTimePickerFormat.[Short]
+        Me.vr_dtpDetailSched.Location = New System.Drawing.Point(20, 354)
+        Me.vr_dtpDetailSched.Name = "vr_dtpDetailSched"
+        Me.vr_dtpDetailSched.ShowCheckBox = True
+        Me.vr_dtpDetailSched.Size = New System.Drawing.Size(200, 20)
+        Me.vr_dtpDetailSched.TabIndex = 13
+        '
+        'vr_lblDetailStatusHdr
+        '
+        Me.vr_lblDetailStatusHdr.AutoSize = True
+        Me.vr_lblDetailStatusHdr.Location = New System.Drawing.Point(20, 384)
+        Me.vr_lblDetailStatusHdr.Name = "vr_lblDetailStatusHdr"
+        Me.vr_lblDetailStatusHdr.TabIndex = 14
+        Me.vr_lblDetailStatusHdr.Text = "Status:"
+        '
+        'vr_cmbDetailStatus
+        '
+        Me.vr_cmbDetailStatus.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.vr_cmbDetailStatus.Items.AddRange(New Object() {"Pending", "Scheduled", "In Progress", "Completed", "Cancelled"})
+        Me.vr_cmbDetailStatus.Location = New System.Drawing.Point(20, 401)
+        Me.vr_cmbDetailStatus.Name = "vr_cmbDetailStatus"
+        Me.vr_cmbDetailStatus.Size = New System.Drawing.Size(200, 21)
+        Me.vr_cmbDetailStatus.TabIndex = 15
+        '
+        'vr_btnDetailUpdate
+        '
+        Me.vr_btnDetailUpdate.BackColor = System.Drawing.Color.FromArgb(CType(CType(0, Byte), Integer), CType(CType(120, Byte), Integer), CType(CType(215, Byte), Integer))
+        Me.vr_btnDetailUpdate.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.vr_btnDetailUpdate.ForeColor = System.Drawing.Color.White
+        Me.vr_btnDetailUpdate.Location = New System.Drawing.Point(20, 435)
+        Me.vr_btnDetailUpdate.Name = "vr_btnDetailUpdate"
+        Me.vr_btnDetailUpdate.Size = New System.Drawing.Size(310, 35)
+        Me.vr_btnDetailUpdate.TabIndex = 16
+        Me.vr_btnDetailUpdate.Text = "Save Changes"
+        Me.vr_btnDetailUpdate.UseVisualStyleBackColor = False
+        '
+        'vr_btnDetailClose
+        '
+        Me.vr_btnDetailClose.BackColor = System.Drawing.Color.Gray
+        Me.vr_btnDetailClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.vr_btnDetailClose.ForeColor = System.Drawing.Color.White
+        Me.vr_btnDetailClose.Location = New System.Drawing.Point(20, 480)
+        Me.vr_btnDetailClose.Name = "vr_btnDetailClose"
+        Me.vr_btnDetailClose.Size = New System.Drawing.Size(310, 35)
+        Me.vr_btnDetailClose.TabIndex = 17
+        Me.vr_btnDetailClose.Text = "Close"
+        Me.vr_btnDetailClose.UseVisualStyleBackColor = False
         '
         'vr_lblTitle
         '
@@ -2410,7 +3075,7 @@ Partial Class Childform
         Me.pnlViewWarrantyMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlViewWarrantyMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlViewWarrantyMain.Name = "pnlViewWarrantyMain"
-        Me.pnlViewWarrantyMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlViewWarrantyMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlViewWarrantyMain.TabIndex = 10
         Me.pnlViewWarrantyMain.Text = "ViewWarranty"
         Me.pnlViewWarrantyMain.Visible = False
@@ -2424,7 +3089,7 @@ Partial Class Childform
         Me.wr_dgvWarranties.Location = New System.Drawing.Point(0, 50)
         Me.wr_dgvWarranties.Name = "wr_dgvWarranties"
         Me.wr_dgvWarranties.RowHeadersVisible = False
-        Me.wr_dgvWarranties.Size = New System.Drawing.Size(856, 525)
+        Me.wr_dgvWarranties.Size = New System.Drawing.Size(1353, 531)
         Me.wr_dgvWarranties.TabIndex = 0
         '
         'wr_colID
@@ -2479,7 +3144,7 @@ Partial Class Childform
         Me.wr_pnlFilter.Location = New System.Drawing.Point(0, 0)
         Me.wr_pnlFilter.Name = "wr_pnlFilter"
         Me.wr_pnlFilter.Padding = New System.Windows.Forms.Padding(10)
-        Me.wr_pnlFilter.Size = New System.Drawing.Size(856, 50)
+        Me.wr_pnlFilter.Size = New System.Drawing.Size(1353, 50)
         Me.wr_pnlFilter.TabIndex = 1
         '
         'wr_txtSearch
@@ -2516,7 +3181,7 @@ Partial Class Childform
         Me.pnlFileClaimMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlFileClaimMain.Location = New System.Drawing.Point(4, 22)
         Me.pnlFileClaimMain.Name = "pnlFileClaimMain"
-        Me.pnlFileClaimMain.Size = New System.Drawing.Size(856, 575)
+        Me.pnlFileClaimMain.Size = New System.Drawing.Size(1353, 581)
         Me.pnlFileClaimMain.TabIndex = 11
         Me.pnlFileClaimMain.Text = "FileClaim"
         Me.pnlFileClaimMain.Visible = False
@@ -2665,12 +3330,175 @@ Partial Class Childform
         Me.fc_lblTitle.TabIndex = 1
         Me.fc_lblTitle.Text = "File Warranty Claim"
         '
+        'tpStaffMain
+        '
+        Me.tpStaffMain.Location = New System.Drawing.Point(4, 22)
+        Me.tpStaffMain.Name = "tpStaffMain"
+        Me.tpStaffMain.Size = New System.Drawing.Size(1353, 581)
+        Me.tpStaffMain.TabIndex = 12
+        Me.tpStaffMain.Text = "Add Staff"
+        Me.tpStaffMain.Controls.Add(Me.pre_st_lblTitle)
+        Me.tpStaffMain.Controls.Add(Me.pre_st_pnlForm)
+        '
+        'pre_st_lblTitle
+        '
+        Me.pre_st_lblTitle.AutoSize = True
+        Me.pre_st_lblTitle.Font = New System.Drawing.Font("Segoe UI", 16.0!, System.Drawing.FontStyle.Bold)
+        Me.pre_st_lblTitle.Location = New System.Drawing.Point(20, 15)
+        Me.pre_st_lblTitle.Name = "pre_st_lblTitle"
+        Me.pre_st_lblTitle.Size = New System.Drawing.Size(307, 30)
+        Me.pre_st_lblTitle.TabIndex = 0
+        Me.pre_st_lblTitle.Text = "Add New Staff / Technician"
+        '
+        'pre_st_pnlForm
+        '
+        Me.pre_st_pnlForm.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(248, Byte), Integer))
+        Me.pre_st_pnlForm.Controls.Add(Me.pre_st_lblHint)
+        Me.pre_st_pnlForm.Location = New System.Drawing.Point(20, 55)
+        Me.pre_st_pnlForm.Name = "pre_st_pnlForm"
+        Me.pre_st_pnlForm.Size = New System.Drawing.Size(780, 470)
+        Me.pre_st_pnlForm.TabIndex = 1
+        '
+        'pre_st_lblHint
+        '
+        Me.pre_st_lblHint.AutoSize = True
+        Me.pre_st_lblHint.Font = New System.Drawing.Font("Segoe UI", 10.0!)
+        Me.pre_st_lblHint.Location = New System.Drawing.Point(20, 20)
+        Me.pre_st_lblHint.Name = "pre_st_lblHint"
+        Me.pre_st_lblHint.Size = New System.Drawing.Size(431, 19)
+        Me.pre_st_lblHint.TabIndex = 0
+        Me.pre_st_lblHint.Text = "Design preview area for Add Staff form (runtime fields load automatically)."
+        '
+        'tpSupplierMain
+        '
+        Me.tpSupplierMain.Location = New System.Drawing.Point(4, 22)
+        Me.tpSupplierMain.Name = "tpSupplierMain"
+        Me.tpSupplierMain.Size = New System.Drawing.Size(1353, 581)
+        Me.tpSupplierMain.TabIndex = 13
+        Me.tpSupplierMain.Text = "Manage Supplier"
+        Me.tpSupplierMain.Controls.Add(Me.pre_sup_lblTitle)
+        Me.tpSupplierMain.Controls.Add(Me.pre_sup_pnlForm)
+        Me.tpSupplierMain.Controls.Add(Me.pre_sup_grid)
+        '
+        'pre_sup_lblTitle
+        '
+        Me.pre_sup_lblTitle.AutoSize = True
+        Me.pre_sup_lblTitle.Font = New System.Drawing.Font("Segoe UI", 16.0!, System.Drawing.FontStyle.Bold)
+        Me.pre_sup_lblTitle.Location = New System.Drawing.Point(20, 15)
+        Me.pre_sup_lblTitle.Name = "pre_sup_lblTitle"
+        Me.pre_sup_lblTitle.Size = New System.Drawing.Size(188, 30)
+        Me.pre_sup_lblTitle.TabIndex = 0
+        Me.pre_sup_lblTitle.Text = "Manage Supplier"
+        '
+        'pre_sup_pnlForm
+        '
+        Me.pre_sup_pnlForm.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(248, Byte), Integer))
+        Me.pre_sup_pnlForm.Location = New System.Drawing.Point(20, 55)
+        Me.pre_sup_pnlForm.Name = "pre_sup_pnlForm"
+        Me.pre_sup_pnlForm.Size = New System.Drawing.Size(820, 140)
+        Me.pre_sup_pnlForm.TabIndex = 1
+        '
+        'pre_sup_grid
+        '
+        Me.pre_sup_grid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        Me.pre_sup_grid.Location = New System.Drawing.Point(20, 245)
+        Me.pre_sup_grid.Name = "pre_sup_grid"
+        Me.pre_sup_grid.Size = New System.Drawing.Size(820, 290)
+        Me.pre_sup_grid.TabIndex = 2
+        '
+        'tpReportMain
+        '
+        Me.tpReportMain.Location = New System.Drawing.Point(4, 22)
+        Me.tpReportMain.Name = "tpReportMain"
+        Me.tpReportMain.Size = New System.Drawing.Size(1353, 581)
+        Me.tpReportMain.TabIndex = 14
+        Me.tpReportMain.Text = "Sales Report"
+        Me.tpReportMain.Controls.Add(Me.pre_rpt_lblTitle)
+        Me.tpReportMain.Controls.Add(Me.pre_rpt_cmbFilter)
+        Me.tpReportMain.Controls.Add(Me.pre_rpt_lblAmount)
+        Me.tpReportMain.Controls.Add(Me.pre_rpt_grid)
+        '
+        'pre_rpt_lblTitle
+        '
+        Me.pre_rpt_lblTitle.AutoSize = True
+        Me.pre_rpt_lblTitle.Font = New System.Drawing.Font("Segoe UI", 16.0!, System.Drawing.FontStyle.Bold)
+        Me.pre_rpt_lblTitle.Location = New System.Drawing.Point(20, 15)
+        Me.pre_rpt_lblTitle.Name = "pre_rpt_lblTitle"
+        Me.pre_rpt_lblTitle.Size = New System.Drawing.Size(129, 30)
+        Me.pre_rpt_lblTitle.TabIndex = 0
+        Me.pre_rpt_lblTitle.Text = "Sales Report"
+        '
+        'pre_rpt_cmbFilter
+        '
+        Me.pre_rpt_cmbFilter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.pre_rpt_cmbFilter.FormattingEnabled = True
+        Me.pre_rpt_cmbFilter.Items.AddRange(New Object() {"Today", "This Week", "This Month", "Last 30 Days", "This Year", "All"})
+        Me.pre_rpt_cmbFilter.Location = New System.Drawing.Point(275, 60)
+        Me.pre_rpt_cmbFilter.Name = "pre_rpt_cmbFilter"
+        Me.pre_rpt_cmbFilter.Size = New System.Drawing.Size(170, 21)
+        Me.pre_rpt_cmbFilter.TabIndex = 1
+        '
+        'pre_rpt_lblAmount
+        '
+        Me.pre_rpt_lblAmount.AutoSize = True
+        Me.pre_rpt_lblAmount.Font = New System.Drawing.Font("Segoe UI", 11.0!, System.Drawing.FontStyle.Bold)
+        Me.pre_rpt_lblAmount.Location = New System.Drawing.Point(470, 60)
+        Me.pre_rpt_lblAmount.Name = "pre_rpt_lblAmount"
+        Me.pre_rpt_lblAmount.Size = New System.Drawing.Size(111, 20)
+        Me.pre_rpt_lblAmount.TabIndex = 2
+        Me.pre_rpt_lblAmount.Text = "Total: 0.00"
+        '
+        'pre_rpt_grid
+        '
+        Me.pre_rpt_grid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        Me.pre_rpt_grid.Location = New System.Drawing.Point(20, 125)
+        Me.pre_rpt_grid.Name = "pre_rpt_grid"
+        Me.pre_rpt_grid.Size = New System.Drawing.Size(820, 410)
+        Me.pre_rpt_grid.TabIndex = 3
+        '
+        'tpViewWarrantyClaimMain
+        '
+        Me.tpViewWarrantyClaimMain.Location = New System.Drawing.Point(4, 22)
+        Me.tpViewWarrantyClaimMain.Name = "tpViewWarrantyClaimMain"
+        Me.tpViewWarrantyClaimMain.Size = New System.Drawing.Size(1353, 581)
+        Me.tpViewWarrantyClaimMain.TabIndex = 15
+        Me.tpViewWarrantyClaimMain.Text = "Manage Staff"
+        Me.tpViewWarrantyClaimMain.Controls.Add(Me.pre_ms_lblTitle)
+        Me.tpViewWarrantyClaimMain.Controls.Add(Me.pre_ms_txtSearch)
+        Me.tpViewWarrantyClaimMain.Controls.Add(Me.pre_ms_grid)
+        '
+        'pre_ms_lblTitle
+        '
+        Me.pre_ms_lblTitle.AutoSize = True
+        Me.pre_ms_lblTitle.Font = New System.Drawing.Font("Segoe UI", 16.0!, System.Drawing.FontStyle.Bold)
+        Me.pre_ms_lblTitle.Location = New System.Drawing.Point(20, 15)
+        Me.pre_ms_lblTitle.Name = "pre_ms_lblTitle"
+        Me.pre_ms_lblTitle.Size = New System.Drawing.Size(247, 30)
+        Me.pre_ms_lblTitle.TabIndex = 0
+        Me.pre_ms_lblTitle.Text = "Manage Staff Technician"
+        '
+        'pre_ms_txtSearch
+        '
+        Me.pre_ms_txtSearch.Location = New System.Drawing.Point(20, 58)
+        Me.pre_ms_txtSearch.Name = "pre_ms_txtSearch"
+        Me.pre_ms_txtSearch.Size = New System.Drawing.Size(320, 20)
+        Me.pre_ms_txtSearch.TabIndex = 1
+        Me.pre_ms_txtSearch.Text = "Search by name or contact..."
+        '
+        'pre_ms_grid
+        '
+        Me.pre_ms_grid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        Me.pre_ms_grid.Location = New System.Drawing.Point(20, 90)
+        Me.pre_ms_grid.Name = "pre_ms_grid"
+        Me.pre_ms_grid.Size = New System.Drawing.Size(820, 440)
+        Me.pre_ms_grid.TabIndex = 2
+        '
         'Childform
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(245, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(248, Byte), Integer))
-        Me.ClientSize = New System.Drawing.Size(864, 601)
+        Me.ClientSize = New System.Drawing.Size(1361, 607)
         Me.Controls.Add(Me.tcMain)
         Me.Name = "Childform"
         Me.Text = "Midea Pro Shop"
@@ -2770,10 +3598,12 @@ Partial Class Childform
     Friend WithEvents o_dgvProducts As System.Windows.Forms.DataGridView
     Friend WithEvents o_colProductID As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents o_colProductName As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents o_colBrand As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents o_colDesc As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents o_colPrice As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents o_colStock As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents o_colActionAdd As System.Windows.Forms.DataGridViewButtonColumn
+    Friend WithEvents o_colActionRemove As System.Windows.Forms.DataGridViewButtonColumn
     Friend WithEvents o_pnlCart As System.Windows.Forms.Panel
     Friend WithEvents o_lblCartTitle As System.Windows.Forms.Label
     Friend WithEvents o_flpCartItems As System.Windows.Forms.FlowLayoutPanel
@@ -2789,6 +3619,8 @@ Partial Class Childform
     Friend WithEvents o_lblCustomerSelectTitle As System.Windows.Forms.Label
     Friend WithEvents o_optExistingCustomer As System.Windows.Forms.RadioButton
     Friend WithEvents o_cmbExistingCustomer As System.Windows.Forms.ComboBox
+    Friend WithEvents o_lblAssignStaff As System.Windows.Forms.Label
+    Friend WithEvents o_cmbAssignStaff As System.Windows.Forms.ComboBox
     Friend WithEvents o_optNewCustomer As System.Windows.Forms.RadioButton
     Friend WithEvents o_pnlNewCustomer As System.Windows.Forms.Panel
     Friend WithEvents o_lblCustName As System.Windows.Forms.Label
@@ -2813,9 +3645,24 @@ Partial Class Childform
     Friend WithEvents v_colReceipt As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents v_colDate As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents v_colCustomer As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents v_colStaff As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents v_colProducts As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents v_colTotalAmount As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents v_colActionEdit As System.Windows.Forms.DataGridViewButtonColumn
     Friend WithEvents v_colActionDelete As System.Windows.Forms.DataGridViewButtonColumn
+    Friend WithEvents v_colActionPrint As System.Windows.Forms.DataGridViewButtonColumn
+    Friend WithEvents v_lblSearch As System.Windows.Forms.Label
+    Friend WithEvents v_txtSearch As System.Windows.Forms.TextBox
+    Friend WithEvents v_pnlDetailForm As System.Windows.Forms.Panel
+    Friend WithEvents v_lblDetailTitle As System.Windows.Forms.Label
+    Friend WithEvents v_lblDetailReceipt As System.Windows.Forms.Label
+    Friend WithEvents v_lblDetailCustomer As System.Windows.Forms.Label
+    Friend WithEvents v_lblDetailStaff As System.Windows.Forms.Label
+    Friend WithEvents v_lblDetailDate As System.Windows.Forms.Label
+    Friend WithEvents v_lblDetailProducts As System.Windows.Forms.Label
+    Friend WithEvents v_lblDetailTotal As System.Windows.Forms.Label
+    Friend WithEvents v_btnDetailEdit As System.Windows.Forms.Button
+    Friend WithEvents v_btnDetailClose As System.Windows.Forms.Button
 
     Friend WithEvents pnlAddProductMain As System.Windows.Forms.TabPage
     Friend WithEvents a_lblTitle As System.Windows.Forms.Label
@@ -2825,7 +3672,9 @@ Partial Class Childform
     Friend WithEvents a_lblProdName As System.Windows.Forms.Label
     Friend WithEvents a_txtProdName As System.Windows.Forms.TextBox
     Friend WithEvents a_lblProdBrand As System.Windows.Forms.Label
-    Friend WithEvents a_txtProdBrand As System.Windows.Forms.TextBox
+    Friend WithEvents a_cmbBrand As System.Windows.Forms.ComboBox
+    Friend WithEvents a_chkNewBrand As System.Windows.Forms.CheckBox
+    Friend WithEvents a_txtNewBrand As System.Windows.Forms.TextBox
     Friend WithEvents a_lblProdDesc As System.Windows.Forms.Label
     Friend WithEvents a_txtProdDesc As System.Windows.Forms.TextBox
     Friend WithEvents a_lblCategory As System.Windows.Forms.Label
@@ -2857,6 +3706,7 @@ Partial Class Childform
     Friend WithEvents m_colDesc As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents m_colPrice As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents m_colStock As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents m_colReorder As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents m_colActionEdit As System.Windows.Forms.DataGridViewButtonColumn
     Friend WithEvents m_colActionDelete As System.Windows.Forms.DataGridViewButtonColumn
     Friend WithEvents m_pnlEditProduct As System.Windows.Forms.Panel
@@ -2901,6 +3751,24 @@ Partial Class Childform
     Friend WithEvents s_lblRemarks As System.Windows.Forms.Label
     Friend WithEvents s_txtRemarks As System.Windows.Forms.TextBox
     Friend WithEvents s_btnSave As System.Windows.Forms.Button
+    Friend WithEvents s_pnlEditForm As System.Windows.Forms.Panel
+    Friend WithEvents s_lblEditTransTitle As System.Windows.Forms.Label
+    Friend WithEvents s_lblEditProduct As System.Windows.Forms.Label
+    Friend WithEvents s_cmbEditProduct As System.Windows.Forms.ComboBox
+    Friend WithEvents s_lblEditDate As System.Windows.Forms.Label
+    Friend WithEvents s_lblEditType As System.Windows.Forms.Label
+    Friend WithEvents s_cmbEditType As System.Windows.Forms.ComboBox
+    Friend WithEvents s_lblEditQty As System.Windows.Forms.Label
+    Friend WithEvents s_numEditQuantity As System.Windows.Forms.NumericUpDown
+    Friend WithEvents s_lblEditRemarks As System.Windows.Forms.Label
+    Friend WithEvents s_txtEditRemarks As System.Windows.Forms.TextBox
+    Friend WithEvents s_btnEditSave As System.Windows.Forms.Button
+    Friend WithEvents s_btnEditClose As System.Windows.Forms.Button
+    Friend WithEvents s_pnlHeader As System.Windows.Forms.Panel
+    Friend WithEvents s_lblFilter As System.Windows.Forms.Label
+    Friend WithEvents s_cmbQuickFilter As System.Windows.Forms.ComboBox
+    Friend WithEvents s_lblSearch As System.Windows.Forms.Label
+    Friend WithEvents s_txtSearch As System.Windows.Forms.TextBox
     Friend WithEvents s_dgvHistory As System.Windows.Forms.DataGridView
     Friend WithEvents s_colTransID As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents s_colProduct As System.Windows.Forms.DataGridViewTextBoxColumn
@@ -2908,6 +3776,8 @@ Partial Class Childform
     Friend WithEvents s_colQty As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents s_colDate As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents s_colRemarks As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents s_colActionEdit As System.Windows.Forms.DataGridViewButtonColumn
+    Friend WithEvents s_colActionDelete As System.Windows.Forms.DataGridViewButtonColumn
 
     Friend WithEvents pnlManageServiceMain As System.Windows.Forms.TabPage
     Friend WithEvents sv_lblTitle As System.Windows.Forms.Label
@@ -2974,6 +3844,26 @@ Partial Class Childform
     Friend WithEvents vr_colStatus As System.Windows.Forms.DataGridViewTextBoxColumn
     Friend WithEvents vr_colActionUpdate As System.Windows.Forms.DataGridViewButtonColumn
     Friend WithEvents vr_colActionDelete As System.Windows.Forms.DataGridViewButtonColumn
+    Friend WithEvents vr_lblSearch As System.Windows.Forms.Label
+    Friend WithEvents vr_pnlDetail As System.Windows.Forms.Panel
+    Friend WithEvents vr_lblDetailTitle As System.Windows.Forms.Label
+    Friend WithEvents vr_lblDetailCustHdr As System.Windows.Forms.Label
+    Friend WithEvents vr_txtDetailCust As System.Windows.Forms.TextBox
+    Friend WithEvents vr_lblDetailDate As System.Windows.Forms.Label
+    Friend WithEvents vr_lblDetailServiceHdr As System.Windows.Forms.Label
+    Friend WithEvents vr_cmbDetailService As System.Windows.Forms.ComboBox
+    Friend WithEvents vr_lblDetailStaffHdr As System.Windows.Forms.Label
+    Friend WithEvents vr_cmbDetailStaff As System.Windows.Forms.ComboBox
+    Friend WithEvents vr_lblDetailTechHdr As System.Windows.Forms.Label
+    Friend WithEvents vr_cmbDetailTech As System.Windows.Forms.ComboBox
+    Friend WithEvents vr_lblDetailAddrHdr As System.Windows.Forms.Label
+    Friend WithEvents vr_txtDetailAddress As System.Windows.Forms.TextBox
+    Friend WithEvents vr_lblDetailSchedHdr As System.Windows.Forms.Label
+    Friend WithEvents vr_dtpDetailSched As System.Windows.Forms.DateTimePicker
+    Friend WithEvents vr_lblDetailStatusHdr As System.Windows.Forms.Label
+    Friend WithEvents vr_cmbDetailStatus As System.Windows.Forms.ComboBox
+    Friend WithEvents vr_btnDetailUpdate As System.Windows.Forms.Button
+    Friend WithEvents vr_btnDetailClose As System.Windows.Forms.Button
     Friend WithEvents pnlViewWarrantyMain As System.Windows.Forms.TabPage
     Friend WithEvents wr_lblTitle As System.Windows.Forms.Label
     Friend WithEvents wr_pnlFilter As System.Windows.Forms.Panel
@@ -3006,8 +3896,26 @@ Partial Class Childform
     Friend WithEvents fc_txtIssue As System.Windows.Forms.TextBox
     Friend WithEvents fc_btnSubmit As System.Windows.Forms.Button
 
+        Friend WithEvents tpStaffMain As System.Windows.Forms.TabPage
+    Friend WithEvents tpSupplierMain As System.Windows.Forms.TabPage
+    Friend WithEvents tpReportMain As System.Windows.Forms.TabPage
+    Friend WithEvents tpViewWarrantyClaimMain As System.Windows.Forms.TabPage
+    Friend WithEvents pre_st_lblTitle As System.Windows.Forms.Label
+    Friend WithEvents pre_st_pnlForm As System.Windows.Forms.Panel
+    Friend WithEvents pre_st_lblHint As System.Windows.Forms.Label
+    Friend WithEvents pre_ms_lblTitle As System.Windows.Forms.Label
+    Friend WithEvents pre_ms_txtSearch As System.Windows.Forms.TextBox
+    Friend WithEvents pre_ms_grid As System.Windows.Forms.DataGridView
+    Friend WithEvents pre_sup_lblTitle As System.Windows.Forms.Label
+    Friend WithEvents pre_sup_pnlForm As System.Windows.Forms.Panel
+    Friend WithEvents pre_sup_grid As System.Windows.Forms.DataGridView
+    Friend WithEvents pre_rpt_lblTitle As System.Windows.Forms.Label
+    Friend WithEvents pre_rpt_cmbFilter As System.Windows.Forms.ComboBox
+    Friend WithEvents pre_rpt_lblAmount As System.Windows.Forms.Label
+    Friend WithEvents pre_rpt_grid As System.Windows.Forms.DataGridView
     Friend WithEvents tcMain As System.Windows.Forms.TabControl
 End Class
+
 
 
 
