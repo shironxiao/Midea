@@ -1,0 +1,138 @@
+﻿Follow this architecture strictly based on existing MDI + Childform + TabControl system:
+
+────────────────────────────
+🔒 CORE STRUCTURE (KEEP THIS)
+────────────────────────────
+
+1. Use ONLY ONE Childform instance
+
+   * Managed by MDIMainForm
+   * Reuse _dashboardForm (DO NOT create new forms)
+
+2. Use TabControl (tcMain) for navigation
+
+   * Switching tabs is allowed
+   * Example:
+     tcMain.SelectedTab = pnlOrderMain
+
+────────────────────────────
+🚫 CURRENT PROBLEM TO FIX
+────────────────────────────
+
+3. DO NOT build full UI logic inside each tab
+
+   * Avoid large methods like:
+     O_LoadProducts()
+     V_LoadOrders()
+     SR_LoadRequests()
+
+4. DO NOT treat each tab as a separate system
+
+   * Tabs should NOT contain duplicated UI logic
+
+────────────────────────────
+✅ REQUIRED FIX (IMPORTANT)
+────────────────────────────
+
+5. Each TabPage must act ONLY as a container
+
+   * No heavy UI logic inside tabs
+   * No repeated DataGridView setup
+
+6. Create reusable UserControls for modules:
+
+   * ucOrderPanel
+   * ucProductPanel
+   * ucSupplierPanel
+   * ucServicePanel
+
+7. Move ALL module logic into UserControls
+
+   * Example:
+     O_LoadProducts → inside ucOrderPanel
+     V_LoadOrders → inside ucViewOrdersPanel
+
+────────────────────────────
+🔄 TAB LOADING RULE
+────────────────────────────
+
+8. NEVER design UI directly inside TabPage
+
+9. ALWAYS load UserControl dynamically:
+
+   tab.Controls.Clear()
+   Dim panel As New ucOrderPanel()
+   panel.Dock = DockStyle.Fill
+   tab.Controls.Add(panel)
+
+────────────────────────────
+🧠 LOGIC SEPARATION (VERY IMPORTANT)
+────────────────────────────
+
+10. Childform responsibilities:
+
+    * Navigation only
+    * Tab switching only
+
+11. UserControl responsibilities:
+
+    * UI design
+    * Data loading
+    * Event handling
+
+12. Database logic:
+
+    * Can stay in module methods
+    * But must NOT stay in Childform
+
+────────────────────────────
+🔁 REUSE STRATEGY
+────────────────────────────
+
+13. DO NOT duplicate:
+
+    * DataGridViews
+    * Buttons
+    * Layouts
+
+14. Reuse UI patterns:
+
+    * One design → multiple data sources
+
+15. If layouts are similar:
+
+    * Use ONE base UserControl (ucBasePanel)
+    * Extend or configure it
+
+────────────────────────────
+⚠️ TRANSITION RULE (FOR YOUR CURRENT SYSTEM)
+────────────────────────────
+
+16. You are allowed to KEEP existing tabs temporarily
+
+17. Gradually refactor:
+    Step 1 → Pick ONE module (e.g. Orders)
+    Step 2 → Convert it into UserControl
+    Step 3 → Load it into TabPage
+    Step 4 → Remove old tab UI
+
+18. DO NOT rewrite everything at once
+
+────────────────────────────
+🏗️ FINAL TARGET STRUCTURE
+────────────────────────────
+
+MDIMainForm
+└── Childform (ONLY ONE)
+└── TabControl (tcMain)
+└── TabPage (EMPTY)
+└── UserControl (dynamic)
+
+────────────────────────────
+🎯 GOAL
+────────────────────────────
+
+* Remove duplicated UI logic from Childform
+* Convert system into modular components
+* Maintain your current navigation system
+* Improve maintainability and scalability

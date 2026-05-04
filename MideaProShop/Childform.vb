@@ -7,15 +7,112 @@ Public Class Childform
 
     ' Uses global conn and OpenConnection from MideaProShopModule
     Private _isLoadingSrCustomers As Boolean = False
-    Private dashInsightsPanel As Panel
-    Private dashRecentGrid As DataGridView
     Private dashInsightLabels As New Dictionary(Of String, Label)
-    Private dashActivityTypeFilter As ComboBox
-    Private dashActivityDateFilter As ComboBox
     Private v_cmbQuickFilter As ComboBox
     Private v_btnRefresh As Button
     Private l_btnRefresh As Button
     Private _orderAddressColumn As String = ""
+
+    ' ==============================
+    ' PHILIPPINE PHONE FORMAT HELPERS
+    ' ==============================
+    Private Const EM_SETCUEBANNER As Integer = &H1501
+    <System.Runtime.InteropServices.DllImport("user32.dll", CharSet:=System.Runtime.InteropServices.CharSet.Auto)>
+    Private Shared Function SendMessage(ByVal hWnd As IntPtr, ByVal msg As Integer, ByVal wParam As Integer, <System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)> ByVal lParam As String) As IntPtr
+    End Function
+
+    ''' <summary>
+    ''' Sets a native Windows placeholder (cue banner) on a TextBox.
+    ''' </summary>
+    Public Sub SetPlaceholder(txt As TextBox, text As String)
+        SendMessage(txt.Handle, EM_SETCUEBANNER, 0, text)
+    End Sub
+
+    ''' <summary>
+    ''' Applies Philippine phone number formatting to a TextBox.
+    ''' Restricts input to digits only, max 11 characters (09XXXXXXXXX).
+    ''' On Leave, auto-formats to +63 9XXXXXXXXX.
+    ''' </summary>
+    Private Sub ApplyPhoneFormat(txt As TextBox)
+        txt.MaxLength = 16
+        txt.Text = ""
+        Dim dummy = txt.Handle ' Force handle creation for placeholder
+        SetPlaceholder(txt, "+639000000000")
+
+        AddHandler txt.KeyPress, Sub(s As Object, ev As KeyPressEventArgs)
+                                     Dim tb = DirectCast(s, TextBox)
+                                     ' Allow only digits and control keys (backspace, etc.)
+                                     If Not Char.IsDigit(ev.KeyChar) AndAlso Not Char.IsControl(ev.KeyChar) Then
+                                         ev.Handled = True
+                                     ElseIf Char.IsDigit(ev.KeyChar) AndAlso tb.Text.Length >= 11 AndAlso tb.SelectionLength = 0 Then
+                                         ev.Handled = True
+                                     End If
+                                 End Sub
+
+        AddHandler txt.Leave, Sub(s As Object, ev As EventArgs)
+                                  Dim tb = DirectCast(s, TextBox)
+                                  Dim raw = tb.Text.Trim()
+                                  If String.IsNullOrEmpty(raw) Then Return
+                                  tb.Text = FormatPhilippineNumber(raw)
+                              End Sub
+
+        AddHandler txt.Enter, Sub(s As Object, ev As EventArgs)
+                                  Dim tb = DirectCast(s, TextBox)
+                                  ' Strip +63 prefix when entering for editing
+                                  Dim raw = tb.Text.Replace("+63", "").Replace(" ", "").Trim()
+                                  If raw.Length > 0 AndAlso Not raw.StartsWith("0") Then
+                                      raw = "0" & raw
+                                  End If
+                                  tb.Text = raw
+                              End Sub
+    End Sub
+
+    ''' <summary>
+    ''' Formats a raw Philippine number (e.g. 09171234567) to +63 917 123 4567.
+    ''' </summary>
+    Private Function FormatPhilippineNumber(raw As String) As String
+        ' Strip any non-digit characters
+        Dim digits As String = New String(raw.Where(Function(c) Char.IsDigit(c)).ToArray())
+
+        ' If starts with 0, remove it for +63 format
+        If digits.StartsWith("0") AndAlso digits.Length = 11 Then
+            digits = digits.Substring(1) ' now 10 digits
+        End If
+
+        ' If it's 10 digits (without leading 0), format as +63 XXX XXX XXXX
+        If digits.Length = 10 Then
+            Return "+63 " & digits.Substring(0, 3) & " " & digits.Substring(3, 3) & " " & digits.Substring(6, 4)
+        End If
+
+        ' If it's 9 digits (already stripped 0), format as +63 XXX XXX XXXX
+        ' by padding - but this shouldn't normally happen
+        Return "+63 " & digits
+    End Function
+
+    ''' <summary>
+    ''' Validates that a contact number field contains a valid 11-digit Philippine number.
+    ''' Returns True if valid, False otherwise.
+    ''' </summary>
+    Private Function ValidatePhilippineNumber(txt As TextBox, fieldName As String) As Boolean
+        Dim raw = txt.Text.Replace("+63", "").Replace(" ", "").Trim()
+        If raw.StartsWith("0") Then raw = raw.Substring(1)
+        Dim digits = New String(raw.Where(Function(c) Char.IsDigit(c)).ToArray())
+        If digits.Length <> 10 Then
+            MessageBox.Show(fieldName & " must be a valid 11-digit Philippine number (e.g. 09171234567).",
+                          "Invalid Phone Number", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            txt.Focus()
+            Return False
+        End If
+        Return True
+    End Function
+
+    ''' <summary>
+    ''' Gets the raw digits from a formatted phone field for database storage.
+    ''' Returns the +63 format string for storage.
+    ''' </summary>
+    Private Function GetPhoneForStorage(txt As TextBox) As String
+        Return FormatPhilippineNumber(txt.Text)
+    End Function
 
     ' ==============================
     ' CHILDFORM CORE
@@ -32,7 +129,7 @@ Public Class Childform
         Try
             ST_EnsureTabs()
             SUP_InitializeTabIfNeeded()
-            RPT_EnsureSalesReportTab()
+
         Catch
             ' Keep the WinForms designer usable even if a preview tab fails to build.
         End Try
@@ -48,11 +145,16 @@ Public Class Childform
         o_colActionAdd.DefaultCellStyle.ForeColor = Color.Black
         o_colActionRemove.DefaultCellStyle.BackColor = Color.White
         o_colActionRemove.DefaultCellStyle.ForeColor = Color.Black
-        
+
         HideAllPanels()
         V_InitializeHeaderControls()
         WireDashboardCardClicks()
-        BuildDashboardExtraContent()
+
+        ' Apply Philippine phone format to all contact fields
+        ApplyPhoneFormat(o_txtCustContact)
+        ApplyPhoneFormat(a_txtSupContact)
+        ApplyPhoneFormat(sr_txtCustContact)
+
         ' Initialize logic for all modules
         O_LoadCategories()
         O_LoadProducts("")
@@ -87,10 +189,7 @@ Public Class Childform
     End Sub
 
     Private Sub WireDashboardCardClicks()
-        AttachCardNavigation(pnlCard1, Sub()
-                                           ' Navigate to Sales Report when clicking "Total Sales"
-                                           RPT_ShowSalesReport()
-                                       End Sub)
+        AttachCardNavigation(pnlCard1, Sub() RPT_ShowSalesReport())
         AttachCardNavigation(pnlCard2, Sub()
                                            tcMain.SelectedTab = pnlViewOrdersMain
                                            V_LoadOrders()
@@ -102,6 +201,45 @@ Public Class Childform
         AttachCardNavigation(pnlCard4, Sub()
                                            VC_ShowWarrantyClaims()
                                        End Sub)
+
+        ' Extra Content click handlers
+        dashInsightLabels("Active Warranties") = dashLblWarrantiesValue
+        dashInsightLabels("Low Stock Items") = dashLblStockValue
+        dashInsightLabels("Active Technicians") = dashLblTechsValue
+        dashInsightLabels("Suppliers") = dashLblSuppliersValue
+
+        Dim map As New Dictionary(Of Panel, Action) From {
+            {dashCardWarranties, Sub()
+                                     tcMain.SelectedTab = pnlViewWarrantyMain
+                                     If wr_cmbFilterStatus IsNot Nothing Then wr_cmbFilterStatus.SelectedIndex = 1
+                                     WR_LoadWarranties()
+                                 End Sub},
+            {dashCardStock, Sub()
+                                tcMain.SelectedTab = pnlLowStockMain
+                                L_LoadAlerts("")
+                            End Sub},
+            {dashCardTechs, Sub()
+                                ST_ShowManageStaff()
+                                If st_cmbFilter IsNot Nothing Then
+                                    st_cmbFilter.SelectedItem = "Technicians Only"
+                                    ST_LoadStaffGrid()
+                                End If
+                            End Sub},
+            {dashCardSuppliers, Sub() SUP_ShowManageSupplier()}
+        }
+
+        For Each kvp In map
+            AttachCardNavigation(kvp.Key, kvp.Value)
+        Next
+
+        dashActivityTypeFilter.SelectedIndex = 0
+        dashActivityDateFilter.SelectedIndex = 0
+        AddHandler dashActivityTypeFilter.SelectedIndexChanged, Sub() LoadDashboardRecentActivity()
+        AddHandler dashActivityDateFilter.SelectedIndexChanged, Sub() LoadDashboardRecentActivity()
+
+        AddHandler rptSales_btnRefresh.Click, Sub() RPT_LoadSalesReport()
+        AddHandler rptSales_btnExport.Click, AddressOf RPT_ExportSalesReport_Click
+        AddHandler pre_rpt_cmbFilter.SelectedIndexChanged, Sub() RPT_LoadSalesReport()
     End Sub
 
     Private Sub AttachCardNavigation(card As Control, action As Action)
@@ -113,119 +251,8 @@ Public Class Childform
         Next
     End Sub
 
-    Private Sub BuildDashboardExtraContent()
-        If dashInsightsPanel IsNot Nothing Then Return
 
-        dashInsightsPanel = New Panel() With {
-            .Dock = DockStyle.Top,
-            .Height = 90,
-            .BackColor = Color.White,
-            .Padding = New Padding(20, 10, 20, 10)
-        }
-        pnlDashboardMain.Controls.Add(dashInsightsPanel)
-        dashInsightsPanel.BringToFront()
 
-        Dim keys As String() = {"Active Warranties", "Low Stock Items", "Active Technicians", "Suppliers"}
-        For i As Integer = 0 To keys.Length - 1
-            Dim x = 10 + (i * 200)
-            Dim cardKey = keys(i) ' prevent closure issues in click handlers
-            Dim card As New Panel() With {.Location = New Point(x, 8), .Size = New Size(185, 68), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
-            Dim lblTitle As New Label() With {
-                .Text = cardKey,
-                .Location = New Point(10, 8),
-                .Size = New Size(165, 18),
-                .AutoSize = False,
-                .TextAlign = ContentAlignment.MiddleCenter,
-                .ForeColor = Color.FromArgb(70, 70, 70)
-            }
-            ' Alignment fix: center the numeric value inside the card.
-            Dim lblValue As New Label() With {
-                .Text = "0",
-                .Location = New Point(10, 30),
-                .Size = New Size(165, 28),
-                .AutoSize = False,
-                .TextAlign = ContentAlignment.MiddleCenter,
-                .Font = New Font("Segoe UI", 12, FontStyle.Bold),
-                .ForeColor = Color.FromArgb(30, 30, 30)
-            }
-            card.Controls.Add(lblTitle)
-            card.Controls.Add(lblValue)
-            dashInsightsPanel.Controls.Add(card)
-            dashInsightLabels(keys(i)) = lblValue
-
-            ' Make the 2nd-row dashboard cards clickable.
-            card.Cursor = Cursors.Hand
-            lblTitle.Cursor = Cursors.Hand
-            lblValue.Cursor = Cursors.Hand
-
-            Dim dashAction As Action = Sub()
-                                           ' default no-op (keeps handler safe if key mapping changes)
-                                       End Sub
-            Select Case cardKey
-                Case "Active Warranties"
-                    dashAction = Sub()
-                                      tcMain.SelectedTab = pnlViewWarrantyMain
-                                      If wr_cmbFilterStatus IsNot Nothing Then wr_cmbFilterStatus.SelectedIndex = 1 ' Active
-                                      WR_LoadWarranties()
-                                  End Sub
-                Case "Low Stock Items"
-                    dashAction = Sub()
-                                      tcMain.SelectedTab = pnlLowStockMain
-                                      L_LoadAlerts("")
-                                  End Sub
-                Case "Active Technicians"
-                    dashAction = Sub()
-                                      ST_ShowManageStaff()
-                                      If st_cmbFilter IsNot Nothing Then
-                                          st_cmbFilter.SelectedItem = "Technicians Only"
-                                          ST_LoadStaffGrid()
-                                      End If
-                                  End Sub
-                Case "Suppliers"
-                    dashAction = Sub()
-                                      SUP_ShowManageSupplier()
-                                  End Sub
-            End Select
-
-            AddHandler card.Click, Sub() dashAction()
-            AddHandler lblTitle.Click, Sub() dashAction()
-            AddHandler lblValue.Click, Sub() dashAction()
-        Next
-
-        Dim pnlRecentWrap As New Panel() With {.Dock = DockStyle.Fill, .BackColor = Color.White, .Padding = New Padding(20, 10, 20, 20)}
-        Dim lblRecent As New Label() With {.Text = "Recent Activity", .Dock = DockStyle.Top, .Height = 28, .Font = New Font("Segoe UI", 12, FontStyle.Bold), .ForeColor = Color.FromArgb(40, 40, 40)}
-        Dim pnlRecentFilters As New Panel() With {.Dock = DockStyle.Top, .Height = 34}
-        dashActivityTypeFilter = New ComboBox() With {.Location = New Point(0, 4), .Size = New Size(170, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
-        dashActivityTypeFilter.Items.AddRange(New String() {"All Activities", "Order", "Service Request", "Warranty Claim"})
-        dashActivityTypeFilter.SelectedIndex = 0
-        AddHandler dashActivityTypeFilter.SelectedIndexChanged, Sub() LoadDashboardRecentActivity()
-        pnlRecentFilters.Controls.Add(dashActivityTypeFilter)
-
-        dashActivityDateFilter = New ComboBox() With {.Location = New Point(180, 4), .Size = New Size(150, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
-        dashActivityDateFilter.Items.AddRange(New String() {"Last 7 Days", "This Month", "This Year", "All"})
-        dashActivityDateFilter.SelectedIndex = 0
-        AddHandler dashActivityDateFilter.SelectedIndexChanged, Sub() LoadDashboardRecentActivity()
-        pnlRecentFilters.Controls.Add(dashActivityDateFilter)
-
-        dashRecentGrid = New DataGridView() With {
-            .Dock = DockStyle.Fill,
-            .AllowUserToAddRows = False,
-            .AllowUserToDeleteRows = False,
-            .ReadOnly = True,
-            .SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            .RowHeadersVisible = False,
-            .BackgroundColor = Color.White
-        }
-        dashRecentGrid.Columns.Add("dash_colType", "Type")
-        dashRecentGrid.Columns.Add("dash_colInfo", "Details")
-        dashRecentGrid.Columns.Add("dash_colDate", "Date")
-        pnlRecentWrap.Controls.Add(dashRecentGrid)
-        pnlRecentWrap.Controls.Add(pnlRecentFilters)
-        pnlRecentWrap.Controls.Add(lblRecent)
-        pnlDashboardMain.Controls.Add(pnlRecentWrap)
-        pnlRecentWrap.BringToFront()
-    End Sub
 
     Private Sub ConfigureDashboardStyle()
         Dim cards = New Panel() {pnlCard1, pnlCard2, pnlCard3, pnlCard4}
@@ -606,7 +633,7 @@ Public Class Childform
                     If o_optNewCustomer.Checked Then
                         Using cmdCust As New MySqlCommand("INSERT INTO CUSTOMER (Full_Name, Contact_Number, Home_Address) VALUES (@name, @contact, @address)", conn, transaction)
                             cmdCust.Parameters.AddWithValue("@name", o_txtCustName.Text)
-                            cmdCust.Parameters.AddWithValue("@contact", o_txtCustContact.Text)
+                            cmdCust.Parameters.AddWithValue("@contact", GetPhoneForStorage(o_txtCustContact))
                             cmdCust.Parameters.AddWithValue("@address", o_txtCustAddress.Text)
                             cmdCust.ExecuteNonQuery()
                             customerId = Convert.ToInt32(cmdCust.LastInsertedId)
@@ -1239,7 +1266,7 @@ Public Class Childform
         _currentPrintPurchaseId = purchaseId
         Dim pd As New System.Drawing.Printing.PrintDocument()
         AddHandler pd.PrintPage, AddressOf pd_PrintPage
-        
+
         Dim ppd As New PrintPreviewDialog()
         ppd.Document = pd
         ppd.Width = 400
@@ -1254,7 +1281,7 @@ Public Class Childform
             Dim pDate As DateTime = DateTime.Now
             Dim custName As String = ""
             Dim staffName As String = ""
-            
+
             Using cmdPurch As New MySqlCommand("SELECT p.Receipt_Number, p.Purchase_Date, c.Full_Name, IFNULL(s.Full_Name, 'None') FROM PURCHASE p JOIN CUSTOMER c ON p.Customer_ID = c.Customer_ID LEFT JOIN STAFF s ON p.Staff_ID = s.Staff_ID WHERE p.Purchase_ID = @pid", conn)
                 cmdPurch.Parameters.AddWithValue("@pid", _currentPrintPurchaseId)
                 Using reader = cmdPurch.ExecuteReader()
@@ -1306,12 +1333,12 @@ Public Class Childform
             offset += 20
             g.DrawString("--------------------------------", fRegular, brush, startX, startY + offset)
             offset += 20
-            
+
             For Each itm In items
                 g.DrawString(itm, fRegular, brush, startX, startY + offset)
                 offset += 20
             Next
-            
+
             g.DrawString("--------------------------------", fRegular, brush, startX, startY + offset)
             offset += 20
             g.DrawString("TOTAL: ₱" & totalAmount.ToString("N2"), fBold, brush, startX, startY + offset)
@@ -1384,7 +1411,7 @@ Public Class Childform
                     If a_optNewSupplier.Checked Then
                         Using cmdSup As New MySqlCommand("INSERT INTO SUPPLIER (Supplier_Name, Contact_Number, Address) VALUES (@name, @contact, @address)", conn, transaction)
                             cmdSup.Parameters.AddWithValue("@name", a_txtSupName.Text)
-                            cmdSup.Parameters.AddWithValue("@contact", a_txtSupContact.Text)
+                            cmdSup.Parameters.AddWithValue("@contact", GetPhoneForStorage(a_txtSupContact))
                             cmdSup.Parameters.AddWithValue("@address", a_txtSupAddress.Text)
                             cmdSup.ExecuteNonQuery()
                             supplierId = Convert.ToInt32(cmdSup.LastInsertedId)
@@ -1699,6 +1726,7 @@ Public Class Childform
             ' (The form uses fixed pixel offsets, so small misalignment becomes visible at runtime.)
             Dim lblSupContact As New Label() With {.Text = "Contact Number", .Location = New Point(280, newSupBaseY + 64), .AutoSize = True}
             Dim txtSupContact As New TextBox() With {.Location = New Point(280, newSupBaseY + 80), .Size = New Size(240, 24)}
+            ApplyPhoneFormat(txtSupContact)
             Dim lblSupAddress As New Label() With {.Text = "Warehouse Address", .Location = New Point(280, newSupBaseY + 104), .AutoSize = True}
             Dim txtSupAddress As New TextBox() With {.Location = New Point(280, newSupBaseY + 120), .Size = New Size(240, 24)}
 
@@ -1741,7 +1769,7 @@ Public Class Childform
                     Dim addrCol = SUP_GetAddressColumnName()
                     Using cmd As New MySqlCommand($"INSERT INTO SUPPLIER (Supplier_Name, Contact_Number, {addrCol}) VALUES (@n, @c, @a)", conn)
                         cmd.Parameters.AddWithValue("@n", txtSupName.Text.Trim())
-                        cmd.Parameters.AddWithValue("@c", txtSupContact.Text.Trim())
+                        cmd.Parameters.AddWithValue("@c", GetPhoneForStorage(txtSupContact))
                         cmd.Parameters.AddWithValue("@a", txtSupAddress.Text.Trim())
                         cmd.ExecuteNonQuery()
                         finalSupplierId = Convert.ToInt32(cmd.LastInsertedId)
@@ -2306,7 +2334,7 @@ Public Class Childform
 
         Try
             OpenConnection()
-            
+
             s_cmbEditProduct.Items.Clear()
             Using cmdProd As New MySqlCommand("SELECT Product_ID, Product_Name FROM PRODUCT ORDER BY Product_Name", conn)
                 Using reader = cmdProd.ExecuteReader()
@@ -2362,7 +2390,7 @@ Public Class Childform
         Dim newProdId As Integer = Convert.ToInt32(DirectCast(s_cmbEditProduct.SelectedItem, Object).Value)
         Dim newType As String = If(s_cmbEditType.SelectedItem IsNot Nothing, s_cmbEditType.SelectedItem.ToString(), _editOriginalType)
         Dim isNewAddition As Boolean = (newType = "Restock" Or newType = "Correction")
-        
+
         If newType = "Correction" AndAlso _editOriginalType <> "Correction" Then
             Dim res = MessageBox.Show("Is this correction adding stock? (Click Yes to Add, No to Deduct)", "Correction Direction", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question)
             If res = DialogResult.Cancel Then Return
@@ -2526,7 +2554,7 @@ Public Class Childform
                 End Using
                 MessageBox.Show("Service added successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
-            
+
             sv_btnCancel_Click(Nothing, Nothing)
             SR_LoadServices()
             SR_PopulateDropdowns()
@@ -2556,7 +2584,7 @@ Public Class Childform
             sv_txtType.Text = row.Cells("sv_colType").Value.ToString()
             sv_txtDesc.Text = If(row.Cells("sv_colDesc").Value IsNot Nothing, row.Cells("sv_colDesc").Value.ToString(), "")
             sv_numFee.Value = Convert.ToDecimal(row.Cells("sv_colFee").Value)
-            
+
             sv_btnSave.Text = "Update Service"
             sv_btnCancel.Visible = True
         End If
@@ -2973,35 +3001,22 @@ Public Class Childform
             sr_cmbExistingCust.Visible = True
             sr_txtCustName.Visible = False
             sr_txtCustContact.Visible = False
+            sr_lblCustContact.Visible = False
             sr_txtCustAddress.Visible = False
             sr_lblCust.Text = "Search Existing Customer:"
         Else
             sr_cmbExistingCust.Visible = False
             sr_txtCustName.Visible = True
             sr_txtCustContact.Visible = True
+            sr_lblCustContact.Visible = True
             sr_txtCustAddress.Visible = True
             sr_lblCust.Text = "New Customer Details:"
         End If
     End Sub
 
-    Private Sub sr_txtCustName_Enter(sender As Object, e As EventArgs) Handles sr_txtCustName.Enter
-        If sr_txtCustName.Text = "Name..." Then sr_txtCustName.Text = ""
-    End Sub
-    Private Sub sr_txtCustName_Leave(sender As Object, e As EventArgs) Handles sr_txtCustName.Leave
-        If String.IsNullOrWhiteSpace(sr_txtCustName.Text) Then sr_txtCustName.Text = "Name..."
-    End Sub
-    Private Sub sr_txtCustContact_Enter(sender As Object, e As EventArgs) Handles sr_txtCustContact.Enter
-        If sr_txtCustContact.Text = "Contact..." Then sr_txtCustContact.Text = ""
-    End Sub
-    Private Sub sr_txtCustContact_Leave(sender As Object, e As EventArgs) Handles sr_txtCustContact.Leave
-        If String.IsNullOrWhiteSpace(sr_txtCustContact.Text) Then sr_txtCustContact.Text = "Contact..."
-    End Sub
-    Private Sub sr_txtCustAddress_Enter(sender As Object, e As EventArgs) Handles sr_txtCustAddress.Enter
-        If sr_txtCustAddress.Text = "Customer Home Address..." Then sr_txtCustAddress.Text = ""
-    End Sub
-    Private Sub sr_txtCustAddress_Leave(sender As Object, e As EventArgs) Handles sr_txtCustAddress.Leave
-        If String.IsNullOrWhiteSpace(sr_txtCustAddress.Text) Then sr_txtCustAddress.Text = "Customer Home Address..."
-    End Sub
+
+
+
     Private Sub sr_txtAddress_Enter(sender As Object, e As EventArgs) Handles sr_txtAddress.Enter
         If sr_txtAddress.Text = "Service Address..." Then sr_txtAddress.Text = ""
     End Sub
@@ -3029,7 +3044,7 @@ Public Class Childform
                     If sr_optNewCust.Checked Then
                         Using cmdCust As New MySqlCommand("INSERT INTO CUSTOMER (Full_Name, Contact_Number, Home_Address) VALUES (@name, @contact, @address)", conn, transaction)
                             cmdCust.Parameters.AddWithValue("@name", sr_txtCustName.Text)
-                            cmdCust.Parameters.AddWithValue("@contact", sr_txtCustContact.Text)
+                            cmdCust.Parameters.AddWithValue("@contact", GetPhoneForStorage(sr_txtCustContact))
                             cmdCust.Parameters.AddWithValue("@address", sr_txtCustAddress.Text)
                             cmdCust.ExecuteNonQuery()
                             customerId = Convert.ToInt32(cmdCust.LastInsertedId)
@@ -3122,7 +3137,7 @@ Public Class Childform
             End If
 
             q &= "GROUP BY W.Warranty_ID, C.Full_Name, P.Product_Name, W.Warranty_Start_Date, W.Warranty_End_Date, W.Warranty_Status"
-            
+
             Using cmd As New MySqlCommand(q, conn)
                 Dim searchParam As String = If(wr_txtSearch.Text = "Search by Customer or Product...", "", "%" & wr_txtSearch.Text & "%")
                 cmd.Parameters.AddWithValue("@search", searchParam)
@@ -3158,9 +3173,9 @@ Public Class Childform
 
     Private Sub wr_dgvWarranties_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles wr_dgvWarranties.CellContentClick
         If e.RowIndex < 0 Then Return
-        
+
         Dim wid As Integer = Convert.ToInt32(wr_dgvWarranties.Rows(e.RowIndex).Cells("wr_colID").Value)
-        
+
         If e.ColumnIndex = wr_dgvWarranties.Columns("wr_colActionEdit").Index Then
             Dim currentStatus As String = wr_dgvWarranties.Rows(e.RowIndex).Cells("wr_colStatus").Value.ToString()
             Dim newStatus As String = currentStatus
@@ -3178,7 +3193,7 @@ Public Class Childform
             Catch ex As Exception
                 MessageBox.Show("Error updating warranty: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
-            
+
         ElseIf e.ColumnIndex = wr_dgvWarranties.Columns("wr_colActionDelete").Index Then
             If MessageBox.Show("Are you sure you want to delete this warranty? This cannot be undone.", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) = DialogResult.Yes Then
                 Try
@@ -3310,7 +3325,7 @@ Public Class Childform
     Private Sub fc_cmbProduct_SelectedIndexChanged(sender As Object, e As EventArgs) Handles fc_cmbProduct.SelectedIndexChanged
         FC_ClearFields()
         If fc_cmbProduct.SelectedIndex = -1 Then Return
-        
+
         Dim wid As Integer
         Try
             wid = Convert.ToInt32(DirectCast(fc_cmbProduct.SelectedItem, Object).Value)
@@ -3714,11 +3729,7 @@ Public Class Childform
     Private sup_dgv As DataGridView
     Private sup_editSupplierId As Integer = 0
     Private sup_addressColumnName As String = ""
-    Private rptSales_tabPage As TabPage
-    Private rptSales_dgv As DataGridView
-    Private rptSales_cmbFilter As ComboBox
-    Private rptSales_lblTotalAmount As Label
-    Private rptSales_lblTotalItems As Label
+
 
     Private Sub ST_InitializeTables()
         Try
@@ -3749,69 +3760,16 @@ Public Class Childform
     End Sub
 
     Public Sub RPT_ShowSalesReport()
-        RPT_EnsureSalesReportTab()
-        tcMain.SelectedTab = rptSales_tabPage
+
+        tcMain.SelectedTab = tpReportMain
         RPT_LoadSalesReport()
     End Sub
 
-    Private Sub RPT_EnsureSalesReportTab()
-        If rptSales_tabPage IsNot Nothing Then Return
 
-        rptSales_tabPage = tpReportMain
-        rptSales_tabPage.Text = "Sales Report"
-        rptSales_tabPage.BackColor = Color.White
-        rptSales_tabPage.Controls.Clear()
-
-        Dim lblTitle As New Label() With {.Text = "Sales Report", .Font = New Font("Segoe UI", 16, FontStyle.Bold), .Location = New Point(20, 15), .AutoSize = True}
-        rptSales_tabPage.Controls.Add(lblTitle)
-
-        Dim btnRefresh As New Button() With {.Text = "Refresh", .Location = New Point(20, 55), .Size = New Size(80, 30)}
-        AddHandler btnRefresh.Click, Sub() RPT_LoadSalesReport()
-        rptSales_tabPage.Controls.Add(btnRefresh)
-
-        Dim btnExport As New Button() With {.Text = "Preview & Export to Excel", .Location = New Point(110, 55), .Size = New Size(180, 30)}
-        AddHandler btnExport.Click, AddressOf RPT_ExportSalesReport_Click
-        rptSales_tabPage.Controls.Add(btnExport)
-
-        rptSales_cmbFilter = New ComboBox() With {.Location = New Point(300, 58), .Size = New Size(130, 24), .DropDownStyle = ComboBoxStyle.DropDownList}
-        rptSales_cmbFilter.Items.AddRange(New String() {"Today", "This Week", "This Month", "Last 30 Days", "This Year", "All"})
-        rptSales_cmbFilter.SelectedIndex = 5
-        AddHandler rptSales_cmbFilter.SelectedIndexChanged, Sub() RPT_LoadSalesReport()
-        rptSales_tabPage.Controls.Add(rptSales_cmbFilter)
-
-        Dim pnlCardAmount As New Panel() With {.Location = New Point(490, 50), .Size = New Size(170, 60), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
-        pnlCardAmount.Controls.Add(New Label() With {.Text = "Total Amount", .Location = New Point(10, 8), .AutoSize = True, .ForeColor = Color.FromArgb(70, 70, 70)})
-        rptSales_lblTotalAmount = New Label() With {.Text = "0.00", .Location = New Point(10, 30), .AutoSize = True, .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215)}
-        pnlCardAmount.Controls.Add(rptSales_lblTotalAmount)
-        rptSales_tabPage.Controls.Add(pnlCardAmount)
-
-        Dim pnlCardItems As New Panel() With {.Location = New Point(670, 50), .Size = New Size(170, 60), .BackColor = Color.FromArgb(245, 245, 248), .BorderStyle = BorderStyle.FixedSingle}
-        pnlCardItems.Controls.Add(New Label() With {.Text = "Total Items", .Location = New Point(10, 8), .AutoSize = True, .ForeColor = Color.FromArgb(70, 70, 70)})
-        rptSales_lblTotalItems = New Label() With {.Text = "0", .Location = New Point(10, 30), .AutoSize = True, .Font = New Font("Segoe UI", 11, FontStyle.Bold), .ForeColor = Color.FromArgb(0, 120, 215)}
-        pnlCardItems.Controls.Add(rptSales_lblTotalItems)
-        rptSales_tabPage.Controls.Add(pnlCardItems)
-
-        rptSales_dgv = New DataGridView() With {
-            .Location = New Point(20, 125),
-            .Size = New Size(820, 410),
-            .AllowUserToAddRows = False,
-            .AllowUserToDeleteRows = False,
-            .ReadOnly = True,
-            .SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-        }
-        rptSales_dgv.Columns.Add("rptSale_colPurchaseId", "Purchase ID")
-        rptSales_dgv.Columns.Add("rptSale_colReceipt", "Receipt Number")
-        rptSales_dgv.Columns.Add("rptSale_colDate", "Purchase Date")
-        rptSales_dgv.Columns.Add("rptSale_colCustomer", "Customer")
-        rptSales_dgv.Columns.Add("rptSale_colItemCount", "Total Items")
-        rptSales_dgv.Columns.Add("rptSale_colAmount", "Total Amount")
-        rptSales_tabPage.Controls.Add(rptSales_dgv)
-    End Sub
 
     Private Sub RPT_LoadSalesReport()
-        If rptSales_dgv Is Nothing Then Return
-        rptSales_dgv.Rows.Clear()
+        If pre_rpt_grid Is Nothing Then Return
+        pre_rpt_grid.Rows.Clear()
         Try
             OpenConnection()
             Dim startDate As DateTime = DateTime.MinValue
@@ -3841,7 +3799,7 @@ Public Class Childform
                         Dim amount = Convert.ToDecimal(reader("Total_Amount"))
                         totalItems += items
                         totalAmount += amount
-                        rptSales_dgv.Rows.Add(
+                        pre_rpt_grid.Rows.Add(
                             Convert.ToInt32(reader("Purchase_ID")),
                             reader("Receipt_Number").ToString(),
                             Convert.ToDateTime(reader("Purchase_Date")).ToString("yyyy-MM-dd"),
@@ -3863,10 +3821,10 @@ Public Class Childform
     Private Sub RPT_GetDateRange(ByRef startDate As DateTime, ByRef endDate As DateTime)
         startDate = DateTime.MinValue
         endDate = DateTime.MaxValue
-        If rptSales_cmbFilter Is Nothing OrElse rptSales_cmbFilter.SelectedItem Is Nothing Then Return
+        If pre_rpt_cmbFilter Is Nothing OrElse pre_rpt_cmbFilter.SelectedItem Is Nothing Then Return
 
         Dim nowDate = DateTime.Now.Date
-        Select Case rptSales_cmbFilter.SelectedItem.ToString()
+        Select Case pre_rpt_cmbFilter.SelectedItem.ToString()
             Case "Today"
                 startDate = nowDate
                 endDate = nowDate
@@ -3889,7 +3847,7 @@ Public Class Childform
     End Sub
 
     Private Sub RPT_ExportSalesReport_Click(sender As Object, e As EventArgs)
-        If rptSales_dgv Is Nothing OrElse rptSales_dgv.Rows.Count = 0 Then
+        If pre_rpt_grid Is Nothing OrElse pre_rpt_grid.Rows.Count = 0 Then
             MessageBox.Show("No data to export.", "Export", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
         End If
@@ -3926,15 +3884,15 @@ Public Class Childform
                     sw.WriteLine()
 
                     Dim headers As New List(Of String)
-                    For Each col As DataGridViewColumn In rptSales_dgv.Columns
+                    For Each col As DataGridViewColumn In pre_rpt_grid.Columns
                         headers.Add("""" & col.HeaderText.Replace("""", """""") & """")
                     Next
                     sw.WriteLine(String.Join(",", headers))
 
-                    For Each row As DataGridViewRow In rptSales_dgv.Rows
+                    For Each row As DataGridViewRow In pre_rpt_grid.Rows
                         If row.IsNewRow Then Continue For
                         Dim values As New List(Of String)
-                        For i As Integer = 0 To rptSales_dgv.Columns.Count - 1
+                        For i As Integer = 0 To pre_rpt_grid.Columns.Count - 1
                             Dim cellValue = If(row.Cells(i).Value, "").ToString()
                             values.Add("""" & cellValue.Replace("""", """""") & """")
                         Next
@@ -3975,7 +3933,7 @@ Public Class Childform
         ' Draw Headers
         Dim colWidths() As Integer = {100, 150, 120, 220, 100, 150}
         Dim headers() As String = {"Purchase ID", "Receipt No", "Date", "Customer", "Items", "Amount"}
-        
+
         Dim curX As Integer = startX
         For i As Integer = 0 To headers.Length - 1
             g.DrawString(headers(i), fHeader, brush, curX, startY + offset)
@@ -3986,11 +3944,11 @@ Public Class Childform
         offset += 10
 
         ' Draw Rows
-        While _rptPrintRowIndex < rptSales_dgv.Rows.Count
-            Dim row = rptSales_dgv.Rows(_rptPrintRowIndex)
+        While _rptPrintRowIndex < pre_rpt_grid.Rows.Count
+            Dim row = pre_rpt_grid.Rows(_rptPrintRowIndex)
             If Not row.IsNewRow Then
                 curX = startX
-                For i As Integer = 0 To rptSales_dgv.Columns.Count - 1
+                For i As Integer = 0 To pre_rpt_grid.Columns.Count - 1
                     Dim val = If(row.Cells(i).Value, "").ToString()
                     ' Truncate long strings (e.g. Customer Name)
                     If g.MeasureString(val, fRegular).Width > colWidths(i) Then
@@ -4004,11 +3962,11 @@ Public Class Childform
                 Next
                 offset += 25
             End If
-            
+
             _rptPrintRowIndex += 1
-            
+
             ' Pagination check
-            If startY + offset > e.MarginBounds.Bottom - 50 AndAlso _rptPrintRowIndex < rptSales_dgv.Rows.Count Then
+            If startY + offset > e.MarginBounds.Bottom - 50 AndAlso _rptPrintRowIndex < pre_rpt_grid.Rows.Count Then
                 e.HasMorePages = True
                 Return
             End If
@@ -4044,6 +4002,7 @@ Public Class Childform
 
         pnlForm.Controls.Add(New Label() With {.Text = "Contact Number", .Location = New Point(285, 18), .AutoSize = True})
         sup_txtContact = New TextBox() With {.Location = New Point(285, 38), .Size = New Size(170, 24)}
+        ApplyPhoneFormat(sup_txtContact)
         pnlForm.Controls.Add(sup_txtContact)
 
         pnlForm.Controls.Add(New Label() With {.Text = "Warehouse Address", .Location = New Point(470, 18), .AutoSize = True})
@@ -4132,7 +4091,7 @@ Public Class Childform
 
             Using cmd As New MySqlCommand(q, conn)
                 cmd.Parameters.AddWithValue("@n", sup_txtName.Text.Trim())
-                cmd.Parameters.AddWithValue("@c", sup_txtContact.Text.Trim())
+                cmd.Parameters.AddWithValue("@c", GetPhoneForStorage(sup_txtContact))
                 cmd.Parameters.AddWithValue("@a", sup_txtAddress.Text.Trim())
                 If sup_editSupplierId > 0 Then cmd.Parameters.AddWithValue("@id", sup_editSupplierId)
                 cmd.ExecuteNonQuery()
@@ -4263,6 +4222,7 @@ Public Class Childform
 
         pnl.Controls.Add(New Label() With {.Text = "Contact Number", .Location = New Point(360, y), .AutoSize = True})
         st_txtContact = New TextBox() With {.Location = New Point(360, y + 20), .Size = New Size(220, 24)}
+        ApplyPhoneFormat(st_txtContact)
         pnl.Controls.Add(st_txtContact)
 
         y += 70
@@ -4380,11 +4340,11 @@ Public Class Childform
 
         st_detIsTech = New CheckBox() With {.Text = "Is Technician", .Location = New Point(160, y + 22), .AutoSize = True}
         AddHandler st_detIsTech.CheckedChanged, Sub()
-            Dim isTech = st_detIsTech.Checked
-            st_detSpec.Enabled = isTech
-            st_detTechStatus.Enabled = isTech
-            st_detCert.Enabled = isTech
-        End Sub
+                                                    Dim isTech = st_detIsTech.Checked
+                                                    st_detSpec.Enabled = isTech
+                                                    st_detTechStatus.Enabled = isTech
+                                                    st_detCert.Enabled = isTech
+                                                End Sub
         st_pnlDetail.Controls.Add(st_detIsTech)
 
         y += 50
@@ -4449,7 +4409,7 @@ Public Class Childform
                     Dim qStaff = "INSERT INTO STAFF (Full_Name, Contact_Number, Staff_Status, Date_Hired) VALUES (@n, @c, @s, @d)"
                     Using cmd As New MySqlCommand(qStaff, conn, tx)
                         cmd.Parameters.AddWithValue("@n", st_txtFullName.Text.Trim())
-                        cmd.Parameters.AddWithValue("@c", st_txtContact.Text.Trim())
+                        cmd.Parameters.AddWithValue("@c", GetPhoneForStorage(st_txtContact))
                         cmd.Parameters.AddWithValue("@s", st_cmbStaffStatus.SelectedItem.ToString())
                         cmd.Parameters.AddWithValue("@d", st_dtpDateHired.Value.Date)
                         cmd.ExecuteNonQuery()
@@ -4554,10 +4514,10 @@ Public Class Childform
         _stDetailId = Convert.ToInt32(row.Cells("st_colId").Value)
         st_detFullName.Text = row.Cells("st_colName").Value.ToString()
         st_detContact.Text = row.Cells("st_colContact").Value.ToString()
-        
+
         Dim sStat = row.Cells("st_colStatus").Value.ToString()
         st_detStaffStatus.SelectedItem = If(st_detStaffStatus.Items.Contains(sStat), sStat, "Active")
-        
+
         Dim dHired As DateTime
         If DateTime.TryParse(row.Cells("st_colDate").Value.ToString(), dHired) Then
             st_detDateHired.Value = dHired
@@ -4565,14 +4525,14 @@ Public Class Childform
 
         Dim isTech = (row.Cells("st_colIsTech").Value.ToString() = "Yes")
         st_detIsTech.Checked = isTech
-        
+
         st_detSpec.Text = row.Cells("st_colSpec").Value.ToString()
-        
+
         Dim tStat = row.Cells("st_colTechStatus").Value.ToString()
         st_detTechStatus.SelectedItem = If(st_detTechStatus.Items.Contains(tStat), tStat, "Active")
-        
+
         st_detCert.Text = row.Cells("st_colCert").Value.ToString()
-        
+
         st_pnlDetail.Visible = True
     End Sub
 
@@ -4672,4 +4632,7 @@ Public Class Childform
     End Sub
 
 End Class
+
+
+
 

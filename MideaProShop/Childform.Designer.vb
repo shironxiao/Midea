@@ -244,6 +244,7 @@ Partial Class Childform
         Me.sr_cmbExistingCust = New System.Windows.Forms.ComboBox()
         Me.sr_txtCustName = New System.Windows.Forms.TextBox()
         Me.sr_txtCustContact = New System.Windows.Forms.TextBox()
+        Me.sr_lblCustContact = New System.Windows.Forms.Label()
         Me.sr_txtCustAddress = New System.Windows.Forms.TextBox()
         Me.sr_lblSectionService = New System.Windows.Forms.Label()
         Me.sr_lblService = New System.Windows.Forms.Label()
@@ -347,8 +348,55 @@ Partial Class Childform
         Me.pre_rpt_cmbFilter = New System.Windows.Forms.ComboBox()
         Me.pre_rpt_lblAmount = New System.Windows.Forms.Label()
         Me.pre_rpt_grid = New System.Windows.Forms.DataGridView()
+        Me.dashInsightsPanel = New System.Windows.Forms.Panel()
+        Me.dashCardWarranties = New System.Windows.Forms.Panel()
+        Me.dashLblWarrantiesTitle = New System.Windows.Forms.Label()
+        Me.dashLblWarrantiesValue = New System.Windows.Forms.Label()
+        Me.dashCardStock = New System.Windows.Forms.Panel()
+        Me.dashLblStockTitle = New System.Windows.Forms.Label()
+        Me.dashLblStockValue = New System.Windows.Forms.Label()
+        Me.dashCardTechs = New System.Windows.Forms.Panel()
+        Me.dashLblTechsTitle = New System.Windows.Forms.Label()
+        Me.dashLblTechsValue = New System.Windows.Forms.Label()
+        Me.dashCardSuppliers = New System.Windows.Forms.Panel()
+        Me.dashLblSuppliersTitle = New System.Windows.Forms.Label()
+        Me.dashLblSuppliersValue = New System.Windows.Forms.Label()
+        Me.dashRecentWrap = New System.Windows.Forms.Panel()
+        Me.dashLblRecent = New System.Windows.Forms.Label()
+        Me.dashRecentFilters = New System.Windows.Forms.Panel()
+        Me.dashActivityTypeFilter = New System.Windows.Forms.ComboBox()
+        Me.dashActivityDateFilter = New System.Windows.Forms.ComboBox()
+        Me.dashRecentGrid = New System.Windows.Forms.DataGridView()
+        Me.dash_colType = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.dash_colInfo = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.dash_colDate = New System.Windows.Forms.DataGridViewTextBoxColumn()
+
+        Me.rptSales_btnRefresh = New System.Windows.Forms.Button()
+        Me.rptSales_btnExport = New System.Windows.Forms.Button()
+        Me.rptSales_pnlCardAmount = New System.Windows.Forms.Panel()
+        Me.rptSales_lblAmountTitle = New System.Windows.Forms.Label()
+        Me.rptSales_lblTotalAmount = New System.Windows.Forms.Label()
+        Me.rptSales_pnlCardItems = New System.Windows.Forms.Panel()
+        Me.rptSales_lblItemsTitle = New System.Windows.Forms.Label()
+        Me.rptSales_lblTotalItems = New System.Windows.Forms.Label()
+        Me.rptSale_colPurchaseId = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.rptSale_colReceipt = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.rptSale_colDate = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.rptSale_colCustomer = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.rptSale_colItemCount = New System.Windows.Forms.DataGridViewTextBoxColumn()
+        Me.rptSale_colAmount = New System.Windows.Forms.DataGridViewTextBoxColumn()
         Me.tcMain.SuspendLayout()
         Me.pnlDashboardMain.SuspendLayout()
+        Me.dashInsightsPanel.SuspendLayout()
+        Me.dashCardWarranties.SuspendLayout()
+        Me.dashCardStock.SuspendLayout()
+        Me.dashCardTechs.SuspendLayout()
+        Me.dashCardSuppliers.SuspendLayout()
+        Me.dashRecentWrap.SuspendLayout()
+        Me.dashRecentFilters.SuspendLayout()
+        CType(Me.dashRecentGrid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.rptSales_pnlCardAmount.SuspendLayout()
+        Me.rptSales_pnlCardItems.SuspendLayout()
         Me.flpCards.SuspendLayout()
         Me.pnlCard1.SuspendLayout()
         Me.pnlCard2.SuspendLayout()
@@ -425,7 +473,32 @@ Partial Class Childform
         '
         'pnlDashboardMain
         '
+        Me.pnlDashboardMain.Controls.Add(Me.dashRecentWrap)
+        Me.pnlDashboardMain.Controls.Add(Me.dashInsightsPanel)
         Me.pnlDashboardMain.Controls.Add(Me.flpCards)
+        Me.dashInsightsPanel.Controls.Add(Me.dashCardWarranties)
+        Me.dashInsightsPanel.Controls.Add(Me.dashCardStock)
+        Me.dashInsightsPanel.Controls.Add(Me.dashCardTechs)
+        Me.dashInsightsPanel.Controls.Add(Me.dashCardSuppliers)
+        
+        Me.dashCardWarranties.Controls.Add(Me.dashLblWarrantiesValue)
+        Me.dashCardWarranties.Controls.Add(Me.dashLblWarrantiesTitle)
+        
+        Me.dashCardStock.Controls.Add(Me.dashLblStockValue)
+        Me.dashCardStock.Controls.Add(Me.dashLblStockTitle)
+        
+        Me.dashCardTechs.Controls.Add(Me.dashLblTechsValue)
+        Me.dashCardTechs.Controls.Add(Me.dashLblTechsTitle)
+        
+        Me.dashCardSuppliers.Controls.Add(Me.dashLblSuppliersValue)
+        Me.dashCardSuppliers.Controls.Add(Me.dashLblSuppliersTitle)
+        
+        Me.dashRecentWrap.Controls.Add(Me.dashRecentGrid)
+        Me.dashRecentWrap.Controls.Add(Me.dashRecentFilters)
+        Me.dashRecentWrap.Controls.Add(Me.dashLblRecent)
+        
+        Me.dashRecentFilters.Controls.Add(Me.dashActivityTypeFilter)
+        Me.dashRecentFilters.Controls.Add(Me.dashActivityDateFilter)
         Me.pnlDashboardMain.Controls.Add(Me.lblDashTitle)
         Me.pnlDashboardMain.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pnlDashboardMain.Location = New System.Drawing.Point(4, 22)
@@ -2481,6 +2554,7 @@ Partial Class Childform
         Me.sr_pnlForm.Controls.Add(Me.sr_lblCust)
         Me.sr_pnlForm.Controls.Add(Me.sr_cmbExistingCust)
         Me.sr_pnlForm.Controls.Add(Me.sr_txtCustName)
+        Me.sr_pnlForm.Controls.Add(Me.sr_lblCustContact)
         Me.sr_pnlForm.Controls.Add(Me.sr_txtCustContact)
         Me.sr_pnlForm.Controls.Add(Me.sr_txtCustAddress)
         Me.sr_pnlForm.Controls.Add(Me.sr_lblSectionService)
@@ -2560,7 +2634,7 @@ Partial Class Childform
         Me.sr_txtCustName.Name = "sr_txtCustName"
         Me.sr_txtCustName.Size = New System.Drawing.Size(190, 20)
         Me.sr_txtCustName.TabIndex = 5
-        Me.sr_txtCustName.Text = "Name..."
+        Me.sr_txtCustName.Text = ""
         Me.sr_txtCustName.Visible = False
         '
         'sr_txtCustContact
@@ -2569,8 +2643,18 @@ Partial Class Childform
         Me.sr_txtCustContact.Name = "sr_txtCustContact"
         Me.sr_txtCustContact.Size = New System.Drawing.Size(190, 20)
         Me.sr_txtCustContact.TabIndex = 6
-        Me.sr_txtCustContact.Text = "Contact..."
+        Me.sr_txtCustContact.Text = ""
         Me.sr_txtCustContact.Visible = False
+        '
+        'sr_lblCustContact
+        '
+        Me.sr_lblCustContact.AutoSize = True
+        Me.sr_lblCustContact.Location = New System.Drawing.Point(230, 80)
+        Me.sr_lblCustContact.Name = "sr_lblCustContact"
+        Me.sr_lblCustContact.Size = New System.Drawing.Size(87, 13)
+        Me.sr_lblCustContact.TabIndex = 20
+        Me.sr_lblCustContact.Text = "Contact Number"
+        Me.sr_lblCustContact.Visible = False
         '
         'sr_txtCustAddress
         '
@@ -2578,7 +2662,7 @@ Partial Class Childform
         Me.sr_txtCustAddress.Name = "sr_txtCustAddress"
         Me.sr_txtCustAddress.Size = New System.Drawing.Size(400, 20)
         Me.sr_txtCustAddress.TabIndex = 7
-        Me.sr_txtCustAddress.Text = "Customer Home Address..."
+        Me.sr_txtCustAddress.Text = ""
         Me.sr_txtCustAddress.Visible = False
         '
         'sr_lblSectionService
@@ -3413,10 +3497,210 @@ Partial Class Childform
         Me.tpReportMain.Size = New System.Drawing.Size(1353, 581)
         Me.tpReportMain.TabIndex = 14
         Me.tpReportMain.Text = "Sales Report"
+        ' dashInsightsPanel
+        Me.dashInsightsPanel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.dashInsightsPanel.Height = 90
+        Me.dashInsightsPanel.BackColor = System.Drawing.Color.White
+        Me.dashInsightsPanel.Padding = New System.Windows.Forms.Padding(20, 10, 20, 10)
+        
+        ' dashCardWarranties
+        Me.dashCardWarranties.Location = New System.Drawing.Point(10, 8)
+        Me.dashCardWarranties.Size = New System.Drawing.Size(185, 68)
+        Me.dashCardWarranties.BackColor = System.Drawing.Color.FromArgb(245, 245, 248)
+        Me.dashCardWarranties.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.dashCardWarranties.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblWarrantiesTitle
+        Me.dashLblWarrantiesTitle.Text = "Active Warranties"
+        Me.dashLblWarrantiesTitle.Location = New System.Drawing.Point(10, 8)
+        Me.dashLblWarrantiesTitle.Size = New System.Drawing.Size(165, 18)
+        Me.dashLblWarrantiesTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblWarrantiesTitle.ForeColor = System.Drawing.Color.FromArgb(70, 70, 70)
+        Me.dashLblWarrantiesTitle.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblWarrantiesValue
+        Me.dashLblWarrantiesValue.Text = "0"
+        Me.dashLblWarrantiesValue.Location = New System.Drawing.Point(10, 30)
+        Me.dashLblWarrantiesValue.Size = New System.Drawing.Size(165, 28)
+        Me.dashLblWarrantiesValue.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblWarrantiesValue.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.dashLblWarrantiesValue.ForeColor = System.Drawing.Color.FromArgb(30, 30, 30)
+        Me.dashLblWarrantiesValue.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashCardStock
+        Me.dashCardStock.Location = New System.Drawing.Point(210, 8)
+        Me.dashCardStock.Size = New System.Drawing.Size(185, 68)
+        Me.dashCardStock.BackColor = System.Drawing.Color.FromArgb(245, 245, 248)
+        Me.dashCardStock.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.dashCardStock.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblStockTitle
+        Me.dashLblStockTitle.Text = "Low Stock Items"
+        Me.dashLblStockTitle.Location = New System.Drawing.Point(10, 8)
+        Me.dashLblStockTitle.Size = New System.Drawing.Size(165, 18)
+        Me.dashLblStockTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblStockTitle.ForeColor = System.Drawing.Color.FromArgb(70, 70, 70)
+        Me.dashLblStockTitle.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblStockValue
+        Me.dashLblStockValue.Text = "0"
+        Me.dashLblStockValue.Location = New System.Drawing.Point(10, 30)
+        Me.dashLblStockValue.Size = New System.Drawing.Size(165, 28)
+        Me.dashLblStockValue.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblStockValue.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.dashLblStockValue.ForeColor = System.Drawing.Color.FromArgb(30, 30, 30)
+        Me.dashLblStockValue.Cursor = System.Windows.Forms.Cursors.Hand
+
+        ' dashCardTechs
+        Me.dashCardTechs.Location = New System.Drawing.Point(410, 8)
+        Me.dashCardTechs.Size = New System.Drawing.Size(185, 68)
+        Me.dashCardTechs.BackColor = System.Drawing.Color.FromArgb(245, 245, 248)
+        Me.dashCardTechs.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.dashCardTechs.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblTechsTitle
+        Me.dashLblTechsTitle.Text = "Active Technicians"
+        Me.dashLblTechsTitle.Location = New System.Drawing.Point(10, 8)
+        Me.dashLblTechsTitle.Size = New System.Drawing.Size(165, 18)
+        Me.dashLblTechsTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblTechsTitle.ForeColor = System.Drawing.Color.FromArgb(70, 70, 70)
+        Me.dashLblTechsTitle.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblTechsValue
+        Me.dashLblTechsValue.Text = "0"
+        Me.dashLblTechsValue.Location = New System.Drawing.Point(10, 30)
+        Me.dashLblTechsValue.Size = New System.Drawing.Size(165, 28)
+        Me.dashLblTechsValue.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblTechsValue.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.dashLblTechsValue.ForeColor = System.Drawing.Color.FromArgb(30, 30, 30)
+        Me.dashLblTechsValue.Cursor = System.Windows.Forms.Cursors.Hand
+
+        ' dashCardSuppliers
+        Me.dashCardSuppliers.Location = New System.Drawing.Point(610, 8)
+        Me.dashCardSuppliers.Size = New System.Drawing.Size(185, 68)
+        Me.dashCardSuppliers.BackColor = System.Drawing.Color.FromArgb(245, 245, 248)
+        Me.dashCardSuppliers.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.dashCardSuppliers.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblSuppliersTitle
+        Me.dashLblSuppliersTitle.Text = "Suppliers"
+        Me.dashLblSuppliersTitle.Location = New System.Drawing.Point(10, 8)
+        Me.dashLblSuppliersTitle.Size = New System.Drawing.Size(165, 18)
+        Me.dashLblSuppliersTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblSuppliersTitle.ForeColor = System.Drawing.Color.FromArgb(70, 70, 70)
+        Me.dashLblSuppliersTitle.Cursor = System.Windows.Forms.Cursors.Hand
+        
+        ' dashLblSuppliersValue
+        Me.dashLblSuppliersValue.Text = "0"
+        Me.dashLblSuppliersValue.Location = New System.Drawing.Point(10, 30)
+        Me.dashLblSuppliersValue.Size = New System.Drawing.Size(165, 28)
+        Me.dashLblSuppliersValue.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        Me.dashLblSuppliersValue.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.dashLblSuppliersValue.ForeColor = System.Drawing.Color.FromArgb(30, 30, 30)
+        Me.dashLblSuppliersValue.Cursor = System.Windows.Forms.Cursors.Hand
+
+        ' dashRecentWrap
+        Me.dashRecentWrap.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.dashRecentWrap.BackColor = System.Drawing.Color.White
+        Me.dashRecentWrap.Padding = New System.Windows.Forms.Padding(20, 10, 20, 20)
+        
+        ' dashLblRecent
+        Me.dashLblRecent.Text = "Recent Activity"
+        Me.dashLblRecent.Dock = System.Windows.Forms.DockStyle.Top
+        Me.dashLblRecent.Height = 28
+        Me.dashLblRecent.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold)
+        Me.dashLblRecent.ForeColor = System.Drawing.Color.FromArgb(40, 40, 40)
+        
+        ' dashRecentFilters
+        Me.dashRecentFilters.Dock = System.Windows.Forms.DockStyle.Top
+        Me.dashRecentFilters.Height = 34
+        
+        ' dashActivityTypeFilter
+        Me.dashActivityTypeFilter.Location = New System.Drawing.Point(0, 4)
+        Me.dashActivityTypeFilter.Size = New System.Drawing.Size(170, 24)
+        Me.dashActivityTypeFilter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.dashActivityTypeFilter.Items.AddRange(New Object() {"All Activities", "Order", "Service Request", "Warranty Claim"})
+        
+        ' dashActivityDateFilter
+        Me.dashActivityDateFilter.Location = New System.Drawing.Point(180, 4)
+        Me.dashActivityDateFilter.Size = New System.Drawing.Size(150, 24)
+        Me.dashActivityDateFilter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.dashActivityDateFilter.Items.AddRange(New Object() {"Last 7 Days", "This Month", "This Year", "All"})
+        
+        ' dashRecentGrid
+        Me.dashRecentGrid.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.dashRecentGrid.AllowUserToAddRows = False
+        Me.dashRecentGrid.AllowUserToDeleteRows = False
+        Me.dashRecentGrid.ReadOnly = True
+        Me.dashRecentGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me.dashRecentGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
+        Me.dashRecentGrid.RowHeadersVisible = False
+        Me.dashRecentGrid.BackgroundColor = System.Drawing.Color.White
+        Me.dashRecentGrid.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.dash_colType, Me.dash_colInfo, Me.dash_colDate})
+        
+        Me.dash_colType.HeaderText = "Type"
+        Me.dash_colInfo.HeaderText = "Details"
+        Me.dash_colDate.HeaderText = "Date"
+
+        ' rptSales_btnRefresh
+        Me.rptSales_btnRefresh.Text = "Refresh"
+        Me.rptSales_btnRefresh.Location = New System.Drawing.Point(20, 55)
+        Me.rptSales_btnRefresh.Size = New System.Drawing.Size(80, 30)
+        
+        ' rptSales_btnExport
+        Me.rptSales_btnExport.Text = "Preview && Export to Excel"
+        Me.rptSales_btnExport.Location = New System.Drawing.Point(110, 55)
+        Me.rptSales_btnExport.Size = New System.Drawing.Size(180, 30)
+        
+        ' rptSales_pnlCardAmount
+        Me.rptSales_pnlCardAmount.Location = New System.Drawing.Point(490, 50)
+        Me.rptSales_pnlCardAmount.Size = New System.Drawing.Size(170, 60)
+        Me.rptSales_pnlCardAmount.BackColor = System.Drawing.Color.FromArgb(245, 245, 248)
+        Me.rptSales_pnlCardAmount.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        
+        ' rptSales_lblAmountTitle
+        Me.rptSales_lblAmountTitle.Text = "Total Amount"
+        Me.rptSales_lblAmountTitle.Location = New System.Drawing.Point(10, 8)
+        Me.rptSales_lblAmountTitle.AutoSize = True
+        Me.rptSales_lblAmountTitle.ForeColor = System.Drawing.Color.FromArgb(70, 70, 70)
+        
+        ' rptSales_lblTotalAmount
+        Me.rptSales_lblTotalAmount.Text = "0.00"
+        Me.rptSales_lblTotalAmount.Location = New System.Drawing.Point(10, 30)
+        Me.rptSales_lblTotalAmount.AutoSize = True
+        Me.rptSales_lblTotalAmount.Font = New System.Drawing.Font("Segoe UI", 11.0!, System.Drawing.FontStyle.Bold)
+        Me.rptSales_lblTotalAmount.ForeColor = System.Drawing.Color.FromArgb(0, 120, 215)
+        
+        ' rptSales_pnlCardItems
+        Me.rptSales_pnlCardItems.Location = New System.Drawing.Point(670, 50)
+        Me.rptSales_pnlCardItems.Size = New System.Drawing.Size(170, 60)
+        Me.rptSales_pnlCardItems.BackColor = System.Drawing.Color.FromArgb(245, 245, 248)
+        Me.rptSales_pnlCardItems.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        
+        ' rptSales_lblItemsTitle
+        Me.rptSales_lblItemsTitle.Text = "Total Items"
+        Me.rptSales_lblItemsTitle.Location = New System.Drawing.Point(10, 8)
+        Me.rptSales_lblItemsTitle.AutoSize = True
+        Me.rptSales_lblItemsTitle.ForeColor = System.Drawing.Color.FromArgb(70, 70, 70)
+        
+        ' rptSales_lblTotalItems
+        Me.rptSales_lblTotalItems.Text = "0"
+        Me.rptSales_lblTotalItems.Location = New System.Drawing.Point(10, 30)
+        Me.rptSales_lblTotalItems.AutoSize = True
+        Me.rptSales_lblTotalItems.Font = New System.Drawing.Font("Segoe UI", 11.0!, System.Drawing.FontStyle.Bold)
+        Me.rptSales_lblTotalItems.ForeColor = System.Drawing.Color.FromArgb(0, 120, 215)
         Me.tpReportMain.Controls.Add(Me.pre_rpt_lblTitle)
         Me.tpReportMain.Controls.Add(Me.pre_rpt_cmbFilter)
         Me.tpReportMain.Controls.Add(Me.pre_rpt_lblAmount)
         Me.tpReportMain.Controls.Add(Me.pre_rpt_grid)
+        Me.tpReportMain.Controls.Add(Me.rptSales_btnRefresh)
+        Me.tpReportMain.Controls.Add(Me.rptSales_btnExport)
+        Me.tpReportMain.Controls.Add(Me.rptSales_pnlCardAmount)
+        Me.tpReportMain.Controls.Add(Me.rptSales_pnlCardItems)
+        Me.rptSales_pnlCardAmount.Controls.Add(Me.rptSales_lblAmountTitle)
+        Me.rptSales_pnlCardAmount.Controls.Add(Me.rptSales_lblTotalAmount)
+        Me.rptSales_pnlCardItems.Controls.Add(Me.rptSales_lblItemsTitle)
+        Me.rptSales_pnlCardItems.Controls.Add(Me.rptSales_lblTotalItems)
         '
         'pre_rpt_lblTitle
         '
@@ -3455,6 +3739,19 @@ Partial Class Childform
         Me.pre_rpt_grid.Name = "pre_rpt_grid"
         Me.pre_rpt_grid.Size = New System.Drawing.Size(820, 410)
         Me.pre_rpt_grid.TabIndex = 3
+        Me.pre_rpt_grid.Columns.AddRange(New System.Windows.Forms.DataGridViewColumn() {Me.rptSale_colPurchaseId, Me.rptSale_colReceipt, Me.rptSale_colDate, Me.rptSale_colCustomer, Me.rptSale_colItemCount, Me.rptSale_colAmount})
+        Me.pre_rpt_grid.AllowUserToAddRows = False
+        Me.pre_rpt_grid.AllowUserToDeleteRows = False
+        Me.pre_rpt_grid.ReadOnly = True
+        Me.pre_rpt_grid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me.pre_rpt_grid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
+        
+        Me.rptSale_colPurchaseId.HeaderText = "Purchase ID"
+        Me.rptSale_colReceipt.HeaderText = "Receipt Number"
+        Me.rptSale_colDate.HeaderText = "Purchase Date"
+        Me.rptSale_colCustomer.HeaderText = "Customer"
+        Me.rptSale_colItemCount.HeaderText = "Total Items"
+        Me.rptSale_colAmount.HeaderText = "Total Amount"
         '
         'tpViewWarrantyClaimMain
         '
@@ -3572,6 +3869,16 @@ Partial Class Childform
         Me.pnlFileClaimMain.PerformLayout()
         Me.fc_pnlForm.ResumeLayout(False)
         Me.fc_pnlForm.PerformLayout()
+        Me.dashInsightsPanel.ResumeLayout(False)
+        Me.dashCardWarranties.ResumeLayout(False)
+        Me.dashCardStock.ResumeLayout(False)
+        Me.dashCardTechs.ResumeLayout(False)
+        Me.dashCardSuppliers.ResumeLayout(False)
+        Me.dashRecentWrap.ResumeLayout(False)
+        Me.dashRecentFilters.ResumeLayout(False)
+        CType(Me.dashRecentGrid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.rptSales_pnlCardAmount.ResumeLayout(False)
+        Me.rptSales_pnlCardItems.ResumeLayout(False)
         Me.ResumeLayout(False)
 
     End Sub
@@ -3806,6 +4113,7 @@ Partial Class Childform
     Friend WithEvents sr_cmbExistingCust As System.Windows.Forms.ComboBox
     Friend WithEvents sr_txtCustName As System.Windows.Forms.TextBox
     Friend WithEvents sr_txtCustContact As System.Windows.Forms.TextBox
+    Friend WithEvents sr_lblCustContact As System.Windows.Forms.Label
     Friend WithEvents sr_cmbService As System.Windows.Forms.ComboBox
     Friend WithEvents sr_cmbStaff As System.Windows.Forms.ComboBox
     Friend WithEvents sr_cmbTech As System.Windows.Forms.ComboBox
@@ -3914,7 +4222,46 @@ Partial Class Childform
     Friend WithEvents pre_rpt_lblAmount As System.Windows.Forms.Label
     Friend WithEvents pre_rpt_grid As System.Windows.Forms.DataGridView
     Friend WithEvents tcMain As System.Windows.Forms.TabControl
+    Friend WithEvents dashInsightsPanel As System.Windows.Forms.Panel
+    Friend WithEvents dashCardWarranties As System.Windows.Forms.Panel
+    Friend WithEvents dashLblWarrantiesTitle As System.Windows.Forms.Label
+    Friend WithEvents dashLblWarrantiesValue As System.Windows.Forms.Label
+    Friend WithEvents dashCardStock As System.Windows.Forms.Panel
+    Friend WithEvents dashLblStockTitle As System.Windows.Forms.Label
+    Friend WithEvents dashLblStockValue As System.Windows.Forms.Label
+    Friend WithEvents dashCardTechs As System.Windows.Forms.Panel
+    Friend WithEvents dashLblTechsTitle As System.Windows.Forms.Label
+    Friend WithEvents dashLblTechsValue As System.Windows.Forms.Label
+    Friend WithEvents dashCardSuppliers As System.Windows.Forms.Panel
+    Friend WithEvents dashLblSuppliersTitle As System.Windows.Forms.Label
+    Friend WithEvents dashLblSuppliersValue As System.Windows.Forms.Label
+    Friend WithEvents dashRecentWrap As System.Windows.Forms.Panel
+    Friend WithEvents dashLblRecent As System.Windows.Forms.Label
+    Friend WithEvents dashRecentFilters As System.Windows.Forms.Panel
+    Friend WithEvents dashActivityTypeFilter As System.Windows.Forms.ComboBox
+    Friend WithEvents dashActivityDateFilter As System.Windows.Forms.ComboBox
+    Friend WithEvents dashRecentGrid As System.Windows.Forms.DataGridView
+    Friend WithEvents dash_colType As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents dash_colInfo As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents dash_colDate As System.Windows.Forms.DataGridViewTextBoxColumn
+    
+    Friend WithEvents rptSales_btnRefresh As System.Windows.Forms.Button
+    Friend WithEvents rptSales_btnExport As System.Windows.Forms.Button
+    Friend WithEvents rptSales_pnlCardAmount As System.Windows.Forms.Panel
+    Friend WithEvents rptSales_lblAmountTitle As System.Windows.Forms.Label
+    Friend WithEvents rptSales_lblTotalAmount As System.Windows.Forms.Label
+    Friend WithEvents rptSales_pnlCardItems As System.Windows.Forms.Panel
+    Friend WithEvents rptSales_lblItemsTitle As System.Windows.Forms.Label
+    Friend WithEvents rptSales_lblTotalItems As System.Windows.Forms.Label
+    Friend WithEvents rptSale_colPurchaseId As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents rptSale_colReceipt As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents rptSale_colDate As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents rptSale_colCustomer As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents rptSale_colItemCount As System.Windows.Forms.DataGridViewTextBoxColumn
+    Friend WithEvents rptSale_colAmount As System.Windows.Forms.DataGridViewTextBoxColumn
 End Class
+
+
 
 
 
