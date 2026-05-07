@@ -4,9 +4,35 @@ Public Class MDIMainForm
     Private _dashboardForm As Childform
 
     Private Sub MideaMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' Load Dashboard by default
+        ' Apply user role permissions
+        ApplyUserPermissions()
+
+        ' Load default child form (role check is now handled inside InitializeChildForm)
         InitializeChildForm()
-        _dashboardForm.tcMain.SelectedTab = _dashboardForm.pnlDashboardMain
+    End Sub
+
+    Private Sub ApplyUserPermissions()
+        If MideaProShopModule.CurrentUserRole = "user" Then
+            ' Hide unauthorized main menus
+            DashboardToolStripMenuItem.Visible = False
+            InventoryToolStripMenuItem.Visible = False
+            SatffAndTechnicianToolStripMenuItem.Visible = False
+            ReportToolStripMenuItem.Visible = False
+            SupplierToolStripMenuItem.Visible = False
+
+            ' Hide unauthorized sub-menus
+            ManageServiceToolStripMenuItem.Visible = False
+            BackupRestoreToolStripMenuItem.Visible = False
+        Else
+            ' Admin or other roles show everything
+            DashboardToolStripMenuItem.Visible = True
+            InventoryToolStripMenuItem.Visible = True
+            SatffAndTechnicianToolStripMenuItem.Visible = True
+            ReportToolStripMenuItem.Visible = True
+            SupplierToolStripMenuItem.Visible = True
+            ManageServiceToolStripMenuItem.Visible = True
+            BackupRestoreToolStripMenuItem.Visible = True
+        End If
     End Sub
 
     Private Sub DashboardToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles DashboardToolStripMenuItem.Click
@@ -48,6 +74,13 @@ Public Class MDIMainForm
             _dashboardForm.Text = ""
             _dashboardForm.ShowIcon = False
             _dashboardForm.Dock = DockStyle.Fill
+
+            ' Set the initial tab BEFORE calling .Show() to avoid flashing the dashboard
+            If MideaProShopModule.CurrentUserRole = "user" Then
+                _dashboardForm.tcMain.SelectedTab = _dashboardForm.pnlOrderMain
+            Else
+                _dashboardForm.tcMain.SelectedTab = _dashboardForm.pnlDashboardMain
+            End If
         End If
         
         _dashboardForm.Show()
@@ -112,6 +145,25 @@ Public Class MDIMainForm
     Private Sub SaleReportToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles SaleReportToolStripMenuItem.Click
         InitializeChildForm()
         _dashboardForm.RPT_ShowSalesReport()
+    End Sub
+
+    Private Sub BackupRestoreToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles BackupRestoreToolStripMenuItem.Click
+        InitializeChildForm()
+        _dashboardForm.BR_ShowBackupRestore()
+    End Sub
+
+    Private Sub AccountToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AccountToolStripMenuItem.Click
+        InitializeChildForm()
+        _dashboardForm.ACC_ShowAccountSettings()
+    End Sub
+
+    Private Sub LogoutToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles LogoutToolStripMenuItem.Click
+        ' Clear current user role
+        MideaProShopModule.CurrentUserRole = ""
+        
+        ' Show login form and close this one
+        ConfigPage.Show()
+        Me.Close()
     End Sub
 
 

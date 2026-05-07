@@ -79,6 +79,9 @@
     <Reference Include="MySql.Data, Version=9.6.0.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
       <HintPath>..\packages\MySql.Data.9.6.0\lib\net48\MySql.Data.dll</HintPath>
     </Reference>
+    <Reference Include="MySqlBackup, Version=2.7.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MySqlBackup.NET.2.7.0\lib\net48\MySqlBackup.dll</HintPath>
+    </Reference>
     <Reference Include="MySqlConnector, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d33d3e53aa5f8c92, processorArchitecture=MSIL">
       <HintPath>..\packages\MySqlConnector.2.5.0\lib\net48\MySqlConnector.dll</HintPath>
     </Reference>
@@ -149,6 +152,12 @@
     <Compile Include="Childform.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="ConfigPage.Designer.vb">
+      <DependentUpon>ConfigPage.vb</DependentUpon>
+    </Compile>
+    <Compile Include="ConfigPage.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="MDIMainForm.Designer.vb">
       <DependentUpon>MDIMainForm.vb</DependentUpon>
     </Compile>
@@ -176,6 +185,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Childform.resx">
       <DependentUpon>Childform.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ConfigPage.resx">
+      <DependentUpon>ConfigPage.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MDIMainForm.resx">
       <DependentUpon>MDIMainForm.vb</DependentUpon>

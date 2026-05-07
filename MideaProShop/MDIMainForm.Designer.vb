@@ -48,12 +48,16 @@ Partial Class MDIMainForm
         Me.SaleReportToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.SupplierToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ManageSupplierToolStripMenuItem1 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.SettingsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.BackupRestoreToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.AccountToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.LogoutToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuStrip1.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStrip1
         '
-        Me.MenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.DashboardToolStripMenuItem, Me.SaleToolStripMenuItem, Me.InventoryToolStripMenuItem, Me.InventoryToolStripMenuItem1, Me.ServiceToolStripMenuItem, Me.WarrantyToolStripMenuItem, Me.SatffAndTechnicianToolStripMenuItem, Me.ReportToolStripMenuItem, Me.SupplierToolStripMenuItem})
+        Me.MenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.DashboardToolStripMenuItem, Me.SaleToolStripMenuItem, Me.InventoryToolStripMenuItem, Me.InventoryToolStripMenuItem1, Me.ServiceToolStripMenuItem, Me.WarrantyToolStripMenuItem, Me.SatffAndTechnicianToolStripMenuItem, Me.ReportToolStripMenuItem, Me.SupplierToolStripMenuItem, Me.SettingsToolStripMenuItem})
         Me.MenuStrip1.Location = New System.Drawing.Point(0, 0)
         Me.MenuStrip1.Name = "MenuStrip1"
         Me.MenuStrip1.Size = New System.Drawing.Size(800, 24)
@@ -183,13 +187,13 @@ Partial Class MDIMainForm
         'AddNewStaffToolStripMenuItem
         '
         Me.AddNewStaffToolStripMenuItem.Name = "AddNewStaffToolStripMenuItem"
-        Me.AddNewStaffToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.AddNewStaffToolStripMenuItem.Size = New System.Drawing.Size(150, 22)
         Me.AddNewStaffToolStripMenuItem.Text = "Add New Staff"
         '
         'ManageStaffToolStripMenuItem
         '
         Me.ManageStaffToolStripMenuItem.Name = "ManageStaffToolStripMenuItem"
-        Me.ManageStaffToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ManageStaffToolStripMenuItem.Size = New System.Drawing.Size(150, 22)
         Me.ManageStaffToolStripMenuItem.Text = "Manage Staff"
         '
         'ReportToolStripMenuItem
@@ -202,7 +206,7 @@ Partial Class MDIMainForm
         'SaleReportToolStripMenuItem
         '
         Me.SaleReportToolStripMenuItem.Name = "SaleReportToolStripMenuItem"
-        Me.SaleReportToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.SaleReportToolStripMenuItem.Size = New System.Drawing.Size(133, 22)
         Me.SaleReportToolStripMenuItem.Text = "Sale Report"
         '
         'SupplierToolStripMenuItem
@@ -217,6 +221,31 @@ Partial Class MDIMainForm
         Me.ManageSupplierToolStripMenuItem1.Name = "ManageSupplierToolStripMenuItem1"
         Me.ManageSupplierToolStripMenuItem1.Size = New System.Drawing.Size(180, 22)
         Me.ManageSupplierToolStripMenuItem1.Text = "Manage Supplier"
+        '
+        'SettingsToolStripMenuItem
+        '
+        Me.SettingsToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.BackupRestoreToolStripMenuItem, Me.AccountToolStripMenuItem, Me.LogoutToolStripMenuItem})
+        Me.SettingsToolStripMenuItem.Name = "SettingsToolStripMenuItem"
+        Me.SettingsToolStripMenuItem.Size = New System.Drawing.Size(61, 20)
+        Me.SettingsToolStripMenuItem.Text = "Settings"
+        '
+        'BackupRestoreToolStripMenuItem
+        '
+        Me.BackupRestoreToolStripMenuItem.Name = "BackupRestoreToolStripMenuItem"
+        Me.BackupRestoreToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.BackupRestoreToolStripMenuItem.Text = "Backup/Restore"
+        '
+        'AccountToolStripMenuItem
+        '
+        Me.AccountToolStripMenuItem.Name = "AccountToolStripMenuItem"
+        Me.AccountToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.AccountToolStripMenuItem.Text = "Account"
+        '
+        'LogoutToolStripMenuItem
+        '
+        Me.LogoutToolStripMenuItem.Name = "LogoutToolStripMenuItem"
+        Me.LogoutToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.LogoutToolStripMenuItem.Text = "Logout"
         '
         'MDIMainForm
         '
@@ -262,4 +291,8 @@ Partial Class MDIMainForm
     Friend WithEvents SupplierToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ManageSupplierToolStripMenuItem1 As ToolStripMenuItem
     Friend WithEvents ViewWarrantyClaimToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents SettingsToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents BackupRestoreToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents AccountToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents LogoutToolStripMenuItem As ToolStripMenuItem
 End Class
